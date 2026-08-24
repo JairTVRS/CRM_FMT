@@ -33,349 +33,190 @@
       --table-header-bg: #2a2a2a;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
 
     body {
       display: flex;
       background-color: var(--bg-body);
       color: var(--text-main);
       min-height: 100vh;
-      padding-top: 60px; /* Espaço para o cabeçalho fixo */
+      padding-top: 60px;
       transition: background-color 0.3s, color 0.3s;
     }
 
+    /* Tela de Login Modal */
+    #loginOverlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #000000;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000;
+    }
+
+    .login-box {
+      background: #1e1e1e;
+      color: #fff;
+      padding: 35px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .login-box h2 { margin-bottom: 8px; color: #fff; letter-spacing: 1px; }
+    .login-box p { font-size: 13px; color: #aaa; margin-bottom: 20px; }
+    .login-box input {
+      width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444;
+      background: #2b2b2b; color: #fff; margin-bottom: 15px; font-size: 14px; outline: none;
+    }
+    .login-box input:focus { border-color: var(--primary); }
+
+    .btn-login {
+      width: 100%; background-color: var(--primary); color: #fff; border: none;
+      padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;
+      transition: background 0.2s;
+    }
+    .btn-login:hover { background-color: var(--primary-hover); }
+
     /* Top Navbar Fixa */
     .top-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 60px;
+      position: fixed; top: 0; left: 0; width: 100%; height: 60px;
       background-color: var(--bg-header);
       border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      z-index: 1100;
-      transition: background-color 0.3s, border-color 0.3s;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; z-index: 1100; transition: all 0.3s;
     }
 
-    .header-logo-container {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .header-logo-container { display: flex; align-items: center; gap: 10px; }
+    .brand-logo { height: 32px; object-fit: contain; }
 
-    .brand-logo {
-      height: 32px;
-      object-fit: contain;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
+    .header-actions { display: flex; align-items: center; gap: 15px; }
 
     .theme-toggle-btn {
-      background: none;
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 6px 12px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
+      background: none; border: 1px solid var(--border-color); color: var(--text-main);
+      padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px;
+      display: flex; align-items: center; gap: 6px; transition: border-color 0.2s;
     }
+    .theme-toggle-btn:hover { border-color: var(--primary); }
 
-    .theme-toggle-btn:hover {
-      border-color: var(--primary);
-    }
+    .user-info { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 
     .user-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 14px;
+      width: 36px; height: 36px; border-radius: 50%;
+      background-color: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: bold;
+    }
+
+    .btn-logout {
+      background: none; border: none; color: #ff3b00; cursor: pointer; font-size: 12px; margin-left: 5px;
+      text-decoration: underline;
     }
 
     /* Sidebar */
     .sidebar {
-      width: 240px;
-      background-color: var(--bg-sidebar);
-      color: #fff;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      width: 240px; background-color: var(--bg-sidebar); color: #fff;
+      padding: 20px; display: flex; flex-direction: column; justify-content: space-between;
       min-height: calc(100vh - 60px);
     }
 
-    .sidebar-top {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
     .menu-item {
-      background-color: var(--primary);
-      color: #fff;
-      padding: 12px 15px;
-      border-radius: 6px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
+      background-color: var(--primary); color: #fff; padding: 12px 15px;
+      border-radius: 6px; font-weight: bold; display: flex; align-items: center; gap: 10px;
     }
 
     .sidebar-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      color: #777;
-      border-top: 1px solid #222;
-      padding-top: 15px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; color: #777; border-top: 1px solid #222; padding-top: 15px;
     }
 
-    .badge-version {
-      background-color: #1a1a1a;
-      color: #aaa;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-    }
+    .badge-version { background-color: #1a1a1a; color: #aaa; padding: 3px 8px; border-radius: 4px; font-size: 10px; }
 
     /* Content Area */
-    .content {
-      flex: 1;
-      padding: 30px;
-    }
-
-    .header-tag {
-      color: var(--primary);
-      font-size: 12px;
-      font-weight: bold;
-      letter-spacing: 1px;
-      margin-bottom: 5px;
-    }
-
-    .header-title-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-    }
-
-    .header-title {
-      font-size: 28px;
-      font-weight: bold;
-    }
+    .content { flex: 1; padding: 30px; }
+    .header-tag { color: var(--primary); font-size: 12px; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px; }
+    .header-title-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header-title { font-size: 28px; font-weight: bold; }
 
     .btn-add {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      font-size: 15px;
-      font-weight: bold;
-      border-radius: 6px;
-      cursor: pointer;
+      background-color: var(--primary); color: white; border: none;
+      padding: 12px 24px; font-size: 15px; font-weight: bold; border-radius: 6px; cursor: pointer;
       transition: background 0.2s;
     }
+    .btn-add:hover { background-color: var(--primary-hover); }
 
-    .btn-add:hover {
-      background-color: var(--primary-hover);
-    }
-
-    /* Table Container */
     .card {
-      background-color: var(--bg-card);
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-      transition: background-color 0.3s, border-color 0.3s;
+      background-color: var(--bg-card); border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;
+      border: 1px solid var(--border-color); transition: all 0.3s;
     }
 
     .card-header {
-      background-color: #000;
-      color: #fff;
-      padding: 15px 20px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      font-weight: bold;
+      background-color: #000000; color: #fff; padding: 15px 20px;
+      display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background-color: var(--table-header-bg); color: var(--text-muted); font-size: 12px; font-weight: bold; padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
+    td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid var(--border-color); vertical-align: middle; color: var(--text-main); }
 
-    th {
-      background-color: var(--table-header-bg);
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: bold;
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--border-color);
-    }
+    .lead-doc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .lead-log { font-size: 11px; color: var(--primary); margin-top: 4px; font-style: italic; }
 
-    td {
-      padding: 14px 20px;
-      font-size: 14px;
-      border-bottom: 1px solid var(--border-color);
-      vertical-align: middle;
-      color: var(--text-main);
-    }
-
-    .lead-doc {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    /* Ações na Tabela */
-    .actions-container {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .action-icon {
-      text-decoration: none;
-      font-size: 16px;
-      cursor: pointer;
-      background: none;
-      border: none;
-      padding: 2px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.1s;
-    }
-
-    .action-icon:hover {
-      transform: scale(1.15);
-    }
-
-    .wsp-icon-svg {
-      width: 20px;
-      height: 20px;
-      fill: #25D366;
-    }
+    .actions-container { display: flex; align-items: center; gap: 12px; }
+    .action-icon { text-decoration: none; font-size: 16px; cursor: pointer; background: none; border: none; padding: 2px; display: inline-flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+    .action-icon:hover { transform: scale(1.15); }
+    .wsp-icon-svg { width: 20px; height: 20px; fill: #25D366; }
 
     /* Modal Styling */
     .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.6);
-      align-items: center;
-      justify-content: center;
-      z-index: 1200;
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.6); align-items: center; justify-content: center; z-index: 1200;
     }
 
     .modal-box {
-      background: var(--bg-card);
-      color: var(--text-main);
-      padding: 25px;
-      border-radius: 8px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--border-color);
+      background: var(--bg-card); color: var(--text-main); padding: 25px;
+      border-radius: 8px; width: 100%; max-width: 420px; border: 1px solid var(--border-color);
     }
 
-    .modal-box h2 {
-      margin-bottom: 15px;
-      font-size: 20px;
+    .modal-box h2 { margin-bottom: 15px; font-size: 20px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;
+      font-size: 14px; background-color: var(--bg-card); color: var(--text-main);
     }
 
-    .form-group {
-      margin-bottom: 12px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 12px;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-
-    .form-group input,
-    .form-group select {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      font-size: 14px;
-      background-color: var(--bg-card);
-      color: var(--text-main);
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .btn-save {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .btn-cancel {
-      background-color: #ccc;
-      color: #333;
-      border: none;
-      padding: 10px 18px;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-save { background-color: var(--primary); color: white; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .btn-cancel { background-color: #ccc; color: #333; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
   </style>
 </head>
 <body>
 
+  <!-- Modal de Login -->
+  <div id="loginOverlay">
+    <div class="login-box">
+      <h2>FORMATAR GESTÃO</h2>
+      <p>Digite seu e-mail corporativo para acessar o CRM</p>
+      <input type="email" id="loginEmail" placeholder="seu.email@formatar.com.br" onkeypress="if(event.key==='Enter') autenticarUsuario()">
+      <button class="btn-login" onclick="autenticarUsuario()">Entrar no Sistema</button>
+      <div id="loginError" style="color: #ff4d4d; font-size: 12px; margin-top: 10px; display: none;"></div>
+    </div>
+  </div>
+
   <!-- Header Fixo -->
   <header class="top-header">
     <div class="header-logo-container">
-      <img id="brandLogo" src="FORMATAR LOGO PRETA.png" alt="Formatar Gestão" class="brand-logo">
+      <img id="brandLogo" src="logo-preta.png" alt="Formatar Gestão" class="brand-logo" onerror="this.style.display='none'">
+      <strong id="brandTextFallback" style="font-size: 18px; letter-spacing: 1px;">FORMATAR GESTÃO</strong>
     </div>
     <div class="header-actions">
-      <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
-        🌙 Modo Escuro
-      </button>
-      <div class="user-avatar" title="Usuário Logado">
-        JT
+      <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙 Modo Escuro</button>
+      <div class="user-info">
+        <div class="user-avatar" id="userAvatar">--</div>
+        <span id="userName">Carregando...</span>
+        <button class="btn-logout" onclick="logout()" title="Sair">(Sair)</button>
       </div>
     </div>
   </header>
@@ -385,10 +226,9 @@
     <div class="sidebar-top">
       <div class="menu-item">👥 Leads</div>
     </div>
-
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v1.6 (Supabase)</span>
+      <span class="badge-version">v2.0 (Auth + Logs)</span>
     </div>
   </div>
 
@@ -400,7 +240,6 @@
       <button class="btn-add" onclick="openModal()">+ Incluir Lead</button>
     </div>
 
-    <!-- Leads Table Card -->
     <div class="card">
       <div class="card-header">
         <span>BASE SUPABASE EM TEMPO REAL</span>
@@ -413,7 +252,7 @@
             <th>NOME / DOCUMENTO</th>
             <th>WHATSAPP</th>
             <th>ORIGEM</th>
-            <th>DATA/HORA</th>
+            <th>DATA / OPERADOR</th>
           </tr>
         </thead>
         <tbody id="tabelaLeads">
@@ -425,7 +264,7 @@
     </div>
   </div>
 
-  <!-- Modal Cadastro/Edição de Lead -->
+  <!-- Modal Cadastro/Edição -->
   <div class="modal-overlay" id="modalLead">
     <div class="modal-box">
       <h2 id="modalTitle">Incluir Novo Lead</h2>
@@ -436,7 +275,7 @@
       </div>
       <div class="form-group">
         <label for="leadDocumento">CPF / CNPJ</label>
-        <input type="text" id="leadDocumento" placeholder="Ex: 000.000.000-00 ou 00.000.000/0001-00">
+        <input type="text" id="leadDocumento" placeholder="Ex: 000.000.000-00">
       </div>
       <div class="form-group">
         <label for="leadWhatsapp">WhatsApp</label>
@@ -463,10 +302,68 @@
   <script>
     const SUPABASE_URL = 'https://lvcrttnklojyvfhzszkn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_a6cAxCqWYD2gqvLbyj3MIg_Z6n8x3HR';
-
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    let usuarioLogado = null;
     let leadsCache = [];
+
+    // Verificação de Sessão do Usuário
+    function checarSessao() {
+      const sessao = localStorage.getItem('crm_user');
+      if (sessao) {
+        usuarioLogado = JSON.parse(sessao);
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('userName').innerText = usuarioLogado.name;
+        
+        const inicial = usuarioLogado.name ? usuarioLogado.name.charAt(0).toUpperCase() : 'U';
+        document.getElementById('userAvatar').innerText = inicial;
+        carregarLeads();
+      } else {
+        document.getElementById('loginOverlay').style.display = 'flex';
+      }
+    }
+
+    // Autenticação na API da Formatar via Worker
+    async function autenticarUsuario() {
+      const emailInput = document.getElementById('loginEmail').value.trim();
+      const errDiv = document.getElementById('loginError');
+      errDiv.style.display = 'none';
+
+      if (!emailInput) {
+        errDiv.innerText = 'Digite um e-mail válido.';
+        errDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/users?email=${encodeURIComponent(emailInput)}`);
+        const result = await res.json();
+
+        if (res.ok && result.data && result.data.length > 0) {
+          const user = result.data.find(u => u.email.toLowerCase() === emailInput.toLowerCase() && u.isActive);
+          
+          if (user) {
+            usuarioLogado = user;
+            localStorage.setItem('crm_user', JSON.stringify(user));
+            checarSessao();
+          } else {
+            errDiv.innerText = 'Usuário inativo ou não autorizado.';
+            errDiv.style.display = 'block';
+          }
+        } else {
+          errDiv.innerText = 'Usuário não encontrado na base Formatar.';
+          errDiv.style.display = 'block';
+        }
+      } catch (err) {
+        errDiv.innerText = 'Erro ao validar usuário. Tente novamente.';
+        errDiv.style.display = 'block';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('crm_user');
+      location.reload();
+    }
 
     // Alternador de Tema Dark / Light
     function toggleTheme() {
@@ -481,10 +378,10 @@
 
       if (newTheme === 'dark') {
         themeBtn.innerHTML = '☀️ Modo Claro';
-        brandLogo.src = 'FORMATAR LOGO BRANCA.png';
+        brandLogo.src = 'logo-branca.png';
       } else {
         themeBtn.innerHTML = '🌙 Modo Escuro';
-        brandLogo.src = 'FORMATAR LOGO PRETA.png';
+        brandLogo.src = 'logo-preta.png';
       }
     }
 
@@ -512,7 +409,7 @@
       document.getElementById('modalLead').style.display = 'none';
     }
 
-    // Buscar Leads
+    // Carregar Leads com Log
     async function carregarLeads() {
       const { data, error } = await supabaseClient
         .from('leads')
@@ -539,6 +436,14 @@
         const numLimpo = (lead.whatsapp || '').replace(/\D/g, '');
         const wspUrl = numLimpo ? `https://wa.me/55${numLimpo}` : '#';
 
+        const logInfo = lead.updated_by 
+          ? `Editado por <strong>${lead.updated_by}</strong>`
+          : (lead.created_by ? `Criado por <strong>${lead.created_by}</strong>` : 'Legado');
+
+        const dataHora = lead.updated_at 
+          ? new Date(lead.updated_at).toLocaleString('pt-BR') 
+          : (lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-');
+
         return `
           <tr>
             <td>
@@ -558,7 +463,10 @@
             </td>
             <td>${lead.whatsapp || 'N/I'}</td>
             <td>${lead.origem || 'Direto'}</td>
-            <td>${lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-'}</td>
+            <td>
+              <div>${dataHora}</div>
+              <div class="lead-log">👤 ${logInfo}</div>
+            </td>
           </tr>
         `;
       }).join('');
@@ -572,15 +480,12 @@
     async function excluirLead(id) {
       if (confirm('Tem certeza que deseja excluir este lead?')) {
         const { error } = await supabaseClient.from('leads').delete().eq('id', id);
-        if (error) {
-          alert('Erro ao excluir: ' + error.message);
-        } else {
-          carregarLeads();
-        }
+        if (error) alert('Erro ao excluir: ' + error.message);
+        else carregarLeads();
       }
     }
 
-    // Salvar Lead
+    // Salvar Lead com Gravação Automática do Nome do Usuário
     async function salvarLead() {
       const id = document.getElementById('leadId').value;
       const nome = document.getElementById('leadNome').value.trim();
@@ -588,26 +493,31 @@
       const whatsapp = document.getElementById('leadWhatsapp').value.trim();
       const origem = document.getElementById('leadOrigem').value;
 
-      if (!nome) {
-        alert('Por favor, informe o nome do lead.');
+      if (!nome || !origem) {
+        alert('Por favor, preencha Nome e Origem.');
         return;
       }
 
-      if (!origem) {
-        alert('Por favor, selecione a origem do lead.');
-        return;
-      }
-
+      const operador = usuarioLogado ? usuarioLogado.name : 'Sistema';
       let res;
+
       if (id) {
         res = await supabaseClient
           .from('leads')
-          .update({ nome, documento, whatsapp, origem })
+          .update({ 
+            nome, documento, whatsapp, origem,
+            updated_by: operador,
+            updated_at: new Date().toISOString()
+          })
           .eq('id', id);
       } else {
         res = await supabaseClient
           .from('leads')
-          .insert([{ nome, documento, whatsapp, origem }]);
+          .insert([{ 
+            nome, documento, whatsapp, origem,
+            created_by: operador,
+            created_at: new Date().toISOString()
+          }]);
       }
 
       if (res.error) {
@@ -619,7 +529,7 @@
     }
 
     // Inicialização
-    carregarLeads();
+    checarSessao();
   </script>
 </body>
 </html>
