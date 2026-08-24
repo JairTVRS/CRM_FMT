@@ -228,7 +228,7 @@
     </div>
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v2.0 (Auth + Logs)</span>
+      <span class="badge-version">v2.1 (Local Auth)</span>
     </div>
   </div>
 
@@ -304,6 +304,55 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_a6cAxCqWYD2gqvLbyj3MIg_Z6n8x3HR';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Lista estática de usuários autorizados (extraída do CSV)
+    const USUARIOS_PERMITIDOS = [
+      {"NID":74,"Nome":"Adriana Aparecida","E-mail":"jairdasilvatj@hotmail.com"},
+      {"NID":49,"Nome":"Aline Campos","E-mail":"formatar.rh@formatar.com.br"},
+      {"NID":64,"Nome":"Alvaro Junior","E-mail":"alvarocesar.adm@gmail.com"},
+      {"NID":45,"Nome":"Alyne Oliveira","E-mail":"alyne@formatar.com.br"},
+      {"NID":35,"Nome":"Amanda Bernardes","E-mail":"amanda@formatar.com.br"},
+      {"NID":7,"Nome":"Ana Clara Quirino","E-mail":"anaclaraquirino@formatar.com.br"},
+      {"NID":67,"Nome":"Ana L. Morais","E-mail":"analuiza060508@gmail.com"},
+      {"NID":28,"Nome":"Ana Luiza","E-mail":"informacoes@formatar.com.br"},
+      {"NID":75,"Nome":"Ana Paula","E-mail":"apgestaoesuporte@gmail.com"},
+      {"NID":41,"Nome":"Andreza Lacerda","E-mail":"andrezalacerda@formatar.com.br"},
+      {"NID":58,"Nome":"Arthur Wasconcelos","E-mail":"arthur@formatar.com.br"},
+      {"NID":6,"Nome":"Daby Romina","E-mail":"daby@formatar.com.br"},
+      {"NID":34,"Nome":"Eduarda Melo","E-mail":"marketing@formatar.com.br"},
+      {"NID":70,"Nome":"Eduardo Pimenta","E-mail":"eduardo.pimenta@formatar.com.br"},
+      {"NID":54,"Nome":"Geovana Silva","E-mail":"geovana@formatar.com.br"},
+      {"NID":71,"Nome":"Gustavo Henrique","E-mail":"guhenriquetomaz@gmail.com"},
+      {"NID":19,"Nome":"Helton Cardoso","E-mail":"helton@formatar.com.br"},
+      {"NID":47,"Nome":"Isabella Duarte","E-mail":"isabella.duartemoreira@gmail.com"},
+      {"NID":55,"Nome":"Ivana Sales","E-mail":"jairdasilvatj@gmail.com"},
+      {"NID":3,"Nome":"Jair Tavares","E-mail":"jair@formatar.com.br"},
+      {"NID":68,"Nome":"João Scofield","E-mail":"jgsv1503@gmail.com"},
+      {"NID":60,"Nome":"Julia Tavares","E-mail":"julia@formatar.com.br"},
+      {"NID":26,"Nome":"Larissa Salomé","E-mail":"larissa@formatar.com.br"},
+      {"NID":30,"Nome":"Leopoldo Diniz","E-mail":"leopoldo@formatar.com.br"},
+      {"NID":8,"Nome":"Letícia Rodrigues","E-mail":"leticia@formatar.com.br"},
+      {"NID":56,"Nome":"Lorena Moreira","E-mail":"lorena@formatar.com.br"},
+      {"NID":76,"Nome":"Luan Guilherme","E-mail":"luangui0109@gmail.com"},
+      {"NID":40,"Nome":"Lucas Marques","E-mail":"lucasmarques@formatar.com.br"},
+      {"NID":44,"Nome":"Luiz Felipe","E-mail":"luizfelipe@formatar.com.br"},
+      {"NID":1,"Nome":"Marco Tavares","E-mail":"marcotulio.magalhaes@gmail.com"},
+      {"NID":53,"Nome":"Maria Clara","E-mail":"clarinhafonseca15@gmail.com"},
+      {"NID":17,"Nome":"Marlon Rocha","E-mail":"marlon@formatar.com.br"},
+      {"NID":29,"Nome":"Mayra Furtado","E-mail":"mayra@formatar.com.br"},
+      {"NID":24,"Nome":"Miguel Amaral","E-mail":"miguelmapemilu@gmail.com"},
+      {"NID":22,"Nome":"Natalia Carvalho","E-mail":"natalia@formatar.com.br"},
+      {"NID":31,"Nome":"Natan Okada","E-mail":"natan@formatar.com.br"},
+      {"NID":23,"Nome":"Pedro Amaral","E-mail":"pedro@formatar.com.br"},
+      {"NID":46,"Nome":"Rafaella Christina","E-mail":"rafaella@formatar.com.br"},
+      {"NID":38,"Nome":"Raylannder Lacerda","E-mail":"raylannder@formatar.com.br"},
+      {"NID":66,"Nome":"Rita de Cássia","E-mail":"rita.cassia.formatar@gmail.com"},
+      {"NID":4,"Nome":"Ruhan Teodoro","E-mail":"ruhan@formatar.com.br"},
+      {"NID":65,"Nome":"Sofia Prado","E-mail":"agendamento@formatar.com.br"},
+      {"NID":37,"Nome":"Thauany Santos","E-mail":"thauany@formatar.com.br"},
+      {"NID":15,"Nome":"Tulio Amaral","E-mail":"tulio@formatar.com.br"},
+      {"NID":2,"Nome":"Vinícius França","E-mail":"vinicius@formatar.com.br"}
+    ];
+
     let usuarioLogado = null;
     let leadsCache = [];
 
@@ -313,9 +362,9 @@
       if (sessao) {
         usuarioLogado = JSON.parse(sessao);
         document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('userName').innerText = usuarioLogado.name || usuarioLogado.nome || usuarioLogado.email;
+        document.getElementById('userName').innerText = usuarioLogado.Nome || usuarioLogado.email;
         
-        const nomeParaAvatar = usuarioLogado.name || usuarioLogado.nome || usuarioLogado.email;
+        const nomeParaAvatar = usuarioLogado.Nome || usuarioLogado.email;
         const inicial = nomeParaAvatar ? nomeParaAvatar.charAt(0).toUpperCase() : 'U';
         document.getElementById('userAvatar').innerText = inicial;
         carregarLeads();
@@ -324,9 +373,9 @@
       }
     }
 
-    // Autenticação direta na API da Formatar sem Query Param
-    async function autenticarUsuario() {
-      const emailInput = document.getElementById('loginEmail').value.trim();
+    // Autenticação local rápida pela lista do CSV
+    function autenticarUsuario() {
+      const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
       const errDiv = document.getElementById('loginError');
       errDiv.style.display = 'none';
 
@@ -336,39 +385,14 @@
         return;
       }
 
-      try {
-        const API_URL = 'https://hub.formatar.com.br/api/users';
-        const res = await fetch(API_URL);
-        
-        if (!res.ok) {
-          throw new Error(`Status ${res.status}`);
-        }
+      const user = USUARIOS_PERMITIDOS.find(u => u["E-mail"].toLowerCase().trim() === emailInput);
 
-        const result = await res.json();
-        const listaUsuarios = Array.isArray(result) ? result : (result.data || []);
-
-        const user = listaUsuarios.find(u => {
-          const emailUser = u.email || u.mail || u.user_email;
-          return emailUser && emailUser.toLowerCase().trim() === emailInput.toLowerCase();
-        });
-
-        if (user) {
-          if (user.isActive === false || user.active === false) {
-            errDiv.innerText = 'Usuário inativo no sistema.';
-            errDiv.style.display = 'block';
-            return;
-          }
-
-          usuarioLogado = user;
-          localStorage.setItem('crm_user', JSON.stringify(user));
-          checarSessao();
-        } else {
-          errDiv.innerText = 'E-mail não encontrado na base Formatar.';
-          errDiv.style.display = 'block';
-        }
-      } catch (err) {
-        console.error('Erro no login:', err);
-        errDiv.innerText = 'Erro ao conectar na API de usuários da Formatar.';
+      if (user) {
+        usuarioLogado = user;
+        localStorage.setItem('crm_user', JSON.stringify(user));
+        checarSessao();
+      } else {
+        errDiv.innerText = 'E-mail não cadastrado na lista de usuários permitidos.';
         errDiv.style.display = 'block';
       }
     }
@@ -511,7 +535,7 @@
         return;
       }
 
-      const operador = usuarioLogado ? (usuarioLogado.name || usuarioLogado.nome || usuarioLogado.email) : 'Sistema';
+      const operador = usuarioLogado ? (usuarioLogado.Nome || usuarioLogado.email) : 'Sistema';
       let res;
 
       if (id) {
