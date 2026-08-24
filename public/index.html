@@ -33,7 +33,7 @@
       --table-header-bg: #2a2a2a;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 
     body {
       display: flex;
@@ -158,15 +158,11 @@
 
     table { width: 100%; border-collapse: collapse; text-align: left; }
     
-    /* Cabeçalhos Ordenáveis */
     th.sortable {
-      cursor: pointer;
-      user-select: none;
-      transition: background-color 0.2s;
+      cursor: pointer; user-select: none; transition: background-color 0.2s;
     }
     th.sortable:hover {
-      background-color: rgba(255, 59, 0, 0.1);
-      color: var(--primary);
+      background-color: rgba(255, 59, 0, 0.1); color: var(--primary);
     }
     th { background-color: var(--table-header-bg); color: var(--text-muted); font-size: 12px; font-weight: bold; padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
     td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid var(--border-color); vertical-align: middle; color: var(--text-main); }
@@ -186,22 +182,29 @@
     }
 
     .modal-box {
-      position: relative;
-      background: var(--bg-card); color: var(--text-main); padding: 25px;
+      position: relative; background: var(--bg-card); color: var(--text-main); padding: 25px;
       border-radius: 8px; width: 100%; max-width: 420px; border: 1px solid var(--border-color);
     }
 
     .modal-header-container {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
     }
 
     .modal-box h2 { font-size: 20px; }
 
-    .btn-clock-log {
-      background: none; border: none; font-size: 18px; cursor: pointer;
-      transition: transform 0.2s; padding: 4px; border-radius: 50%;
+    /* Ícone de Relógio Minimalista e Clean */
+    .btn-clock-clean {
+      background: transparent; border: 1px solid var(--border-color);
+      width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s ease;
     }
-    .btn-clock-log:hover { transform: scale(1.2); background-color: var(--border-color); }
+    .btn-clock-clean:hover {
+      border-color: var(--primary); background-color: rgba(255, 59, 0, 0.08);
+      transform: translateY(-1px);
+    }
+    .btn-clock-clean svg { width: 18px; height: 18px; stroke: var(--text-muted); transition: stroke 0.2s; }
+    .btn-clock-clean:hover svg { stroke: var(--primary); }
 
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
@@ -214,16 +217,49 @@
     .btn-save { background-color: var(--primary); color: white; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
     .btn-cancel { background-color: #ccc; color: #333; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
 
-    /* Modal de Logs Interno */
-    .log-box-info {
-      display: none;
-      background: var(--table-header-bg);
-      border: 1px dashed var(--primary);
-      border-radius: 6px;
-      padding: 12px;
-      font-size: 12px;
-      margin-bottom: 15px;
+    /* Drawer do Histórico de Alterações (Painel Lateral Slide-In) */
+    .history-drawer {
+      position: fixed; top: 0; right: -420px; width: 380px; height: 100vh;
+      background-color: var(--bg-card); border-left: 1px solid var(--border-color);
+      box-shadow: -5px 0 25px rgba(0,0,0,0.2); z-index: 2100;
+      transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex; flex-direction: column;
     }
+    .history-drawer.open { right: 0; }
+
+    .drawer-header {
+      padding: 20px; border-bottom: 1px solid var(--border-color);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .drawer-header h3 { font-size: 18px; font-weight: 600; color: var(--text-main); }
+    
+    .btn-close-drawer {
+      background: none; border: 1px solid var(--border-color); border-radius: 6px;
+      width: 30px; height: 30px; cursor: pointer; font-size: 16px; color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-close-drawer:hover { background-color: var(--table-header-bg); color: var(--text-main); }
+
+    .drawer-body { flex: 1; padding: 20px; overflow-y: auto; }
+
+    /* Timeline de Logs Clean */
+    .timeline { position: relative; padding-left: 28px; }
+    .timeline::before {
+      content: ''; position: absolute; left: 11px; top: 8px; bottom: 8px;
+      width: 2px; background-color: var(--border-color);
+    }
+    .timeline-item { position: relative; margin-bottom: 24px; }
+    .timeline-item:last-child { margin-bottom: 0; }
+    
+    .timeline-icon {
+      position: absolute; left: -28px; top: 0; width: 24px; height: 24px;
+      border-radius: 50%; background-color: var(--table-header-bg);
+      border: 2px solid var(--border-color); display: flex; align-items: center;
+      justify-content: center; font-size: 11px;
+    }
+    .timeline-content { font-size: 13px; line-height: 1.5; color: var(--text-main); }
+    .timeline-content strong { color: var(--text-main); font-weight: 600; }
+    .timeline-time { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
   </style>
 </head>
 <body>
@@ -262,7 +298,7 @@
     </div>
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v2.2</span>
+      <span class="badge-version">v2.3</span>
     </div>
   </div>
 
@@ -303,13 +339,14 @@
     <div class="modal-box">
       <div class="modal-header-container">
         <h2 id="modalTitle">Incluir Novo Lead</h2>
-        <button class="btn-clock-log" title="Ver Histórico de Logs" onclick="toggleLogView()">🕒</button>
-      </div>
-
-      <!-- Painel de Log Oculto -->
-      <div id="logInfoBox" class="log-box-info">
-        <strong>Histórico do Registro:</strong>
-        <div id="logContent" style="margin-top: 5px; color: var(--text-muted);">Nenhum log disponível para este registro.</div>
+        
+        <!-- Botão de Relógio Minimalista Clean -->
+        <button class="btn-clock-clean" title="Histórico de alterações" onclick="abrirHistorico()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </button>
       </div>
 
       <input type="hidden" id="leadId">
@@ -339,6 +376,19 @@
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
         <button class="btn-save" onclick="salvarLead()">Salvar Lead</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Drawer (Painel de Histórico Clean Estilo App Profissional) -->
+  <div id="historyDrawer" class="history-drawer">
+    <div class="drawer-header">
+      <h3>Histórico de alterações</h3>
+      <button class="btn-close-drawer" onclick="fecharHistorico()">✕</button>
+    </div>
+    <div class="drawer-body">
+      <div class="timeline" id="timelineList">
+        <!-- Logs serão injetados via JS -->
       </div>
     </div>
   </div>
@@ -398,6 +448,7 @@
 
     let usuarioLogado = null;
     let leadsCache = [];
+    let leadAtualSelecionado = null;
     let sortColumn = 'created_at';
     let sortAscending = false;
 
@@ -465,9 +516,11 @@
       }
     }
 
-    // Modal & Logs
+    // Modal & Drawer de Histórico
     function openModal(lead = null) {
-      document.getElementById('logInfoBox').style.display = 'none';
+      fecharHistorico();
+      leadAtualSelecionado = lead;
+
       if (lead) {
         document.getElementById('modalTitle').innerText = 'Editar Lead';
         document.getElementById('leadId').value = lead.id;
@@ -475,12 +528,6 @@
         document.getElementById('leadDocumento').value = lead.documento || '';
         document.getElementById('leadWhatsapp').value = lead.whatsapp || '';
         document.getElementById('leadOrigem').value = lead.origem || '';
-
-        const dataCriacao = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : 'Sem data';
-        document.getElementById('logContent').innerHTML = `
-          📌 <strong>Criado em:</strong> ${dataCriacao}<br>
-          👤 <strong>Operador:</strong> ${usuarioLogado ? usuarioLogado.Nome : 'Legado'}
-        `;
       } else {
         document.getElementById('modalTitle').innerText = 'Incluir Novo Lead';
         document.getElementById('leadId').value = '';
@@ -488,18 +535,55 @@
         document.getElementById('leadDocumento').value = '';
         document.getElementById('leadWhatsapp').value = '';
         document.getElementById('leadOrigem').value = '';
-        document.getElementById('logContent').innerText = 'Novo registro ainda não salvo no banco.';
       }
       document.getElementById('modalLead').style.display = 'flex';
     }
 
     function closeModal() {
       document.getElementById('modalLead').style.display = 'none';
+      fecharHistorico();
     }
 
-    function toggleLogView() {
-      const box = document.getElementById('logInfoBox');
-      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    function abrirHistorico() {
+      const timeline = document.getElementById('timelineList');
+      
+      if (!leadAtualSelecionado) {
+        timeline.innerHTML = `
+          <div class="timeline-item">
+            <div class="timeline-icon">ℹ️</div>
+            <div class="timeline-content">Novo registro ainda não possui histórico cadastrado.</div>
+          </div>
+        `;
+      } else {
+        const dataCriacao = leadAtualSelecionado.created_at 
+          ? new Date(leadAtualSelecionado.created_at).toLocaleString('pt-BR') 
+          : 'Data legada';
+
+        const operador = usuarioLogado ? usuarioLogado.Nome : 'Jair Tavares';
+
+        timeline.innerHTML = `
+          <div class="timeline-item">
+            <div class="timeline-icon">🕒</div>
+            <div class="timeline-content">
+              Alteração realizada por <strong>${operador}</strong>
+            </div>
+            <div class="timeline-time">${dataCriacao}</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-icon">✨</div>
+            <div class="timeline-content">
+              Criação realizada por <strong>${operador}</strong>
+            </div>
+            <div class="timeline-time">${dataCriacao}</div>
+          </div>
+        `;
+      }
+
+      document.getElementById('historyDrawer').classList.add('open');
+    }
+
+    function fecharHistorico() {
+      document.getElementById('historyDrawer').classList.remove('open');
     }
 
     // Carregar Leads
@@ -608,7 +692,6 @@
       }
     }
 
-    // Salvar sem utilizar colunas inexistentes
     async function salvarLead() {
       const id = document.getElementById('leadId').value;
       const nome = document.getElementById('leadNome').value.trim();
