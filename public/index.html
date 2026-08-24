@@ -157,6 +157,17 @@
     }
 
     table { width: 100%; border-collapse: collapse; text-align: left; }
+    
+    /* Cabeçalhos Ordenáveis */
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    th.sortable:hover {
+      background-color: rgba(255, 59, 0, 0.1);
+      color: var(--primary);
+    }
     th { background-color: var(--table-header-bg); color: var(--text-muted); font-size: 12px; font-weight: bold; padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
     td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid var(--border-color); vertical-align: middle; color: var(--text-main); }
 
@@ -175,11 +186,23 @@
     }
 
     .modal-box {
+      position: relative;
       background: var(--bg-card); color: var(--text-main); padding: 25px;
       border-radius: 8px; width: 100%; max-width: 420px; border: 1px solid var(--border-color);
     }
 
-    .modal-box h2 { margin-bottom: 15px; font-size: 20px; }
+    .modal-header-container {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+    }
+
+    .modal-box h2 { font-size: 20px; }
+
+    .btn-clock-log {
+      background: none; border: none; font-size: 18px; cursor: pointer;
+      transition: transform 0.2s; padding: 4px; border-radius: 50%;
+    }
+    .btn-clock-log:hover { transform: scale(1.2); background-color: var(--border-color); }
+
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
     .form-group input, .form-group select {
@@ -190,6 +213,17 @@
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
     .btn-save { background-color: var(--primary); color: white; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
     .btn-cancel { background-color: #ccc; color: #333; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+
+    /* Modal de Logs Interno */
+    .log-box-info {
+      display: none;
+      background: var(--table-header-bg);
+      border: 1px dashed var(--primary);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 12px;
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 <body>
@@ -228,7 +262,7 @@
     </div>
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v2.1 (Local Auth)</span>
+      <span class="badge-version">v2.2</span>
     </div>
   </div>
 
@@ -249,10 +283,10 @@
         <thead>
           <tr>
             <th style="width: 110px;">AÇÕES</th>
-            <th>NOME / DOCUMENTO</th>
-            <th>WHATSAPP</th>
-            <th>ORIGEM</th>
-            <th>DATA / OPERADOR</th>
+            <th class="sortable" onclick="ordenarTabela('nome')">NOME / DOCUMENTO <span id="sort_nome">↕️</span></th>
+            <th class="sortable" onclick="ordenarTabela('whatsapp')">WHATSAPP <span id="sort_whatsapp">↕️</span></th>
+            <th class="sortable" onclick="ordenarTabela('origem')">ORIGEM <span id="sort_origem">↕️</span></th>
+            <th class="sortable" onclick="ordenarTabela('created_at')">DATA / OPERADOR <span id="sort_created_at">↕️</span></th>
           </tr>
         </thead>
         <tbody id="tabelaLeads">
@@ -267,7 +301,17 @@
   <!-- Modal Cadastro/Edição -->
   <div class="modal-overlay" id="modalLead">
     <div class="modal-box">
-      <h2 id="modalTitle">Incluir Novo Lead</h2>
+      <div class="modal-header-container">
+        <h2 id="modalTitle">Incluir Novo Lead</h2>
+        <button class="btn-clock-log" title="Ver Histórico de Logs" onclick="toggleLogView()">🕒</button>
+      </div>
+
+      <!-- Painel de Log Oculto -->
+      <div id="logInfoBox" class="log-box-info">
+        <strong>Histórico do Registro:</strong>
+        <div id="logContent" style="margin-top: 5px; color: var(--text-muted);">Nenhum log disponível para este registro.</div>
+      </div>
+
       <input type="hidden" id="leadId">
       <div class="form-group">
         <label for="leadNome">Nome Completo</label>
@@ -304,7 +348,6 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_a6cAxCqWYD2gqvLbyj3MIg_Z6n8x3HR';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Lista estática de usuários autorizados (extraída do CSV)
     const USUARIOS_PERMITIDOS = [
       {"NID":74,"Nome":"Adriana Aparecida","E-mail":"jairdasilvatj@hotmail.com"},
       {"NID":49,"Nome":"Aline Campos","E-mail":"formatar.rh@formatar.com.br"},
@@ -355,8 +398,10 @@
 
     let usuarioLogado = null;
     let leadsCache = [];
+    let sortColumn = 'created_at';
+    let sortAscending = false;
 
-    // Verificação de Sessão do Usuário
+    // Sessão
     function checarSessao() {
       const sessao = localStorage.getItem('crm_user');
       if (sessao) {
@@ -373,7 +418,6 @@
       }
     }
 
-    // Autenticação local rápida pela lista do CSV
     function autenticarUsuario() {
       const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
       const errDiv = document.getElementById('loginError');
@@ -402,7 +446,6 @@
       location.reload();
     }
 
-    // Alternador de Tema Dark / Light
     function toggleTheme() {
       const html = document.documentElement;
       const currentTheme = html.getAttribute('data-theme');
@@ -422,8 +465,9 @@
       }
     }
 
-    // Modal
+    // Modal & Logs
     function openModal(lead = null) {
+      document.getElementById('logInfoBox').style.display = 'none';
       if (lead) {
         document.getElementById('modalTitle').innerText = 'Editar Lead';
         document.getElementById('leadId').value = lead.id;
@@ -431,6 +475,12 @@
         document.getElementById('leadDocumento').value = lead.documento || '';
         document.getElementById('leadWhatsapp').value = lead.whatsapp || '';
         document.getElementById('leadOrigem').value = lead.origem || '';
+
+        const dataCriacao = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : 'Sem data';
+        document.getElementById('logContent').innerHTML = `
+          📌 <strong>Criado em:</strong> ${dataCriacao}<br>
+          👤 <strong>Operador:</strong> ${usuarioLogado ? usuarioLogado.Nome : 'Legado'}
+        `;
       } else {
         document.getElementById('modalTitle').innerText = 'Incluir Novo Lead';
         document.getElementById('leadId').value = '';
@@ -438,6 +488,7 @@
         document.getElementById('leadDocumento').value = '';
         document.getElementById('leadWhatsapp').value = '';
         document.getElementById('leadOrigem').value = '';
+        document.getElementById('logContent').innerText = 'Novo registro ainda não salvo no banco.';
       }
       document.getElementById('modalLead').style.display = 'flex';
     }
@@ -446,12 +497,16 @@
       document.getElementById('modalLead').style.display = 'none';
     }
 
-    // Carregar Leads com Log
+    function toggleLogView() {
+      const box = document.getElementById('logInfoBox');
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Carregar Leads
     async function carregarLeads() {
       const { data, error } = await supabaseClient
         .from('leads')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
       if (error) {
         console.error('Erro ao buscar leads:', error.message);
@@ -459,6 +514,31 @@
       }
 
       leadsCache = data || [];
+      renderizarTabela();
+    }
+
+    // Ordenação e Renderização
+    function ordenarTabela(coluna) {
+      if (sortColumn === coluna) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = coluna;
+        sortAscending = true;
+      }
+
+      ['nome', 'whatsapp', 'origem', 'created_at'].forEach(c => {
+        const el = document.getElementById(`sort_${c}`);
+        if (el) el.innerText = '↕️';
+      });
+
+      const icon = sortAscending ? '🔼' : '🔽';
+      const activeEl = document.getElementById(`sort_${coluna}`);
+      if (activeEl) activeEl.innerText = icon;
+
+      renderizarTabela();
+    }
+
+    function renderizarTabela() {
       const tbody = document.getElementById('tabelaLeads');
       document.getElementById('totalRegistros').innerText = leadsCache.length;
 
@@ -467,19 +547,25 @@
         return;
       }
 
+      leadsCache.sort((a, b) => {
+        let valA = a[sortColumn] || '';
+        let valB = b[sortColumn] || '';
+
+        if (typeof valA === 'string') valA = valA.toLowerCase();
+        if (typeof valB === 'string') valB = valB.toLowerCase();
+
+        if (valA < valB) return sortAscending ? -1 : 1;
+        if (valA > valB) return sortAscending ? 1 : -1;
+        return 0;
+      });
+
       const svgWhatsapp = `<svg class="wsp-icon-svg" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>`;
 
       tbody.innerHTML = leadsCache.map(lead => {
         const numLimpo = (lead.whatsapp || '').replace(/\D/g, '');
         const wspUrl = numLimpo ? `https://wa.me/55${numLimpo}` : '#';
 
-        const logInfo = lead.updated_by 
-          ? `Editado por <strong>${lead.updated_by}</strong>`
-          : (lead.created_by ? `Criado por <strong>${lead.created_by}</strong>` : 'Legado');
-
-        const dataHora = lead.updated_at 
-          ? new Date(lead.updated_at).toLocaleString('pt-BR') 
-          : (lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-');
+        const dataHora = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
 
         return `
           <tr>
@@ -502,7 +588,7 @@
             <td>${lead.origem || 'Direto'}</td>
             <td>
               <div>${dataHora}</div>
-              <div class="lead-log">👤 ${logInfo}</div>
+              <div class="lead-log">👤 Legado</div>
             </td>
           </tr>
         `;
@@ -522,7 +608,7 @@
       }
     }
 
-    // Salvar Lead com Gravação Automática do Nome do Usuário
+    // Salvar sem utilizar colunas inexistentes
     async function salvarLead() {
       const id = document.getElementById('leadId').value;
       const nome = document.getElementById('leadNome').value.trim();
@@ -535,26 +621,17 @@
         return;
       }
 
-      const operador = usuarioLogado ? (usuarioLogado.Nome || usuarioLogado.email) : 'Sistema';
       let res;
 
       if (id) {
         res = await supabaseClient
           .from('leads')
-          .update({ 
-            nome, documento, whatsapp, origem,
-            updated_by: operador,
-            updated_at: new Date().toISOString()
-          })
+          .update({ nome, documento, whatsapp, origem })
           .eq('id', id);
       } else {
         res = await supabaseClient
           .from('leads')
-          .insert([{ 
-            nome, documento, whatsapp, origem,
-            created_by: operador,
-            created_at: new Date().toISOString()
-          }]);
+          .insert([{ nome, documento, whatsapp, origem }]);
       }
 
       if (res.error) {
