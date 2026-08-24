@@ -3,428 +3,358 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CRM Leads — Formatar Gestão e Governança</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>CRM Leads — Formatar Gestão</title>
+  
+  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
   <style>
-    body {
-      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
     }
-    .bg-formatar-orange { background-color: #F2421A; }
-    .text-formatar-orange { color: #F2421A; }
-    .border-formatar-orange { border-color: #F2421A; }
-    .hover-formatar-orange:hover { background-color: #d83410; }
+
+    body {
+      display: flex;
+      background-color: #f4f5f7;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background-color: #000;
+      color: #fff;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .brand {
+      background-color: #ff3b00;
+      color: #fff;
+      padding: 10px 15px;
+      font-weight: bold;
+      font-size: 18px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .sub-brand {
+      font-size: 11px;
+      color: #aaa;
+      letter-spacing: 1px;
+      margin-top: -10px;
+      text-align: center;
+    }
+
+    .menu-item {
+      background-color: #ff3b00;
+      color: #fff;
+      padding: 12px 15px;
+      border-radius: 6px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    /* Content Area */
+    .content {
+      flex: 1;
+      padding: 30px;
+    }
+
+    .header-tag {
+      color: #ff3b00;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+    }
+
+    .header-title-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .header-title {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .btn-add {
+      background-color: #ff3b00;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-add:hover {
+      background-color: #e03400;
+    }
+
+    /* Table Container */
+    .card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .card-header {
+      background-color: #000;
+      color: #fff;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f8f9fa;
+      color: #555;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 12px 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    td {
+      padding: 14px 20px;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-box {
+      background: #fff;
+      padding: 25px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-box h2 {
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn-save {
+      background-color: #ff3b00;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-cancel {
+      background-color: #ccc;
+      color: #333;
+      border: none;
+      padding: 10px 18px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   </style>
 </head>
-<body class="bg-white flex h-screen overflow-hidden text-black">
+<body>
 
-  <!-- Menu Lateral -->
-  <aside class="w-64 bg-black text-white flex flex-col justify-between p-5 border-r border-gray-800 shadow-2xl">
-    <div>
-      <div class="flex flex-col mb-8 pt-2">
-        <div class="flex items-center space-x-2">
-          <div class="bg-formatar-orange text-white font-extrabold px-3 py-1 rounded text-lg tracking-wider">FORMATAR</div>
-        </div>
-        <span class="text-[10px] tracking-[0.2em] text-gray-400 uppercase font-semibold mt-2">Gestão e Governança</span>
-      </div>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="brand">FORMATAR</div>
+    <div class="sub-brand">GESTÃO E GOVERNANÇA</div>
+    <div class="menu-item">👥 Leads</div>
+  </div>
 
-      <nav class="space-y-2">
-        <a href="#" class="flex items-center space-x-3 bg-formatar-orange text-white px-4 py-3 rounded-lg font-bold shadow-md transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-          <span class="tracking-wide text-sm">Leads</span>
-        </a>
-      </nav>
+  <!-- Content -->
+  <div class="content">
+    <div class="header-tag">— MÓDULO DE CAPTAÇÃO</div>
+    <div class="header-title-container">
+      <h1 class="header-title">Leads</h1>
+      <button class="btn-add" onclick="abrirModalLead()">+ Incluir Lead</button>
     </div>
 
-    <div class="border-t border-gray-800 pt-4 text-xs text-gray-500 font-medium flex justify-between items-center">
-      <span>#EuSouFormatar</span>
-      <span class="bg-gray-800 text-gray-300 text-[10px] px-2 py-0.5 rounded font-mono">v1.2 (Supabase)</span>
-    </div>
-  </aside>
-
-  <!-- Conteúdo Principal -->
-  <main class="flex-1 flex flex-col overflow-y-auto bg-gray-50">
-    <header class="bg-white border-b border-gray-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
-      <div>
-        <div class="flex items-center space-x-2">
-          <span class="text-xs font-bold text-formatar-orange uppercase tracking-wider">— Módulo de Captação</span>
-        </div>
-        <h1 class="text-2xl font-black text-black tracking-tight mt-0.5">Leads</h1>
+    <!-- Leads Table Card -->
+    <div class="card">
+      <div class="card-header">
+        <span>BASE SUPABASE EM TEMPO REAL</span>
+        <span>Total de Registros: <strong id="totalRegistros">0</strong></span>
       </div>
-
-      <button onclick="openModal()" class="bg-formatar-orange hover-formatar-orange text-white font-bold px-5 py-2.5 rounded-lg flex items-center space-x-2 shadow-sm transition">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        <span class="text-sm">Incluir Lead</span>
-      </button>
-    </header>
-
-    <section class="p-8">
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div class="p-4 bg-black text-white flex justify-between items-center border-b border-gray-800">
-          <span class="text-xs font-semibold uppercase tracking-wider text-gray-300">Base Supabase em Tempo Real</span>
-          <span class="text-xs font-bold text-gray-300">Total de Registros: <strong id="totalLeads" class="text-formatar-orange text-sm font-extrabold ml-1">0</strong></span>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-gray-200 bg-gray-100 text-[11px] text-gray-600 uppercase font-extrabold tracking-wider">
-                <th class="p-4 w-28 text-center">Ações</th>
-                <th class="p-4">Data/Hora</th>
-                <th class="p-4">Nome / Documento</th>
-                <th class="p-4">WhatsApp</th>
-                <th class="p-4">Origem</th>
-                <th class="p-4">Status Integração</th>
-              </tr>
-            </thead>
-            <tbody id="listaLeadsTable" class="divide-y divide-gray-200"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Modal Cadastro/Edição -->
-  <div id="modalLead" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-200">
-      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-black text-white">
-        <div>
-          <span class="text-[10px] text-formatar-orange uppercase font-bold tracking-widest block">— Formatar CRM</span>
-          <h3 id="modalTitle" class="text-lg font-bold tracking-wide">Alimentação de Lead</h3>
-        </div>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-white font-bold text-2xl">&times;</button>
-      </div>
-
-      <form id="leadForm" class="p-6 space-y-4 overflow-y-auto">
-        <input type="hidden" id="editLeadId">
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Nome do Cliente / Empresa</label>
-          <input type="text" id="nome" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-formatar-orange focus:outline-none font-medium text-sm">
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">CPF/CNPJ</label>
-            <input type="text" id="documento" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-formatar-orange focus:outline-none font-medium text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">WhatsApp</label>
-            <input type="text" id="whatsapp" placeholder="5537999999999" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-formatar-orange focus:outline-none font-medium text-sm">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Origem do Lead</label>
-          <select id="origem" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-formatar-orange focus:outline-none bg-white font-medium text-sm">
-            <option value="INDICAÇÃO">Indicação</option>
-            <option value="CAPTAÇÃO">Captação</option>
-            <option value="INSTAGRAM">Instagram</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Mensagem Prévia de Abordagem</label>
-          <textarea id="mensagemInicial" rows="2" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-formatar-orange focus:outline-none font-medium text-sm">Olá! Vi seu interesse e gostaria de fazer algumas perguntas para entender seu perfil.</textarea>
-        </div>
-
-        <div class="flex items-center space-x-2 pt-2">
-          <input type="checkbox" id="usarIA" checked onchange="toggleManualFields()" class="h-4 w-4 text-formatar-orange rounded accent-formatar-orange border-gray-300">
-          <label for="usarIA" class="text-xs font-bold text-gray-800">Ativar IA para Qualificação Automática via WhatsApp</label>
-        </div>
-
-        <div id="camposManuais" class="hidden border-t border-gray-200 pt-4 space-y-4">
-          <h4 class="font-extrabold text-[11px] text-formatar-orange uppercase tracking-wider">— Informações Complementares</h4>
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Nome do Contato Interlocutor</label>
-            <input type="text" id="contatoNome" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 font-medium text-sm">
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Ramo</label>
-              <select id="ramoSelect" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 bg-white font-medium text-sm"></select>
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Segmento</label>
-              <select id="segmentoSelect" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 bg-white font-medium text-sm"></select>
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Cidade Matriz</label>
-            <input type="text" id="cidade" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 font-medium text-sm">
-          </div>
-        </div>
-
-        <div class="border-t border-gray-200 pt-4 flex justify-end space-x-3">
-          <button type="button" onclick="closeModal()" class="px-4 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-lg text-xs uppercase tracking-wider">Cancelar</button>
-          <button type="submit" class="px-5 py-2.5 bg-formatar-orange hover-formatar-orange text-white font-bold rounded-lg shadow-sm text-xs uppercase tracking-wider">Salvar</button>
-        </div>
-      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>NOME / DOCUMENTO</th>
+            <th>WHATSAPP</th>
+            <th>ORIGEM</th>
+            <th>DATA/HORA</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaLeads">
+          <tr>
+            <td colspan="4" style="text-align: center; color: #777;">Carregando registros...</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- Modal Duplicado -->
-  <div id="modalDuplicado" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 text-center space-y-4 border border-gray-200">
-      <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+  <!-- Modal Cadastro de Lead -->
+  <div class="modal-overlay" id="modalLead">
+    <div class="modal-box">
+      <h2>Incluir Novo Lead</h2>
+      <div class="form-group">
+        <label for="leadNome">Nome Completo</label>
+        <input type="text" id="leadNome" placeholder="Ex: João Silva">
       </div>
-      <h3 class="text-lg font-bold text-black">Cadastro Duplicado Identificado</h3>
-      <p id="dupMensagem" class="text-xs text-gray-600 font-medium">Já existe um lead cadastrado com este documento ou WhatsApp.</p>
-
-      <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-left text-xs space-y-1">
-        <div><strong>Nome:</strong> <span id="dupNome"></span></div>
-        <div><strong>Documento:</strong> <span id="dupDoc"></span></div>
-        <div><strong>WhatsApp:</strong> <span id="dupPhone"></span></div>
+      <div class="form-group">
+        <label for="leadWhatsapp">WhatsApp</label>
+        <input type="text" id="leadWhatsapp" placeholder="Ex: (31) 99999-9999">
       </div>
-
-      <div class="pt-2 flex space-x-2">
-        <button onclick="closeDupModal()" class="w-1/2 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-bold text-xs uppercase hover:bg-gray-50">Fechar</button>
-        <button id="btnIrParaExistente" class="w-1/2 py-2.5 bg-black text-white rounded-lg font-bold text-xs uppercase hover:bg-gray-900">Ver Cadastro</button>
+      <div class="form-group">
+        <label for="leadOrigem">Origem</label>
+        <input type="text" id="leadOrigem" placeholder="Ex: Site, Meta Ads, Indicação">
       </div>
-    </div>
-  </div>
-
-  <!-- Modal Excluir -->
-  <div id="modalExcluir" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center space-y-4 border border-gray-200">
-      <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-      </div>
-      <h3 class="text-lg font-bold text-black">Confirmar Exclusão</h3>
-      <p class="text-xs text-gray-600 font-medium">Tem certeza que deseja excluir este lead? Esta ação não poderá ser desfeita.</p>
-      
-      <div class="pt-2 flex space-x-2">
-        <button onclick="closeExcluirModal()" class="w-1/2 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-bold text-xs uppercase hover:bg-gray-50">Cancelar</button>
-        <button id="btnConfirmarExcluir" class="w-1/2 py-2.5 bg-red-600 text-white rounded-lg font-bold text-xs uppercase hover:bg-red-700">Sim, Excluir</button>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalLead()">Cancelar</button>
+        <button class="btn-save" onclick="salvarLead()">Salvar Lead</button>
       </div>
     </div>
   </div>
 
   <script>
-    // CREDENCIAIS SUPABASE (Substitua pelos seus dados do painel Supabase)
-    const SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
-    const SUPABASE_ANON_KEY = 'SUA-CHAVE-ANON-AQUI';
+    const SUPABASE_URL = 'https://lvcrttnklojyvfhzszkn.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_a6cAxCqWYD2gqvLbyj3MIg_Z6n8x3HR';
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let leadsCache = [];
-    let leadIdParaExcluir = null;
-
-    function openModal() { 
-      document.getElementById('editLeadId').value = '';
-      document.getElementById('modalTitle').innerText = 'Alimentação de Lead';
-      document.getElementById('leadForm').reset();
-      toggleManualFields();
-      document.getElementById('modalLead').classList.remove('hidden'); 
+    // Controle do Modal
+    function abrirModalLead() {
+      document.getElementById('modalLead').style.display = 'flex';
     }
 
-    function closeModal() { document.getElementById('modalLead').classList.add('hidden'); }
-    function closeDupModal() { document.getElementById('modalDuplicado').classList.add('hidden'); }
-    function closeExcluirModal() { 
-      document.getElementById('modalExcluir').classList.add('hidden'); 
-      leadIdParaExcluir = null;
+    function fecharModalLead() {
+      document.getElementById('modalLead').style.display = 'none';
+      document.getElementById('leadNome').value = '';
+      document.getElementById('leadWhatsapp').value = '';
+      document.getElementById('leadOrigem').value = '';
     }
 
-    function toggleManualFields() {
-      const usarIA = document.getElementById('usarIA').checked;
-      document.getElementById('camposManuais').classList.toggle('hidden', usarIA);
-    }
-
-    async function loadConfig() {
-      try {
-        const { data: ramos } = await supabase.from('config_ramos').select('nome');
-        const { data: segmentos } = await supabase.from('config_segmentos').select('nome');
-
-        const ramoSelect = document.getElementById('ramoSelect');
-        const segmentoSelect = document.getElementById('segmentoSelect');
-
-        ramoSelect.innerHTML = '';
-        segmentoSelect.innerHTML = '';
-
-        if (ramos) ramos.forEach(r => ramoSelect.add(new Option(r.nome, r.nome)));
-        if (segmentos) segmentos.forEach(s => segmentoSelect.add(new Option(s.nome, s.nome)));
-      } catch (err) {
-        console.error('Erro ao carregar configurações:', err);
-      }
-    }
-
+    // Buscar Leads no Supabase
     async function carregarLeads() {
-      try {
-        const { data, error } = await supabase
-          .from('leads')
-          .select('*')
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-
-        leadsCache = data || [];
-        document.getElementById('totalLeads').innerText = leadsCache.length;
-
-        const tbody = document.getElementById('listaLeadsTable');
-        tbody.innerHTML = '';
-
-        if (leadsCache.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 font-medium text-sm">Nenhum lead cadastrado. Clique em "+ Incluir Lead".</td></tr>`;
-          return;
-        }
-
-        leadsCache.forEach(lead => {
-          const textMsg = encodeURIComponent(lead.mensagem_inicial || 'Olá!');
-          const cleanPhone = lead.whatsapp.replace(/\D/g, '');
-          const waWebUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${textMsg}`;
-          const dataFormatada = new Date(lead.created_at).toLocaleString('pt-BR');
-
-          let statusBadge = lead.status_whatsapp === 'ENVIADO_AUTOMATICO' 
-            ? '<span class="bg-emerald-100 text-emerald-800 text-[11px] px-2.5 py-1 rounded font-bold border border-emerald-200">API DISPARADA</span>'
-            : '<span class="bg-amber-100 text-amber-800 text-[11px] px-2.5 py-1 rounded font-bold border border-amber-200">PENDENTE / SEM API</span>';
-
-          tbody.innerHTML += `
-            <tr id="lead-row-${lead.id}" class="hover:bg-gray-50 transition-colors text-sm border-b border-gray-200">
-              <td class="p-4 text-center">
-                <div class="flex items-center justify-center space-x-2">
-                  <a href="${waWebUrl}" target="_blank" title="Abrir WhatsApp" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                  </a>
-                  <button onclick="editarLead(${lead.id})" title="Editar Lead" class="p-1.5 text-black hover:bg-gray-200 rounded-lg transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                  </button>
-                  <button onclick="abrirModalExcluir(${lead.id})" title="Excluir Lead" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                  </button>
-                </div>
-              </td>
-              <td class="p-4 text-xs font-medium text-gray-500">${dataFormatada}</td>
-              <td class="p-4">
-                <strong class="text-black block font-bold">${lead.nome}</strong>
-                <span class="text-xs text-gray-500 font-mono">${lead.documento}</span>
-              </td>
-              <td class="p-4 font-mono text-xs font-semibold text-gray-700">${lead.whatsapp}</td>
-              <td class="p-4"><span class="bg-gray-100 text-black text-xs font-extrabold px-2.5 py-1 rounded border border-gray-300 uppercase">${lead.origem}</span></td>
-              <td class="p-4">${statusBadge}</td>
-            </tr>
-          `;
-        });
-      } catch (err) {
-        console.error('Erro ao listar leads:', err);
+      if (error) {
+        console.error('Erro ao buscar leads:', error.message);
+        return;
       }
+
+      const tbody = document.getElementById('tabelaLeads');
+      document.getElementById('totalRegistros').innerText = data ? data.length : 0;
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhum lead encontrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map(lead => `
+        <tr>
+          <td><strong>${lead.nome || 'N/I'}</strong></td>
+          <td>${lead.whatsapp || 'N/I'}</td>
+          <td>${lead.origem || 'Direto'}</td>
+          <td>${lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-'}</td>
+        </tr>
+      `).join('');
     }
 
-    function editarLead(id) {
-      const lead = leadsCache.find(l => l.id == id);
-      if (!lead) return;
+    // Cadastrar Lead
+    async function salvarLead() {
+      const nome = document.getElementById('leadNome').value.trim();
+      const whatsapp = document.getElementById('leadWhatsapp').value.trim();
+      const origem = document.getElementById('leadOrigem').value.trim();
 
-      document.getElementById('editLeadId').value = lead.id;
-      document.getElementById('modalTitle').innerText = 'Editar Lead';
-      document.getElementById('nome').value = lead.nome;
-      document.getElementById('documento').value = lead.documento;
-      document.getElementById('whatsapp').value = lead.whatsapp;
-      document.getElementById('origem').value = lead.origem;
-      document.getElementById('mensagemInicial').value = lead.mensagem_inicial || '';
-      document.getElementById('usarIA').checked = lead.usar_ia;
-
-      if (!lead.usar_ia && lead.dados_qualificacao) {
-        document.getElementById('contatoNome').value = lead.dados_qualificacao.contatoNome || '';
-        document.getElementById('ramoSelect').value = lead.dados_qualificacao.ramo || '';
-        document.getElementById('segmentoSelect').value = lead.dados_qualificacao.segmento || '';
-        document.getElementById('cidade').value = lead.dados_qualificacao.cidade || '';
+      if (!nome) {
+        alert('Por favor, informe o nome do lead.');
+        return;
       }
 
-      toggleManualFields();
-      document.getElementById('modalLead').classList.remove('hidden');
-    }
+      const { data, error } = await supabase
+        .from('leads')
+        .insert([{ nome, whatsapp, origem }]);
 
-    function abrirModalExcluir(id) {
-      leadIdParaExcluir = id;
-      document.getElementById('modalExcluir').classList.remove('hidden');
-    }
-
-    document.getElementById('btnConfirmarExcluir').onclick = async () => {
-      if (!leadIdParaExcluir) return;
-      try {
-        const { error } = await supabase.from('leads').delete().eq('id', leadIdParaExcluir);
-        if (!error) {
-          closeExcluirModal();
-          carregarLeads();
-        }
-      } catch (err) {
-        console.error('Erro ao excluir lead:', err);
-      }
-    };
-
-    function destacarLeadExistente(id) {
-      closeDupModal();
-      closeModal();
-
-      const el = document.getElementById(`lead-row-${id}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('bg-amber-100');
-        setTimeout(() => el.classList.remove('bg-amber-100'), 3500);
-      }
-    }
-
-    document.getElementById('leadForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('editLeadId').value;
-      const usarIA = document.getElementById('usarIA').checked;
-
-      const documento = document.getElementById('documento').value;
-      const whatsapp = document.getElementById('whatsapp').value;
-
-      // Validação de Duplicidade no Supabase (se for inclusão)
-      if (!id) {
-        const { data: existente } = await supabase
-          .from('leads')
-          .select('*')
-          .or(`documento.eq.${documento},whatsapp.eq.${whatsapp}`)
-          .maybeSingle();
-
-        if (existente) {
-          document.getElementById('dupNome').innerText = existente.nome;
-          document.getElementById('dupDoc').innerText = existente.documento;
-          document.getElementById('dupPhone').innerText = existente.whatsapp;
-          document.getElementById('btnIrParaExistente').onclick = () => destacarLeadExistente(existente.id);
-          document.getElementById('modalDuplicado').classList.remove('hidden');
-          return;
-        }
-      }
-
-      const payload = {
-        nome: document.getElementById('nome').value,
-        documento,
-        whatsapp,
-        origem: document.getElementById('origem').value,
-        mensagem_inicial: document.getElementById('mensagemInicial').value,
-        usar_ia: usarIA,
-        status_whatsapp: usarIA ? 'ENVIADO_AUTOMATICO' : 'PENDENTE',
-        dados_qualificacao: usarIA ? null : {
-          contatoNome: document.getElementById('contatoNome').value,
-          ramo: document.getElementById('ramoSelect').value,
-          segmento: document.getElementById('segmentoSelect').value,
-          cidade: document.getElementById('cidade').value
-        }
-      };
-
-      let response;
-      if (id) {
-        response = await supabase.from('leads').update(payload).eq('id', id);
+      if (error) {
+        alert('Erro ao salvar no Supabase: ' + error.message);
       } else {
-        response = await supabase.from('leads').insert([payload]);
+        fecharModalLead();
+        carregarLeads();
       }
+    }
 
-      if (!response.error) {
-        closeModal();
-        await carregarLeads();
-      } else {
-        alert('Erro ao salvar no Supabase: ' + response.error.message);
-      }
-    });
-
-    loadConfig();
+    // Inicialização
     carregarLeads();
   </script>
 </body>
