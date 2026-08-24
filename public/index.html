@@ -30,6 +30,13 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      min-height: 100vh;
+    }
+
+    .sidebar-top {
+      display: flex;
+      flex-direction: column;
       gap: 20px;
     }
 
@@ -61,6 +68,25 @@
       align-items: center;
       gap: 10px;
       cursor: pointer;
+    }
+
+    /* Footer da Sidebar */
+    .sidebar-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #777;
+      border-top: 1px solid #222;
+      padding-top: 15px;
+    }
+
+    .badge-version {
+      background-color: #1a1a1a;
+      color: #aaa;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
     }
 
     /* Content Area */
@@ -144,6 +170,12 @@
       border-bottom: 1px solid #eee;
     }
 
+    .lead-doc {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+    }
+
     /* Modal Styling */
     .modal-overlay {
       display: none;
@@ -163,7 +195,7 @@
       padding: 25px;
       border-radius: 8px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
@@ -223,9 +255,17 @@
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="brand">FORMATAR</div>
-    <div class="sub-brand">GESTÃO E GOVERNANÇA</div>
-    <div class="menu-item">👥 Leads</div>
+    <div class="sidebar-top">
+      <div class="brand">FORMATAR</div>
+      <div class="sub-brand">GESTÃO E GOVERNANÇA</div>
+      <div class="menu-item">👥 Leads</div>
+    </div>
+
+    <!-- Rodapé da Sidebar -->
+    <div class="sidebar-footer">
+      <span>#EuSouFormataria</span>
+      <span class="badge-version">v1.2 (Supabase)</span>
+    </div>
   </div>
 
   <!-- Content -->
@@ -269,6 +309,10 @@
         <input type="text" id="leadNome" placeholder="Ex: João Silva">
       </div>
       <div class="form-group">
+        <label for="leadDocumento">CPF / CNPJ</label>
+        <input type="text" id="leadDocumento" placeholder="Ex: 000.000.000-00 ou 00.000.000/0001-00">
+      </div>
+      <div class="form-group">
         <label for="leadWhatsapp">WhatsApp</label>
         <input type="text" id="leadWhatsapp" placeholder="Ex: (31) 99999-9999">
       </div>
@@ -297,11 +341,12 @@
     function closeModal() {
       document.getElementById('modalLead').style.display = 'none';
       document.getElementById('leadNome').value = '';
+      document.getElementById('leadDocumento').value = '';
       document.getElementById('leadWhatsapp').value = '';
       document.getElementById('leadOrigem').value = '';
     }
 
-    // Alias para compatibilidade de chamadas antigas
+    // Alias para compatibilidade
     function abrirModalLead() { openModal(); }
     function fecharModalLead() { closeModal(); }
 
@@ -327,7 +372,10 @@
 
       tbody.innerHTML = data.map(lead => `
         <tr>
-          <td><strong>${lead.nome || 'N/I'}</strong></td>
+          <td>
+            <strong>${lead.nome || 'N/I'}</strong>
+            ${lead.documento ? `<div class="lead-doc">Doc: ${lead.documento}</div>` : ''}
+          </td>
           <td>${lead.whatsapp || 'N/I'}</td>
           <td>${lead.origem || 'Direto'}</td>
           <td>${lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-'}</td>
@@ -338,6 +386,7 @@
     // Cadastrar Lead
     async function salvarLead() {
       const nome = document.getElementById('leadNome').value.trim();
+      const documento = document.getElementById('leadDocumento').value.trim();
       const whatsapp = document.getElementById('leadWhatsapp').value.trim();
       const origem = document.getElementById('leadOrigem').value.trim();
 
@@ -348,7 +397,7 @@
 
       const { data, error } = await supabaseClient
         .from('leads')
-        .insert([{ nome, whatsapp, origem }]);
+        .insert([{ nome, documento, whatsapp, origem }]);
 
       if (error) {
         alert('Erro ao salvar no Supabase: ' + error.message);
