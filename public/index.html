@@ -324,7 +324,7 @@
       }
     }
 
-    // Autenticação direta na API da Formatar
+    // Autenticação direta na API da Formatar sem Query Param
     async function autenticarUsuario() {
       const emailInput = document.getElementById('loginEmail').value.trim();
       const errDiv = document.getElementById('loginError');
@@ -338,7 +338,7 @@
 
       try {
         const API_URL = 'https://hub.formatar.com.br/api/users';
-        const res = await fetch(`${API_URL}?email=${encodeURIComponent(emailInput)}`);
+        const res = await fetch(API_URL);
         
         if (!res.ok) {
           throw new Error(`Status ${res.status}`);
@@ -347,12 +347,13 @@
         const result = await res.json();
         const listaUsuarios = Array.isArray(result) ? result : (result.data || []);
 
-        const user = listaUsuarios.find(u => 
-          u.email && u.email.toLowerCase().trim() === emailInput.toLowerCase()
-        );
+        const user = listaUsuarios.find(u => {
+          const emailUser = u.email || u.mail || u.user_email;
+          return emailUser && emailUser.toLowerCase().trim() === emailInput.toLowerCase();
+        });
 
         if (user) {
-          if (user.isActive === false) {
+          if (user.isActive === false || user.active === false) {
             errDiv.innerText = 'Usuário inativo no sistema.';
             errDiv.style.display = 'block';
             return;
