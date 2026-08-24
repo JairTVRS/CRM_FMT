@@ -233,7 +233,7 @@
     <div class="header-tag">— MÓDULO DE CAPTAÇÃO</div>
     <div class="header-title-container">
       <h1 class="header-title">Leads</h1>
-      <button class="btn-add" onclick="abrirModalLead()">+ Incluir Lead</button>
+      <button class="btn-add" onclick="openModal()">+ Incluir Lead</button>
     </div>
 
     <!-- Leads Table Card -->
@@ -277,7 +277,7 @@
         <input type="text" id="leadOrigem" placeholder="Ex: Site, Meta Ads, Indicação">
       </div>
       <div class="modal-actions">
-        <button class="btn-cancel" onclick="fecharModalLead()">Cancelar</button>
+        <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
         <button class="btn-save" onclick="salvarLead()">Salvar Lead</button>
       </div>
     </div>
@@ -287,23 +287,27 @@
     const SUPABASE_URL = 'https://lvcrttnklojyvfhzszkn.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_a6cAxCqWYD2gqvLbyj3MIg_Z6n8x3HR';
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Controle do Modal
-    function abrirModalLead() {
+    // Funções do Modal
+    function openModal() {
       document.getElementById('modalLead').style.display = 'flex';
     }
 
-    function fecharModalLead() {
+    function closeModal() {
       document.getElementById('modalLead').style.display = 'none';
       document.getElementById('leadNome').value = '';
       document.getElementById('leadWhatsapp').value = '';
       document.getElementById('leadOrigem').value = '';
     }
 
+    // Alias para compatibilidade de chamadas antigas
+    function abrirModalLead() { openModal(); }
+    function fecharModalLead() { closeModal(); }
+
     // Buscar Leads no Supabase
     async function carregarLeads() {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false });
@@ -342,14 +346,14 @@
         return;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('leads')
         .insert([{ nome, whatsapp, origem }]);
 
       if (error) {
         alert('Erro ao salvar no Supabase: ' + error.message);
       } else {
-        fecharModalLead();
+        closeModal();
         carregarLeads();
       }
     }
