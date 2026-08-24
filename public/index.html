@@ -215,12 +215,14 @@
       margin-bottom: 5px;
     }
 
-    .form-group input {
+    .form-group input,
+    .form-group select {
       width: 100%;
       padding: 10px;
       border: 1px solid #ccc;
       border-radius: 4px;
       font-size: 14px;
+      background-color: #fff;
     }
 
     .modal-actions {
@@ -264,7 +266,7 @@
     <!-- Rodapé da Sidebar -->
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v1.2 (Supabase)</span>
+      <span class="badge-version">v1.3 (Supabase)</span>
     </div>
   </div>
 
@@ -318,7 +320,14 @@
       </div>
       <div class="form-group">
         <label for="leadOrigem">Origem</label>
-        <input type="text" id="leadOrigem" placeholder="Ex: Site, Meta Ads, Indicação">
+        <select id="leadOrigem">
+          <option value="">Selecione uma opção...</option>
+          <option value="eventos">eventos</option>
+          <option value="Inbound">Inbound</option>
+          <option value="outbound">outbound</option>
+          <option value="redes">redes</option>
+          <option value="tráfego pago">tráfego pago</option>
+        </select>
       </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
@@ -388,10 +397,15 @@
       const nome = document.getElementById('leadNome').value.trim();
       const documento = document.getElementById('leadDocumento').value.trim();
       const whatsapp = document.getElementById('leadWhatsapp').value.trim();
-      const origem = document.getElementById('leadOrigem').value.trim();
+      const origem = document.getElementById('leadOrigem').value;
 
       if (!nome) {
         alert('Por favor, informe o nome do lead.');
+        return;
+      }
+
+      if (!origem) {
+        alert('Por favor, selecione a origem do lead.');
         return;
       }
 
