@@ -168,12 +168,45 @@
       padding: 14px 20px;
       font-size: 14px;
       border-bottom: 1px solid #eee;
+      vertical-align: middle;
     }
 
     .lead-doc {
       font-size: 12px;
       color: #666;
       margin-top: 2px;
+    }
+
+    /* Botões de Ação na Tabela */
+    .btn-wsp {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #25d366;
+      color: white;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .btn-wsp:hover {
+      background-color: #1eb854;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 5px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .action-btn:hover {
+      background-color: #f0f0f0;
     }
 
     /* Modal Styling */
@@ -266,7 +299,7 @@
     <!-- Rodapé da Sidebar -->
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v1.3 (Supabase)</span>
+      <span class="badge-version">v1.4 (Supabase)</span>
     </div>
   </div>
 
@@ -291,21 +324,23 @@
             <th>WHATSAPP</th>
             <th>ORIGEM</th>
             <th>DATA/HORA</th>
+            <th style="text-align: center;">AÇÕES</th>
           </tr>
         </thead>
         <tbody id="tabelaLeads">
           <tr>
-            <td colspan="4" style="text-align: center; color: #777;">Carregando registros...</td>
+            <td colspan="5" style="text-align: center; color: #777;">Carregando registros...</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Modal Cadastro de Lead -->
+  <!-- Modal Cadastro/Edição de Lead -->
   <div class="modal-overlay" id="modalLead">
     <div class="modal-box">
-      <h2>Incluir Novo Lead</h2>
+      <h2 id="modalTitle">Incluir Novo Lead</h2>
+      <input type="hidden" id="leadId">
       <div class="form-group">
         <label for="leadNome">Nome Completo</label>
         <input type="text" id="leadNome" placeholder="Ex: João Silva">
@@ -342,22 +377,31 @@
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    let leadsCache = [];
+
     // Funções do Modal
-    function openModal() {
+    function openModal(lead = null) {
+      if (lead) {
+        document.getElementById('modalTitle').innerText = 'Editar Lead';
+        document.getElementById('leadId').value = lead.id;
+        document.getElementById('leadNome').value = lead.nome || '';
+        document.getElementById('leadDocumento').value = lead.documento || '';
+        document.getElementById('leadWhatsapp').value = lead.whatsapp || '';
+        document.getElementById('leadOrigem').value = lead.origem || '';
+      } else {
+        document.getElementById('modalTitle').innerText = 'Incluir Novo Lead';
+        document.getElementById('leadId').value = '';
+        document.getElementById('leadNome').value = '';
+        document.getElementById('leadDocumento').value = '';
+        document.getElementById('leadWhatsapp').value = '';
+        document.getElementById('leadOrigem').value = '';
+      }
       document.getElementById('modalLead').style.display = 'flex';
     }
 
     function closeModal() {
       document.getElementById('modalLead').style.display = 'none';
-      document.getElementById('leadNome').value = '';
-      document.getElementById('leadDocumento').value = '';
-      document.getElementById('leadWhatsapp').value = '';
-      document.getElementById('leadOrigem').value = '';
     }
-
-    // Alias para compatibilidade
-    function abrirModalLead() { openModal(); }
-    function fecharModalLead() { closeModal(); }
 
     // Buscar Leads no Supabase
     async function carregarLeads() {
@@ -371,29 +415,62 @@
         return;
       }
 
+      leadsCache = data || [];
       const tbody = document.getElementById('tabelaLeads');
-      document.getElementById('totalRegistros').innerText = data ? data.length : 0;
+      document.getElementById('totalRegistros').innerText = leadsCache.length;
 
-      if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhum lead encontrado.</td></tr>';
+      if (leadsCache.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum lead encontrado.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = data.map(lead => `
-        <tr>
-          <td>
-            <strong>${lead.nome || 'N/I'}</strong>
-            ${lead.documento ? `<div class="lead-doc">Doc: ${lead.documento}</div>` : ''}
-          </td>
-          <td>${lead.whatsapp || 'N/I'}</td>
-          <td>${lead.origem || 'Direto'}</td>
-          <td>${lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-'}</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = leadsCache.map(lead => {
+        const numLimpo = (lead.whatsapp || '').replace(/\D/g, '');
+        const wspUrl = numLimpo ? `https://wa.me/55${numLimpo}` : '#';
+
+        return `
+          <tr>
+            <td>
+              <strong>${lead.nome || 'N/I'}</strong>
+              ${lead.documento ? `<div class="lead-doc">Doc: ${lead.documento}</div>` : ''}
+            </td>
+            <td>
+              ${numLimpo ? `
+                <a href="${wspUrl}" target="_blank" class="btn-wsp" title="Abrir WhatsApp">
+                  💬 ${lead.whatsapp}
+                </a>
+              ` : (lead.whatsapp || 'N/I')}
+            </td>
+            <td>${lead.origem || 'Direto'}</td>
+            <td>${lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-'}</td>
+            <td style="text-align: center;">
+              <button class="action-btn" onclick="editarLead('${lead.id}')" title="Editar">✏️</button>
+              <button class="action-btn" onclick="excluirLead('${lead.id}')" title="Excluir">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    // Cadastrar Lead
+    function editarLead(id) {
+      const lead = leadsCache.find(item => item.id == id);
+      if (lead) openModal(lead);
+    }
+
+    async function excluirLead(id) {
+      if (confirm('Tem certeza que deseja excluir este lead?')) {
+        const { error } = await supabaseClient.from('leads').delete().eq('id', id);
+        if (error) {
+          alert('Erro ao excluir: ' + error.message);
+        } else {
+          carregarLeads();
+        }
+      }
+    }
+
+    // Cadastrar ou Atualizar Lead
     async function salvarLead() {
+      const id = document.getElementById('leadId').value;
       const nome = document.getElementById('leadNome').value.trim();
       const documento = document.getElementById('leadDocumento').value.trim();
       const whatsapp = document.getElementById('leadWhatsapp').value.trim();
@@ -409,12 +486,20 @@
         return;
       }
 
-      const { data, error } = await supabaseClient
-        .from('leads')
-        .insert([{ nome, documento, whatsapp, origem }]);
+      let res;
+      if (id) {
+        res = await supabaseClient
+          .from('leads')
+          .update({ nome, documento, whatsapp, origem })
+          .eq('id', id);
+      } else {
+        res = await supabaseClient
+          .from('leads')
+          .insert([{ nome, documento, whatsapp, origem }]);
+      }
 
-      if (error) {
-        alert('Erro ao salvar no Supabase: ' + error.message);
+      if (res.error) {
+        alert('Erro ao salvar no Supabase: ' + res.error.message);
       } else {
         closeModal();
         carregarLeads();
