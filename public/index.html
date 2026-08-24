@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,30 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
+    :root {
+      --bg-body: #f4f5f7;
+      --bg-card: #ffffff;
+      --bg-header: #ffffff;
+      --bg-sidebar: #000000;
+      --text-main: #222222;
+      --text-muted: #666666;
+      --border-color: #eeeeee;
+      --table-header-bg: #f8f9fa;
+      --primary: #ff3b00;
+      --primary-hover: #e03400;
+    }
+
+    [data-theme="dark"] {
+      --bg-body: #121212;
+      --bg-card: #1e1e1e;
+      --bg-header: #1e1e1e;
+      --bg-sidebar: #000000;
+      --text-main: #f1f1f1;
+      --text-muted: #aaaaaa;
+      --border-color: #333333;
+      --table-header-bg: #2a2a2a;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -18,20 +42,88 @@
 
     body {
       display: flex;
-      background-color: #f4f5f7;
+      background-color: var(--bg-body);
+      color: var(--text-main);
       min-height: 100vh;
+      padding-top: 60px; /* Espaço para o cabeçalho fixo */
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Top Navbar Fixa */
+    .top-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background-color: var(--bg-header);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 1100;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    .header-logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      height: 32px;
+      object-fit: contain;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .theme-toggle-btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--primary);
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
     }
 
     /* Sidebar */
     .sidebar {
       width: 240px;
-      background-color: #000;
+      background-color: var(--bg-sidebar);
       color: #fff;
       padding: 20px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 100vh;
+      min-height: calc(100vh - 60px);
     }
 
     .sidebar-top {
@@ -40,26 +132,8 @@
       gap: 20px;
     }
 
-    .brand {
-      background-color: #ff3b00;
-      color: #fff;
-      padding: 10px 15px;
-      font-weight: bold;
-      font-size: 18px;
-      border-radius: 4px;
-      text-align: center;
-    }
-
-    .sub-brand {
-      font-size: 11px;
-      color: #aaa;
-      letter-spacing: 1px;
-      margin-top: -10px;
-      text-align: center;
-    }
-
     .menu-item {
-      background-color: #ff3b00;
+      background-color: var(--primary);
       color: #fff;
       padding: 12px 15px;
       border-radius: 6px;
@@ -70,7 +144,6 @@
       cursor: pointer;
     }
 
-    /* Footer da Sidebar */
     .sidebar-footer {
       display: flex;
       justify-content: space-between;
@@ -96,7 +169,7 @@
     }
 
     .header-tag {
-      color: #ff3b00;
+      color: var(--primary);
       font-size: 12px;
       font-weight: bold;
       letter-spacing: 1px;
@@ -116,7 +189,7 @@
     }
 
     .btn-add {
-      background-color: #ff3b00;
+      background-color: var(--primary);
       color: white;
       border: none;
       padding: 12px 24px;
@@ -128,15 +201,17 @@
     }
 
     .btn-add:hover {
-      background-color: #e03400;
+      background-color: var(--primary-hover);
     }
 
     /* Table Container */
     .card {
-      background-color: #fff;
+      background-color: var(--bg-card);
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       overflow: hidden;
+      border: 1px solid var(--border-color);
+      transition: background-color 0.3s, border-color 0.3s;
     }
 
     .card-header {
@@ -156,28 +231,29 @@
     }
 
     th {
-      background-color: #f8f9fa;
-      color: #555;
+      background-color: var(--table-header-bg);
+      color: var(--text-muted);
       font-size: 12px;
       font-weight: bold;
       padding: 12px 20px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-color);
     }
 
     td {
       padding: 14px 20px;
       font-size: 14px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-color);
       vertical-align: middle;
+      color: var(--text-main);
     }
 
     .lead-doc {
       font-size: 12px;
-      color: #666;
+      color: var(--text-muted);
       margin-top: 2px;
     }
 
-    /* Container dos Ícones de Ação */
+    /* Ações na Tabela */
     .actions-container {
       display: flex;
       align-items: center;
@@ -186,7 +262,7 @@
 
     .action-icon {
       text-decoration: none;
-      font-size: 18px;
+      font-size: 16px;
       cursor: pointer;
       background: none;
       border: none;
@@ -201,6 +277,12 @@
       transform: scale(1.15);
     }
 
+    .wsp-icon-svg {
+      width: 20px;
+      height: 20px;
+      fill: #25D366;
+    }
+
     /* Modal Styling */
     .modal-overlay {
       display: none;
@@ -209,19 +291,21 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.6);
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 1200;
     }
 
     .modal-box {
-      background: #fff;
+      background: var(--bg-card);
+      color: var(--text-main);
       padding: 25px;
       border-radius: 8px;
       width: 100%;
       max-width: 420px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
     }
 
     .modal-box h2 {
@@ -244,10 +328,11 @@
     .form-group select {
       width: 100%;
       padding: 10px;
-      border: 1px solid #ccc;
+      border: 1px solid var(--border-color);
       border-radius: 4px;
       font-size: 14px;
-      background-color: #fff;
+      background-color: var(--bg-card);
+      color: var(--text-main);
     }
 
     .modal-actions {
@@ -258,7 +343,7 @@
     }
 
     .btn-save {
-      background-color: #ff3b00;
+      background-color: var(--primary);
       color: white;
       border: none;
       padding: 10px 18px;
@@ -280,18 +365,30 @@
 </head>
 <body>
 
+  <!-- Header Fixo -->
+  <header class="top-header">
+    <div class="header-logo-container">
+      <img id="brandLogo" src="FORMATAR LOGO PRETA.png" alt="Formatar Gestão" class="brand-logo">
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
+        🌙 Modo Escuro
+      </button>
+      <div class="user-avatar" title="Usuário Logado">
+        JT
+      </div>
+    </div>
+  </header>
+
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-top">
-      <div class="brand">FORMATAR</div>
-      <div class="sub-brand">GESTÃO E GOVERNANÇA</div>
       <div class="menu-item">👥 Leads</div>
     </div>
 
-    <!-- Rodapé da Sidebar -->
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v1.5 (Supabase)</span>
+      <span class="badge-version">v1.6 (Supabase)</span>
     </div>
   </div>
 
@@ -321,7 +418,7 @@
         </thead>
         <tbody id="tabelaLeads">
           <tr>
-            <td colspan="5" style="text-align: center; color: #777;">Carregando registros...</td>
+            <td colspan="5" style="text-align: center; color: var(--text-muted);">Carregando registros...</td>
           </tr>
         </tbody>
       </table>
@@ -371,7 +468,27 @@
 
     let leadsCache = [];
 
-    // Funções do Modal
+    // Alternador de Tema Dark / Light
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      html.setAttribute('data-theme', newTheme);
+      
+      const themeBtn = document.getElementById('themeBtn');
+      const brandLogo = document.getElementById('brandLogo');
+
+      if (newTheme === 'dark') {
+        themeBtn.innerHTML = '☀️ Modo Claro';
+        brandLogo.src = 'FORMATAR LOGO BRANCA.png';
+      } else {
+        themeBtn.innerHTML = '🌙 Modo Escuro';
+        brandLogo.src = 'FORMATAR LOGO PRETA.png';
+      }
+    }
+
+    // Modal
     function openModal(lead = null) {
       if (lead) {
         document.getElementById('modalTitle').innerText = 'Editar Lead';
@@ -395,7 +512,7 @@
       document.getElementById('modalLead').style.display = 'none';
     }
 
-    // Buscar Leads no Supabase
+    // Buscar Leads
     async function carregarLeads() {
       const { data, error } = await supabaseClient
         .from('leads')
@@ -416,6 +533,8 @@
         return;
       }
 
+      const svgWhatsapp = `<svg class="wsp-icon-svg" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>`;
+
       tbody.innerHTML = leadsCache.map(lead => {
         const numLimpo = (lead.whatsapp || '').replace(/\D/g, '');
         const wspUrl = numLimpo ? `https://wa.me/55${numLimpo}` : '#';
@@ -425,7 +544,9 @@
             <td>
               <div class="actions-container">
                 ${numLimpo ? `
-                  <a href="${wspUrl}" target="_blank" class="action-icon" title="Conversar no WhatsApp">🟢</a>
+                  <a href="${wspUrl}" target="_blank" class="action-icon" title="Conversar no WhatsApp">
+                    ${svgWhatsapp}
+                  </a>
                 ` : '<span class="action-icon" style="opacity:0.3;" title="Sem número">💬</span>'}
                 <button class="action-icon" onclick="editarLead('${lead.id}')" title="Editar">✏️</button>
                 <button class="action-icon" onclick="excluirLead('${lead.id}')" title="Excluir">🗑️</button>
@@ -459,7 +580,7 @@
       }
     }
 
-    // Cadastrar ou Atualizar Lead
+    // Salvar Lead
     async function salvarLead() {
       const id = document.getElementById('leadId').value;
       const nome = document.getElementById('leadNome').value.trim();
