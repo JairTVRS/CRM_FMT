@@ -1,0 +1,138 @@
+[
+  {
+    "NID": 10,
+    "Título": "AGRONEGÓCIO",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 8,
+    "Título": "ALIMENTOS",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 14,
+    "Título": "AUTOMOBILÍSTICO",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 1,
+    "Título": "CONSTRUÇÃO CIVIL",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 11,
+    "Título": "ECOMMERCE",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 7,
+    "Título": "HIGIENE",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 5,
+    "Título": "IMPORTADORA",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 6,
+    "Título": "LAZER",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 9,
+    "Título": "LOGÍSTICA",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 4,
+    "Título": "METALÚRGICA",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 12,
+    "Título": "MODA E VESTUÁRIO",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 15,
+    "Título": "MÓVEIS E DECORAÇÕES",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 2,
+    "Título": "ONG",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 3,
+    "Título": "PUBLICIDADE",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 13,
+    "Título": "SAUDE E ESTÉTICA",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  },
+  {
+    "NID": 17,
+    "Título": "SEGURANÇA",
+    "Ativo?": "Sim",
+    "Criado por": "Jair Tavares",
+    "Criado em": "06/11/2025 10:28",
+    "Atualizado em": "06/11/2025 10:28"
+  },
+  {
+    "NID": 16,
+    "Título": "TECNOLOGIA",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "29/10/2025 16:37",
+    "Atualizado em": "29/10/2025 16:37"
+  }
+]

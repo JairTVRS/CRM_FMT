@@ -1,0 +1,130 @@
+[
+  {
+    "NID": 9,
+    "Título": "AGRONEGÓCIO",
+    "Ativo?": "Não",
+    "Criado por": "Jair Tavares",
+    "Criado em": "22/08/2023 09:23",
+    "Atualizado em": "22/08/2023 09:23"
+  },
+  {
+    "NID": 3,
+    "Título": "ALIMENTOS",
+    "Ativo?": "Não",
+    "Criado por": "Sistema",
+    "Criado em": "21/08/2023 16:37",
+    "Atualizado em": "21/08/2023 16:37"
+  },
+  {
+    "NID": 5,
+    "Título": "ATACADISTA",
+    "Ativo?": "Não",
+    "Criado por": "Sistema",
+    "Criado em": "21/08/2023 16:37",
+    "Atualizado em": "21/08/2023 16:37"
+  },
+  {
+    "NID": 10,
+    "Título": "CALÇADISTA",
+    "Ativo?": "Não",
+    "Criado por": "Jair Tavares",
+    "Criado em": "04/06/2024 10:04",
+    "Atualizado em": "04/06/2024 10:04"
+  },
+  {
+    "NID": 6,
+    "Título": "CONSTRUÇÃO CIVIL",
+    "Ativo?": "Não",
+    "Criado por": "Sistema",
+    "Criado em": "21/08/2023 16:37",
+    "Atualizado em": "21/08/2023 16:37"
+  },
+  {
+    "NID": 4,
+    "Título": "DISTRIBUIDORA",
+    "Ativo?": "Não",
+    "Criado por": "Sistema",
+    "Criado em": "21/08/2023 16:37",
+    "Atualizado em": "21/08/2023 16:37"
+  },
+  {
+    "NID": 8,
+    "Título": "EDUCAÇÃO",
+    "Ativo?": "Não",
+    "Criado por": "Sistema",
+    "Criado em": "21/08/2023 16:37",
+    "Atualizado em": "21/08/2023 16:37"
+  },
+  {
+    "NID": 12,
+    "Título": "ESTÉTICA",
+    "Ativo?": "Não",
+    "Criado por": "Jair Tavares",
+    "Criado em": "21/06/2024 14:54",
+    "Atualizado em": "21/06/2024 14:54"
+  },
+  {
+    "NID": 7,
+    "Título": "INDÚSTRIA",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "21/08/2023 16:37",
+    "Atualizado em": "21/08/2023 16:37"
+  },
+  {
+    "NID": 14,
+    "Título": "INFRAESTRUTURA",
+    "Ativo?": "Não",
+    "Criado por": "Jair Tavares",
+    "Criado em": "02/08/2024 14:14",
+    "Atualizado em": "02/08/2024 14:14"
+  },
+  {
+    "NID": 11,
+    "Título": "LAZER",
+    "Ativo?": "Não",
+    "Criado por": "Jair Tavares",
+    "Criado em": "04/06/2024 10:32",
+    "Atualizado em": "04/06/2024 10:32"
+  },
+  {
+    "NID": 16,
+    "Título": "ONG",
+    "Ativo?": "Sim",
+    "Criado por": "Jair Tavares",
+    "Criado em": "13/01/2026 15:03",
+    "Atualizado em": "13/01/2026 15:03"
+  },
+  {
+    "NID": 13,
+    "Título": "SAUDE E ESTÉTICA",
+    "Ativo?": "Não",
+    "Criado por": "Jair Tavares",
+    "Criado em": "21/06/2024 15:01",
+    "Atualizado em": "21/06/2024 15:01"
+  },
+  {
+    "NID": 2,
+    "Título": "SERVIÇOS",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "21/08/2023 16:37",
+    "Atualizado em": "21/08/2023 16:37"
+  },
+  {
+    "NID": 1,
+    "Título": "VAREJO",
+    "Ativo?": "Sim",
+    "Criado por": "Sistema",
+    "Criado em": "21/08/2023 16:37",
+    "Atualizado em": "21/08/2023 16:37"
+  },
+  {
+    "NID": 15,
+    "Título": "Varejo de moda",
+    "Ativo?": "Não",
+    "Criado por": "Andreza Lacerda",
+    "Criado em": "08/12/2025 10:31",
+    "Atualizado em": "08/12/2025 10:31"
+  }
+]
