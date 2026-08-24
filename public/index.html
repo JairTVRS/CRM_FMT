@@ -313,9 +313,10 @@
       if (sessao) {
         usuarioLogado = JSON.parse(sessao);
         document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('userName').innerText = usuarioLogado.name;
+        document.getElementById('userName').innerText = usuarioLogado.name || usuarioLogado.nome || usuarioLogado.email;
         
-        const inicial = usuarioLogado.name ? usuarioLogado.name.charAt(0).toUpperCase() : 'U';
+        const nomeParaAvatar = usuarioLogado.name || usuarioLogado.nome || usuarioLogado.email;
+        const inicial = nomeParaAvatar ? nomeParaAvatar.charAt(0).toUpperCase() : 'U';
         document.getElementById('userAvatar').innerText = inicial;
         carregarLeads();
       } else {
@@ -323,7 +324,7 @@
       }
     }
 
-    // Autenticação na API da Formatar via Worker
+    // Autenticação direta na API da Formatar
     async function autenticarUsuario() {
       const emailInput = document.getElementById('loginEmail').value.trim();
       const errDiv = document.getElementById('loginError');
@@ -336,26 +337,37 @@
       }
 
       try {
-        const res = await fetch(`/api/users?email=${encodeURIComponent(emailInput)}`);
-        const result = await res.json();
+        const API_URL = 'https://hub.formatar.com.br/api/users';
+        const res = await fetch(`${API_URL}?email=${encodeURIComponent(emailInput)}`);
+        
+        if (!res.ok) {
+          throw new Error(`Status ${res.status}`);
+        }
 
-        if (res.ok && result.data && result.data.length > 0) {
-          const user = result.data.find(u => u.email.toLowerCase() === emailInput.toLowerCase() && u.isActive);
-          
-          if (user) {
-            usuarioLogado = user;
-            localStorage.setItem('crm_user', JSON.stringify(user));
-            checarSessao();
-          } else {
-            errDiv.innerText = 'Usuário inativo ou não autorizado.';
+        const result = await res.json();
+        const listaUsuarios = Array.isArray(result) ? result : (result.data || []);
+
+        const user = listaUsuarios.find(u => 
+          u.email && u.email.toLowerCase().trim() === emailInput.toLowerCase()
+        );
+
+        if (user) {
+          if (user.isActive === false) {
+            errDiv.innerText = 'Usuário inativo no sistema.';
             errDiv.style.display = 'block';
+            return;
           }
+
+          usuarioLogado = user;
+          localStorage.setItem('crm_user', JSON.stringify(user));
+          checarSessao();
         } else {
-          errDiv.innerText = 'Usuário não encontrado na base Formatar.';
+          errDiv.innerText = 'E-mail não encontrado na base Formatar.';
           errDiv.style.display = 'block';
         }
       } catch (err) {
-        errDiv.innerText = 'Erro ao validar usuário. Tente novamente.';
+        console.error('Erro no login:', err);
+        errDiv.innerText = 'Erro ao conectar na API de usuários da Formatar.';
         errDiv.style.display = 'block';
       }
     }
@@ -498,7 +510,7 @@
         return;
       }
 
-      const operador = usuarioLogado ? usuarioLogado.name : 'Sistema';
+      const operador = usuarioLogado ? (usuarioLogado.name || usuarioLogado.nome || usuarioLogado.email) : 'Sistema';
       let res;
 
       if (id) {
