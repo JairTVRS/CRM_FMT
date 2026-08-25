@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="./assets/css/main.css">
   
   <style>
-    /* VARIABLES DE COR (TEMA ESCURO / CLARO) */
     :root {
       --bg-color: #0f172a;
       --card-bg: #1e293b;
@@ -43,7 +42,6 @@
       transition: background-color 0.3s ease, color 0.3s ease;
     }
 
-    /* Sidebar Layout */
     .sidebar {
       width: 260px;
       background: var(--card-bg);
@@ -97,7 +95,6 @@
       color: var(--text-subtle);
     }
 
-    /* Main Content Layout */
     .main-content {
       margin-left: 260px;
       flex: 1;
@@ -149,14 +146,8 @@
       justify-content: center;
     }
 
-    /* Visualização das Telas */
-    .content-body { 
-      display: block; 
-    }
-    
-    .content-body.hidden { 
-      display: none !important; 
-    }
+    .content-body { display: block; }
+    .content-body.hidden { display: none !important; }
 
     .page-header-action {
       display: flex;
@@ -196,7 +187,6 @@
       cursor: pointer;
     }
 
-    /* Cards & Tabela */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -234,51 +224,54 @@
       text-transform: uppercase;
     }
 
-    .text-orange { color: var(--accent-color); }
-
-    /* Grid de Configurações */
-    .cards-grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-      gap: 20px; 
-      margin-top: 20px; 
+    /* ESTILO DOS BOTÕES DE AÇÃO INTERATIVOS NA TABELA */
+    .action-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
     }
 
-    .card-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-color);
+    .btn-action {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      text-decoration: none;
     }
 
-    .form-group { margin-top: 15px; }
-
-    .form-label { 
-      display: block; 
-      font-size: 12px; 
-      margin-bottom: 6px; 
-      color: var(--text-muted); 
-      font-weight: 600;
-    }
-
-    .form-input { 
-      width: 100%; 
-      padding: 10px 12px; 
-      background: var(--input-bg); 
-      border: 1px solid var(--border-color); 
-      border-radius: 6px; 
-      color: var(--text-color); 
-      outline: none;
-    }
-
-    .form-input:focus {
+    .btn-action:hover {
+      background: var(--accent-color);
       border-color: var(--accent-color);
+      transform: translateY(-2px);
     }
 
-    .actions-bar { 
-      margin-top: 25px; 
-      display: flex; 
-      justify-content: flex-end; 
+    .btn-action.btn-ai {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      font-weight: 700;
+      font-size: 12px;
     }
+
+    .btn-action.btn-ai:hover {
+      background: #2563eb;
+    }
+
+    .text-orange { color: var(--accent-color); }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+    .card-title { font-size: 16px; font-weight: 600; color: var(--text-color); }
+    .form-group { margin-top: 15px; }
+    .form-label { display: block; font-size: 12px; margin-bottom: 6px; color: var(--text-muted); font-weight: 600; }
+    .form-input { width: 100%; padding: 10px 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); outline: none; }
+    .form-input:focus { border-color: var(--accent-color); }
+    .actions-bar { margin-top: 25px; display: flex; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -298,7 +291,7 @@
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span>v2.5.6</span>
+      <span>v2.5.7</span>
     </div>
   </aside>
 
@@ -320,13 +313,13 @@
           <p class="kicker">— MÓDULO DE CAPTAÇÃO</p>
           <h1 class="pagetitle">Leads</h1>
         </div>
-        <button class="btn-primary">+ Incluir Lead</button>
+        <button class="btn-primary" id="btn-incluir-lead">+ Incluir Lead</button>
       </div>
 
       <div class="card card-table">
         <div class="table-header-info">
           <span class="table-title">BASE SUPABASE EM TEMPO REAL</span>
-          <span class="table-count">Total de Registros: 4</span>
+          <span class="table-count" id="total-registros">Total de Registros: 4</span>
         </div>
 
         <table class="custom-table">
@@ -339,30 +332,58 @@
               <th>DATA / OPERADOR ⇅</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="table-leads-body">
             <tr>
-              <td><span class="action-icons">💬 🅰️ ✏️ 🗑️</span></td>
+              <td>
+                <div class="action-group">
+                  <a href="https://wa.me/553799854236" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
+                  <button class="btn-action btn-ai" title="Analisar com IA">A</button>
+                  <button class="btn-action btn-edit" title="Editar Lead">✏️</button>
+                  <button class="btn-action btn-delete" title="Excluir Lead">🗑️</button>
+                </div>
+              </td>
               <td><strong>Teste2</strong><br><small>Doc: 1122536555</small></td>
               <td>3799854236</td>
               <td>eventos</td>
               <td>24/08/2026, 16:40:29<br><small class="text-orange">Legado</small></td>
             </tr>
             <tr>
-              <td><span class="action-icons">💬 🅰️ ✏️ 🗑️</span></td>
+              <td>
+                <div class="action-group">
+                  <a href="https://wa.me/553798574265" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
+                  <button class="btn-action btn-ai" title="Analisar com IA">A</button>
+                  <button class="btn-action btn-edit" title="Editar Lead">✏️</button>
+                  <button class="btn-action btn-delete" title="Excluir Lead">🗑️</button>
+                </div>
+              </td>
               <td><strong>Felipe</strong><br><small>Doc: 1522365895</small></td>
               <td>3798574265</td>
               <td>redes</td>
               <td>24/08/2026, 12:03:15<br><small class="text-orange">Legado</small></td>
             </tr>
             <tr>
-              <td><span class="action-icons">💬 🅰️ ✏️ 🗑️</span></td>
+              <td>
+                <div class="action-group">
+                  <a href="https://wa.me/553791181176" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
+                  <button class="btn-action btn-ai" title="Analisar com IA">A</button>
+                  <button class="btn-action btn-edit" title="Editar Lead">✏️</button>
+                  <button class="btn-action btn-delete" title="Excluir Lead">🗑️</button>
+                </div>
+              </td>
               <td><strong>Daby</strong><br><small>Doc: 0709114900017</small></td>
               <td>37 9118-1176</td>
               <td>Inbound</td>
               <td>24/08/2026, 12:00:00<br><small class="text-orange">Legado</small></td>
             </tr>
             <tr>
-              <td><span class="action-icons">💬 🅰️ ✏️ 🗑️</span></td>
+              <td>
+                <div class="action-group">
+                  <a href="https://wa.me/5537991752215" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
+                  <button class="btn-action btn-ai" title="Analisar com IA">A</button>
+                  <button class="btn-action btn-edit" title="Editar Lead">✏️</button>
+                  <button class="btn-action btn-delete" title="Excluir Lead">🗑️</button>
+                </div>
+              </td>
               <td><strong>Jair</strong><br><small>Doc: 11559150600</small></td>
               <td>37991752215</td>
               <td>eventos</td>
@@ -438,7 +459,7 @@
 
   </main>
 
-  <!-- SCRIPT DE NAVEGAÇÃO E TEMAS -->
+  <!-- Script Global de Eventos das Ações -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const menuItems = document.querySelectorAll('.menu-item');
@@ -447,9 +468,7 @@
       const btnTheme = document.getElementById('btn-theme');
       const brandLogo = document.getElementById('brand-logo');
 
-      // Função para alternar as abas
       function switchTab(targetId) {
-        // Atualizar links ativos
         menuItems.forEach(item => {
           if (item.getAttribute('data-target') === targetId) {
             item.classList.add('active');
@@ -458,7 +477,6 @@
           }
         });
 
-        // Exibir a view correspondente
         if (targetId === 'view-configuracoes') {
           viewLeads.classList.add('hidden');
           viewConfig.classList.remove('hidden');
@@ -468,17 +486,13 @@
         }
       }
 
-      // Evento nos itens do menu
       menuItems.forEach(item => {
-        item.addEventListener('click', (e) => {
+        item.addEventListener('click', () => {
           const target = item.getAttribute('data-target');
-          if (target) {
-            switchTab(target);
-          }
+          if (target) switchTab(target);
         });
       });
 
-      // Verificar Hash inicial da URL (#configuracoes ou #leads)
       function checkHash() {
         const hash = window.location.hash;
         if (hash === '#configuracoes') {
@@ -489,20 +503,38 @@
       }
 
       window.addEventListener('hashchange', checkHash);
-      checkHash(); // Executa na carga inicial
+      checkHash();
 
-      // Alternância de Tema Claro / Escuro
       if (btnTheme) {
         btnTheme.addEventListener('click', () => {
           document.body.classList.toggle('light-theme');
           const isLight = document.body.classList.contains('light-theme');
-          
           if (brandLogo) {
             brandLogo.src = isLight ? './logo-preta.png' : './logo-branca.png';
           }
           btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
         });
       }
+
+      // Eventos dos botões da tabela
+      document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target.classList.contains('btn-ai')) {
+          const row = target.closest('tr');
+          const name = row ? row.cells[1].querySelector('strong').innerText : 'Lead';
+          alert(`Iniciando análise preditiva de IA para o lead: ${name}`);
+        } else if (target.classList.contains('btn-edit')) {
+          const row = target.closest('tr');
+          const name = row ? row.cells[1].querySelector('strong').innerText : 'Lead';
+          alert(`Abrindo formulário de edição para: ${name}`);
+        } else if (target.classList.contains('btn-delete')) {
+          const row = target.closest('tr');
+          const name = row ? row.cells[1].querySelector('strong').innerText : 'Lead';
+          if (confirm(`Tem certeza de que deseja remover o lead ${name}?`)) {
+            row.remove();
+          }
+        }
+      });
     });
   </script>
 
