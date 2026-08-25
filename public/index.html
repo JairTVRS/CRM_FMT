@@ -79,7 +79,7 @@
     }
     .btn-login:hover { background-color: var(--primary-hover); }
 
-    /* Top Navbar Fixa */
+    /* Top Navbar Fixa sem o texto extra */
     .top-header {
       position: fixed; top: 0; left: 0; width: 100%; height: 60px;
       background-color: var(--bg-header);
@@ -89,7 +89,7 @@
     }
 
     .header-logo-container { display: flex; align-items: center; gap: 10px; }
-    .brand-logo { height: 32px; object-fit: contain; }
+    .brand-logo { height: 36px; object-fit: contain; }
 
     .header-actions { display: flex; align-items: center; gap: 15px; }
 
@@ -158,12 +158,8 @@
 
     table { width: 100%; border-collapse: collapse; text-align: left; }
     
-    th.sortable {
-      cursor: pointer; user-select: none; transition: background-color 0.2s;
-    }
-    th.sortable:hover {
-      background-color: rgba(255, 59, 0, 0.1); color: var(--primary);
-    }
+    th.sortable { cursor: pointer; user-select: none; transition: background-color 0.2s; }
+    th.sortable:hover { background-color: rgba(255, 59, 0, 0.1); color: var(--primary); }
     th { background-color: var(--table-header-bg); color: var(--text-muted); font-size: 12px; font-weight: bold; padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
     td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid var(--border-color); vertical-align: middle; color: var(--text-main); }
 
@@ -175,7 +171,7 @@
     .action-icon:hover { transform: scale(1.15); }
     .wsp-icon-svg { width: 20px; height: 20px; fill: #25D366; }
 
-    /* Modal Styling */
+    /* Modal Styling com Abas */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0, 0, 0, 0.6); align-items: center; justify-content: center; z-index: 1200;
@@ -183,16 +179,18 @@
 
     .modal-box {
       position: relative; background: var(--bg-card); color: var(--text-main); padding: 25px;
-      border-radius: 8px; width: 100%; max-width: 420px; border: 1px solid var(--border-color);
+      border-radius: 8px; width: 100%; max-width: 500px; border: 1px solid var(--border-color);
+      max-height: 90vh; overflow-y: auto;
     }
 
     .modal-header-container {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
     }
 
     .modal-box h2 { font-size: 20px; }
 
-    /* Ícone de Relógio Minimalista e Clean */
+    .modal-top-actions { display: flex; align-items: center; gap: 8px; }
+
     .btn-clock-clean {
       background: transparent; border: 1px solid var(--border-color);
       width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
@@ -206,6 +204,25 @@
     .btn-clock-clean svg { width: 18px; height: 18px; stroke: var(--text-muted); transition: stroke 0.2s; }
     .btn-clock-clean:hover svg { stroke: var(--primary); }
 
+    /* Visual das Abas */
+    .modal-tabs {
+      display: flex; gap: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      padding: 8px 14px; border: none; background: transparent;
+      color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: bold;
+      border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--primary); border-bottom-color: var(--primary);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
     .form-group input, .form-group select {
@@ -217,7 +234,23 @@
     .btn-save { background-color: var(--primary); color: white; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
     .btn-cancel { background-color: #ccc; color: #333; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
 
-    /* Drawer do Histórico de Alterações (Painel Lateral Slide-In) */
+    /* Estilos do Prompt IA */
+    .ia-prompt-box {
+      width: 100%; height: 220px; font-family: monospace; font-size: 12px;
+      padding: 12px; border: 1px solid var(--border-color); border-radius: 6px;
+      background-color: var(--table-header-bg); color: var(--text-main);
+      resize: vertical; outline: none; margin-bottom: 12px;
+    }
+
+    .btn-copy-prompt {
+      background-color: #10a37f; color: white; border: none; padding: 10px 15px;
+      font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center;
+      transition: background 0.2s;
+    }
+    .btn-copy-prompt:hover { background-color: #0e8e6f; }
+
+    /* Drawer de Histórico */
     .history-drawer {
       position: fixed; top: 0; right: -420px; width: 380px; height: 100vh;
       background-color: var(--bg-card); border-left: 1px solid var(--border-color);
@@ -275,11 +308,10 @@
     </div>
   </div>
 
-  <!-- Header Fixo -->
+  <!-- Header Fixo Limpo -->
   <header class="top-header">
     <div class="header-logo-container">
       <img id="brandLogo" src="logo-preta.png" alt="Formatar Gestão" class="brand-logo" onerror="this.style.display='none'">
-      <strong id="brandTextFallback" style="font-size: 18px; letter-spacing: 1px;">FORMATAR GESTÃO</strong>
     </div>
     <div class="header-actions">
       <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙 Modo Escuro</button>
@@ -334,62 +366,86 @@
     </div>
   </div>
 
-  <!-- Modal Cadastro/Edição -->
+  <!-- Modal Cadastro/Edição com Abas de Dados e IA -->
   <div class="modal-overlay" id="modalLead">
     <div class="modal-box">
       <div class="modal-header-container">
-        <h2 id="modalTitle">Incluir Novo Lead</h2>
-        
-        <!-- Botão de Relógio Minimalista Clean -->
-        <button class="btn-clock-clean" title="Histórico de alterações" onclick="abrirHistorico()">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
+        <h2 id="modalTitle">Editar Lead</h2>
+        <div class="modal-top-actions">
+          <!-- Botão de Relógio Minimalista Clean -->
+          <button class="btn-clock-clean" title="Histórico de alterações" onclick="abrirHistorico()">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controladores de Abas -->
+      <div class="modal-tabs">
+        <button class="tab-btn active" id="btnTabDados" onclick="switchTab('dados')">📝 Cadastro</button>
+        <button class="tab-btn" id="btnTabIA" onclick="switchTab('ia')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
           </svg>
+          Inteligência IA
         </button>
       </div>
 
-      <input type="hidden" id="leadId">
-      <div class="form-group">
-        <label for="leadNome">Nome Completo</label>
-        <input type="text" id="leadNome" placeholder="Ex: João Silva">
+      <!-- Aba 1: Dados do Form -->
+      <div class="tab-content active" id="tabDados">
+        <input type="hidden" id="leadId">
+        <div class="form-group">
+          <label for="leadNome">Nome Completo</label>
+          <input type="text" id="leadNome" placeholder="Ex: João Silva" oninput="atualizarPromptIA()">
+        </div>
+        <div class="form-group">
+          <label for="leadDocumento">CPF / CNPJ</label>
+          <input type="text" id="leadDocumento" placeholder="Ex: 000.000.000-00" oninput="atualizarPromptIA()">
+        </div>
+        <div class="form-group">
+          <label for="leadWhatsapp">WhatsApp</label>
+          <input type="text" id="leadWhatsapp" placeholder="Ex: (31) 99999-9999">
+        </div>
+        <div class="form-group">
+          <label for="leadOrigem">Origem</label>
+          <select id="leadOrigem">
+            <option value="">Selecione uma opção...</option>
+            <option value="eventos">eventos</option>
+            <option value="Inbound">Inbound</option>
+            <option value="outbound">outbound</option>
+            <option value="redes">redes</option>
+            <option value="tráfego pago">tráfego pago</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+          <button class="btn-save" onclick="salvarLead()">Salvar Lead</button>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="leadDocumento">CPF / CNPJ</label>
-        <input type="text" id="leadDocumento" placeholder="Ex: 000.000.000-00">
-      </div>
-      <div class="form-group">
-        <label for="leadWhatsapp">WhatsApp</label>
-        <input type="text" id="leadWhatsapp" placeholder="Ex: (31) 99999-9999">
-      </div>
-      <div class="form-group">
-        <label for="leadOrigem">Origem</label>
-        <select id="leadOrigem">
-          <option value="">Selecione uma opção...</option>
-          <option value="eventos">eventos</option>
-          <option value="Inbound">Inbound</option>
-          <option value="outbound">outbound</option>
-          <option value="redes">redes</option>
-          <option value="tráfego pago">tráfego pago</option>
-        </select>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-        <button class="btn-save" onclick="salvarLead()">Salvar Lead</button>
+
+      <!-- Aba 2: Prompt Completo de Due Diligence / Inteligência IA -->
+      <div class="tab-content" id="tabIA">
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+          Copie o prompt de due diligence abaixo pré-preenchido com os dados deste lead para enviar à IA:
+        </p>
+        <textarea id="iaPromptContent" class="ia-prompt-box" readonly></textarea>
+        <button class="btn-copy-prompt" onclick="copiarPromptIA()">
+          📋 Copiar Prompt de Inteligência
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- History Drawer (Painel de Histórico Clean Estilo App Profissional) -->
+  <!-- Drawer do Histórico de Alterações -->
   <div id="historyDrawer" class="history-drawer">
     <div class="drawer-header">
       <h3>Histórico de alterações</h3>
       <button class="btn-close-drawer" onclick="fecharHistorico()">✕</button>
     </div>
     <div class="drawer-body">
-      <div class="timeline" id="timelineList">
-        <!-- Logs serão injetados via JS -->
-      </div>
+      <div class="timeline" id="timelineList"></div>
     </div>
   </div>
 
@@ -452,7 +508,6 @@
     let sortColumn = 'created_at';
     let sortAscending = false;
 
-    // Sessão
     function checarSessao() {
       const sessao = localStorage.getItem('crm_user');
       if (sessao) {
@@ -516,9 +571,137 @@
       }
     }
 
-    // Modal & Drawer de Histórico
+    // Modal, Abas e IA
+    function switchTab(tabName) {
+      document.getElementById('tabDados').classList.remove('active');
+      document.getElementById('tabIA').classList.remove('active');
+      document.getElementById('btnTabDados').classList.remove('active');
+      document.getElementById('btnTabIA').classList.remove('active');
+
+      if (tabName === 'dados') {
+        document.getElementById('tabDados').classList.add('active');
+        document.getElementById('btnTabDados').classList.add('active');
+      } else {
+        document.getElementById('tabIA').classList.add('active');
+        document.getElementById('btnTabIA').classList.add('active');
+        atualizarPromptIA();
+      }
+    }
+
+    function atualizarPromptIA() {
+      const nome = document.getElementById('leadNome').value || '[NOME]';
+      const doc = document.getElementById('leadDocumento').value || '[CNPJ/CPF]';
+
+      const promptTemplate = `Atue como um analista de inteligência empresarial e due diligence.
+Vou fornecer:
+
+Razão Social / Nome da empresa: ${nome}
+CNPJ: ${doc}
+Sua missão é pesquisar na internet e em fontes públicas confiáveis e consolidar o máximo possível de informações verificáveis sobre essa empresa.
+
+1. Identificação cadastral
+Razão social
+Nome fantasia
+CNPJ
+Data de abertura
+Situação cadastral
+Natureza jurídica
+Porte
+Capital social, quando disponível
+CNAE principal
+CNAEs secundários
+Endereço
+Telefones
+E-mails públicos
+Site oficial
+Redes sociais oficiais
+
+2. Estrutura societária
+Pesquisar, quando disponível publicamente:
+Sócios
+Administradores
+Participações societárias
+Empresas relacionadas aos mesmos sócios
+Alterações societárias relevantes
+Grupo econômico ao qual pertence
+
+3. Operação e posicionamento
+Identificar:
+O que a empresa faz
+Principais produtos e serviços
+Segmentos de atuação
+Regiões onde atua
+Número aproximado de unidades/filiais
+Principais marcas
+Principais clientes, quando houver informação pública
+Principais fornecedores ou parceiros mencionados publicamente
+Posicionamento e proposta de valor
+
+4. Dados financeiros e porte
+Buscar informações públicas sobre:
+Faturamento ou receita estimada/divulgada
+Número de funcionários
+Crescimento
+Investimentos
+Expansões
+Aquisições
+Rodadas de investimento
+Indicadores financeiros publicados
+Evolução do porte da empresa
+Não invente estimativas. Diferencie claramente dado oficial, estimativa e informação não confirmada.
+
+5. Presença digital e reputação
+Pesquisar:
+Google, Site oficial, LinkedIn, Instagram, Facebook, YouTube, Reclame Aqui, Avaliações públicas, Notícias, Entrevistas, Publicações institucionais
+Avaliar:
+Reputação, Principais reclamações, Principais elogios, Percepção dos clientes, Força da marca, Presença digital
+
+6. Notícias e movimentos estratégicos
+Priorize informações dos últimos 24 meses, identificando:
+Expansões, Novas unidades, Novos produtos, Mudanças de estratégia, Fusões e aquisições, Investimentos, Mudanças na liderança, Crises, Processos relevantes, Premiações, Parcerias estratégicas, Movimentos competitivos
+
+7. Jurídico e compliance
+Pesquisar fontes públicas sobre:
+Processos judiciais relevantes, Processos trabalhistas relevantes, Processos tributários, Processos consumeristas, Recuperação judicial/falência, Autos ou sanções de órgãos públicos, Problemas ambientais, Investigações ou irregularidades
+
+8. Mercado e concorrência
+Identificar:
+Segmento econômico, Principais concorrentes, Empresas semelhantes, Posicionamento competitivo, Diferenciais, Vulnerabilidades, Tendências que afetam o negócio
+
+9. Inteligência executiva
+Com base exclusivamente nas evidências encontradas, produzir:
+FORÇAS (5 principais)
+FRAQUEZAS (5 principais)
+OPORTUNIDADES (5 principais)
+AMEAÇAS (5 principais)
+RISCOS (5 principais)
+MOVIMENTOS ESTRATÉGICOS (O que a empresa parece estar fazendo e para onde parece estar indo)
+
+10. Score de inteligência
+Atribua notas de 0 a 10 para: Porte, Crescimento, Presença digital, Reputação, Governança, Solidez financeira, Inovação, Competitividade, Risco, Potencial estratégico. Explique brevemente cada nota.
+
+11. Fontes
+Para cada informação relevante, informe: Fonte, Link, Data da publicação/consulta, Grau de confiabilidade (ALTO / MÉDIO / BAIXO)
+
+Regras críticas:
+- Não invente informações.
+- Se uma informação não estiver disponível publicamente, escreva "Não localizado em fontes públicas".
+- Ao final, apresente um Resumo Executivo de no máximo 15 linhas, como se fosse um briefing para um conselho de administração.`;
+
+      document.getElementById('iaPromptContent').value = promptTemplate;
+    }
+
+    function copiarPromptIA() {
+      const textarea = document.getElementById('iaPromptContent');
+      textarea.select();
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        alert('Prompt de Due Diligence copiado com sucesso!');
+      });
+    }
+
     function openModal(lead = null) {
       fecharHistorico();
+      switchTab('dados');
       leadAtualSelecionado = lead;
 
       if (lead) {
@@ -536,6 +719,7 @@
         document.getElementById('leadWhatsapp').value = '';
         document.getElementById('leadOrigem').value = '';
       }
+      atualizarPromptIA();
       document.getElementById('modalLead').style.display = 'flex';
     }
 
