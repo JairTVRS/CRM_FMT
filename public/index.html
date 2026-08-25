@@ -5,21 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRM Formatar — Gestão, Governança & Conexões</title>
   
-  <!-- Link com caminho relativo estrito -->
   <link rel="stylesheet" href="./assets/css/main.css">
   
-  <!-- Fallback/Garantia de carregamento de estilos estruturais base -->
   <style>
+    /* TEMAS DE COR VIA VARIÁVEIS CSS */
     :root {
-      --bg-dark: #0f172a;
-      --card-dark: #1e293b;
-      --text-dark: #f8fafc;
-      --border-dark: #334155;
-      --accent: #f97316;
-      --bg-light: #f8fafc;
-      --card-light: #ffffff;
-      --text-light: #0f172a;
-      --border-light: #e2e8f0;
+      /* Tema Escuro (Padrão) */
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --border-color: #334155;
+      --accent-color: #f97316;
+      --header-table-bg: #020617;
+      --input-bg: #0f172a;
+    }
+
+    body.light-theme {
+      /* Tema Claro */
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-color: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #94a3b8;
+      --border-color: #cbd5e1;
+      --accent-color: #ea580c;
+      --header-table-bg: #e2e8f0;
+      --input-bg: #f8fafc;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
@@ -27,15 +40,16 @@
     body {
       display: flex;
       min-height: 100vh;
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     /* Sidebar Layout */
     .sidebar {
       width: 260px;
-      background: var(--card-dark);
-      border-right: 1px solid var(--border-dark);
+      background: var(--card-bg);
+      border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -45,6 +59,7 @@
       top: 0;
       left: 0;
       z-index: 10;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .brand-img {
@@ -61,7 +76,7 @@
     }
 
     .menu-item {
-      color: #94a3b8;
+      color: var(--text-muted);
       text-decoration: none;
       padding: 12px 16px;
       border-radius: 8px;
@@ -71,16 +86,16 @@
 
     .menu-item:hover, .menu-item.active {
       background: rgba(249, 115, 22, 0.15);
-      color: var(--accent);
+      color: var(--accent-color);
     }
 
     .sidebar-footer {
-      border-top: 1px solid var(--border-dark);
+      border-top: 1px solid var(--border-color);
       padding-top: 15px;
       display: flex;
       justify-content: space-between;
       font-size: 12px;
-      color: #64748b;
+      color: var(--text-subtle);
     }
 
     /* Main Content */
@@ -98,16 +113,22 @@
       gap: 20px;
       margin-bottom: 30px;
       padding-bottom: 15px;
-      border-bottom: 1px solid var(--border-dark);
+      border-bottom: 1px solid var(--border-color);
     }
 
     .topbar-btn {
-      background: var(--card-dark);
-      border: 1px solid var(--border-dark);
-      color: var(--text-dark);
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
       padding: 8px 16px;
       border-radius: 6px;
       cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .topbar-btn:hover {
+      border-color: var(--accent-color);
     }
 
     .user-profile {
@@ -115,10 +136,11 @@
       align-items: center;
       gap: 10px;
       font-weight: 600;
+      color: var(--text-color);
     }
 
     .user-avatar {
-      background: var(--accent);
+      background: var(--accent-color);
       color: #fff;
       width: 32px;
       height: 32px;
@@ -140,7 +162,7 @@
 
     .kicker {
       font-size: 12px;
-      color: var(--accent);
+      color: var(--accent-color);
       font-weight: 700;
       letter-spacing: 1px;
     }
@@ -148,10 +170,11 @@
     .pagetitle {
       font-size: 28px;
       font-weight: 700;
+      color: var(--text-color);
     }
 
     .btn-primary {
-      background: var(--accent);
+      background: var(--accent-color);
       color: #fff;
       border: none;
       padding: 10px 20px;
@@ -162,21 +185,22 @@
 
     /* Cards & Table */
     .card {
-      background: var(--card-dark);
-      border: 1px solid var(--border-dark);
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 20px;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .table-header-info {
       display: flex;
       justify-content: space-between;
       padding: 12px 16px;
-      background: #020617;
+      background: var(--header-table-bg);
       border-radius: 6px 6px 0 0;
       font-size: 12px;
       font-weight: 700;
-      color: #94a3b8;
+      color: var(--text-muted);
     }
 
     .custom-table {
@@ -187,20 +211,28 @@
 
     .custom-table th, .custom-table td {
       padding: 14px 16px;
-      border-bottom: 1px solid var(--border-dark);
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-color);
     }
 
     .custom-table th {
       font-size: 11px;
-      color: #64748b;
+      color: var(--text-subtle);
       text-transform: uppercase;
     }
 
-    .text-orange { color: var(--accent); }
+    .text-orange { color: var(--accent-color); }
     .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
     .form-group { margin-top: 15px; }
-    .form-label { display: block; font-size: 12px; margin-bottom: 6px; color: #94a3b8; }
-    .form-input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid var(--border-dark); border-radius: 6px; color: #fff; }
+    .form-label { display: block; font-size: 12px; margin-bottom: 6px; color: var(--text-muted); }
+    .form-input { 
+      width: 100%; 
+      padding: 10px; 
+      background: var(--input-bg); 
+      border: 1px solid var(--border-color); 
+      border-radius: 6px; 
+      color: var(--text-color); 
+    }
     .actions-bar { margin-top: 25px; display: flex; justify-content: flex-end; }
   </style>
 </head>
@@ -221,7 +253,7 @@
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span>v2.5.4</span>
+      <span>v2.5.5</span>
     </div>
   </aside>
 

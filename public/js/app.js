@@ -1,53 +1,18 @@
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('App Formatar inicializado.');
+const btnTheme = document.getElementById('btn-theme');
+const brandLogo = document.getElementById('brand-logo');
 
-  const menuItems = document.querySelectorAll('.menu-item');
-  const views = document.querySelectorAll('.content-body');
-  const btnTheme = document.getElementById('btn-theme');
-  const btnLogout = document.getElementById('btn-logout');
-  const brandLogo = document.getElementById('brand-logo');
-
-  // Alternância de Menus/Views (Navegação SPA)
-  menuItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      // Remove classe ativa de todos os botões do menu
-      menuItems.forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-
-      // Oculta todas as views
-      const targetId = item.getAttribute('data-target');
-      views.forEach(view => {
-        if (view.id === targetId) {
-          view.classList.remove('hidden');
-        } else {
-          view.classList.add('hidden');
-        }
-      });
-
-      // Atualiza a hash na URL
-      window.location.hash = item.getAttribute('href');
-    });
+if (btnTheme) {
+  btnTheme.addEventListener('click', () => {
+    document.body.classList.toggle('light-theme');
+    
+    const isLight = document.body.classList.contains('light-theme');
+    
+    // Alterna a imagem da logo
+    if (brandLogo) {
+      brandLogo.src = isLight ? './logo-preta.png' : './logo-branca.png';
+    }
+    
+    // Alterna o texto do botão
+    btnTheme.textContent = isLight ? 'Modo Claro' : 'Modo Escuro';
   });
-
-  // Troca de Tema e Logomarca Dinâmica (logo-branca.png <-> logo-preta.png)
-  if (btnTheme) {
-    btnTheme.addEventListener('click', () => {
-      const isDark = document.body.classList.toggle('dark-theme');
-      
-      if (brandLogo) {
-        brandLogo.src = isDark ? 'logo-preta.png' : 'logo-branca.png';
-      }
-    });
-  }
-
-  // Logout
-  if (btnLogout) {
-    btnLogout.addEventListener('click', () => {
-      if (confirm('Deseja realmente sair?')) {
-        window.location.href = '/login';
-      }
-    });
-  }
-});
+}
