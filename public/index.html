@@ -4,8 +4,205 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRM Formatar — Gestão, Governança & Conexões</title>
-  <!-- Query param ?v=2.5.3 força o navegador a ignorar o cache antigo do Cloudflare -->
-  <link rel="stylesheet" href="/assets/css/main.css?v=2.5.3">
+  
+  <!-- Link com caminho relativo estrito -->
+  <link rel="stylesheet" href="./assets/css/main.css">
+  
+  <!-- Fallback/Garantia de carregamento de estilos estruturais base -->
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-dark: #1e293b;
+      --text-dark: #f8fafc;
+      --border-dark: #334155;
+      --accent: #f97316;
+      --bg-light: #f8fafc;
+      --card-light: #ffffff;
+      --text-light: #0f172a;
+      --border-light: #e2e8f0;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+
+    body {
+      display: flex;
+      min-height: 100vh;
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    /* Sidebar Layout */
+    .sidebar {
+      width: 260px;
+      background: var(--card-dark);
+      border-right: 1px solid var(--border-dark);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      position: fixed;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      z-index: 10;
+    }
+
+    .brand-img {
+      max-width: 180px;
+      height: auto;
+      margin-bottom: 30px;
+      display: block;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .menu-item {
+      color: #94a3b8;
+      text-decoration: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .menu-item:hover, .menu-item.active {
+      background: rgba(249, 115, 22, 0.15);
+      color: var(--accent);
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid var(--border-dark);
+      padding-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    /* Main Content */
+    .main-content {
+      margin-left: 260px;
+      flex: 1;
+      padding: 30px;
+      width: calc(100% - 260px);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+
+    .topbar-btn {
+      background: var(--card-dark);
+      border: 1px solid var(--border-dark);
+      color: var(--text-dark);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    .user-avatar {
+      background: var(--accent);
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .content-body { display: block; }
+    .content-body.hidden { display: none; }
+
+    .page-header-action {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .kicker {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .pagetitle {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Cards & Table */
+    .card {
+      background: var(--card-dark);
+      border: 1px solid var(--border-dark);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .table-header-info {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #020617;
+      border-radius: 6px 6px 0 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+
+    .custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .custom-table th, .custom-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+
+    .custom-table th {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .text-orange { color: var(--accent); }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+    .form-group { margin-top: 15px; }
+    .form-label { display: block; font-size: 12px; margin-bottom: 6px; color: #94a3b8; }
+    .form-input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid var(--border-dark); border-radius: 6px; color: #fff; }
+    .actions-bar { margin-top: 25px; display: flex; justify-content: flex-end; }
+  </style>
 </head>
 <body>
 
@@ -13,8 +210,7 @@
   <aside class="sidebar">
     <div>
       <div class="brand">
-        <!-- Logo dinâmica (alterna entre branca e preta conforme o tema em app.js) -->
-        <img id="brand-logo" src="/logo-branca.png" alt="Formatar Gestão, Governança e Conexões" class="brand-img">
+        <img id="brand-logo" src="./logo-branca.png" alt="Formatar Gestão, Governança e Conexões" class="brand-img">
       </div>
 
       <nav class="menu">
@@ -25,7 +221,7 @@
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span>v2.5.3</span>
+      <span>v2.5.4</span>
     </div>
   </aside>
 
@@ -165,8 +361,8 @@
 
   </main>
 
-  <script src="/js/configuracoes.js"></script>
-  <script src="/js/leads.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="./js/configuracoes.js"></script>
+  <script src="./js/leads.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>
