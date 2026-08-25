@@ -8,9 +8,8 @@
   <link rel="stylesheet" href="./assets/css/main.css">
   
   <style>
-    /* TEMAS DE COR VIA VARIÁVEIS CSS */
+    /* VARIABLES DE COR (TEMA ESCURO / CLARO) */
     :root {
-      /* Tema Escuro (Padrão) */
       --bg-color: #0f172a;
       --card-bg: #1e293b;
       --text-color: #f8fafc;
@@ -23,7 +22,6 @@
     }
 
     body.light-theme {
-      /* Tema Claro */
       --bg-color: #f1f5f9;
       --card-bg: #ffffff;
       --text-color: #0f172a;
@@ -82,6 +80,7 @@
       border-radius: 8px;
       font-weight: 500;
       transition: all 0.2s;
+      cursor: pointer;
     }
 
     .menu-item:hover, .menu-item.active {
@@ -98,7 +97,7 @@
       color: var(--text-subtle);
     }
 
-    /* Main Content */
+    /* Main Content Layout */
     .main-content {
       margin-left: 260px;
       flex: 1;
@@ -150,8 +149,14 @@
       justify-content: center;
     }
 
-    .content-body { display: block; }
-    .content-body.hidden { display: none; }
+    /* Visualização das Telas */
+    .content-body { 
+      display: block; 
+    }
+    
+    .content-body.hidden { 
+      display: none !important; 
+    }
 
     .page-header-action {
       display: flex;
@@ -171,6 +176,14 @@
       font-size: 28px;
       font-weight: 700;
       color: var(--text-color);
+      margin-top: 4px;
+    }
+
+    .description {
+      color: var(--text-muted);
+      margin-top: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
     }
 
     .btn-primary {
@@ -183,7 +196,7 @@
       cursor: pointer;
     }
 
-    /* Cards & Table */
+    /* Cards & Tabela */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -222,18 +235,50 @@
     }
 
     .text-orange { color: var(--accent-color); }
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+
+    /* Grid de Configurações */
+    .cards-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+      gap: 20px; 
+      margin-top: 20px; 
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
     .form-group { margin-top: 15px; }
-    .form-label { display: block; font-size: 12px; margin-bottom: 6px; color: var(--text-muted); }
+
+    .form-label { 
+      display: block; 
+      font-size: 12px; 
+      margin-bottom: 6px; 
+      color: var(--text-muted); 
+      font-weight: 600;
+    }
+
     .form-input { 
       width: 100%; 
-      padding: 10px; 
+      padding: 10px 12px; 
       background: var(--input-bg); 
       border: 1px solid var(--border-color); 
       border-radius: 6px; 
       color: var(--text-color); 
+      outline: none;
     }
-    .actions-bar { margin-top: 25px; display: flex; justify-content: flex-end; }
+
+    .form-input:focus {
+      border-color: var(--accent-color);
+    }
+
+    .actions-bar { 
+      margin-top: 25px; 
+      display: flex; 
+      justify-content: flex-end; 
+    }
   </style>
 </head>
 <body>
@@ -253,14 +298,14 @@
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span>v2.5.5</span>
+      <span>v2.5.6</span>
     </div>
   </aside>
 
   <!-- Main Content -->
   <main class="main-content">
     <header class="topbar">
-      <button class="topbar-btn" id="btn-theme">Modo Escuro</button>
+      <button class="topbar-btn" id="btn-theme">Modo Claro</button>
       <div class="user-profile">
         <span class="user-avatar">J</span>
         <span>Jair Tavares</span>
@@ -392,6 +437,74 @@
     </section>
 
   </main>
+
+  <!-- SCRIPT DE NAVEGAÇÃO E TEMAS -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuItems = document.querySelectorAll('.menu-item');
+      const viewLeads = document.getElementById('view-leads');
+      const viewConfig = document.getElementById('view-configuracoes');
+      const btnTheme = document.getElementById('btn-theme');
+      const brandLogo = document.getElementById('brand-logo');
+
+      // Função para alternar as abas
+      function switchTab(targetId) {
+        // Atualizar links ativos
+        menuItems.forEach(item => {
+          if (item.getAttribute('data-target') === targetId) {
+            item.classList.add('active');
+          } else {
+            item.classList.remove('active');
+          }
+        });
+
+        // Exibir a view correspondente
+        if (targetId === 'view-configuracoes') {
+          viewLeads.classList.add('hidden');
+          viewConfig.classList.remove('hidden');
+        } else {
+          viewConfig.classList.add('hidden');
+          viewLeads.classList.remove('hidden');
+        }
+      }
+
+      // Evento nos itens do menu
+      menuItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          const target = item.getAttribute('data-target');
+          if (target) {
+            switchTab(target);
+          }
+        });
+      });
+
+      // Verificar Hash inicial da URL (#configuracoes ou #leads)
+      function checkHash() {
+        const hash = window.location.hash;
+        if (hash === '#configuracoes') {
+          switchTab('view-configuracoes');
+        } else {
+          switchTab('view-leads');
+        }
+      }
+
+      window.addEventListener('hashchange', checkHash);
+      checkHash(); // Executa na carga inicial
+
+      // Alternância de Tema Claro / Escuro
+      if (btnTheme) {
+        btnTheme.addEventListener('click', () => {
+          document.body.classList.toggle('light-theme');
+          const isLight = document.body.classList.contains('light-theme');
+          
+          if (brandLogo) {
+            brandLogo.src = isLight ? './logo-preta.png' : './logo-branca.png';
+          }
+          btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+        });
+      }
+    });
+  </script>
 
   <script src="./js/configuracoes.js"></script>
   <script src="./js/leads.js"></script>
