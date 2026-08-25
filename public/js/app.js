@@ -9,27 +9,33 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 2. Escuta de cliques globais (garante o clique mesmo se o botão recarregar na tela)
+// 2. Event Delegation Global acionado em QUALQUER clique da tela
 document.addEventListener('click', (event) => {
-  // Verifica se o clique foi no botão de tema ou em texto dentro dele
-  const btnTheme = event.target.closest('#btn-theme, .topbar-btn, button[onclick*="theme"]');
-  
-  if (btnTheme && (btnTheme.textContent.includes('Modo Claro') || btnTheme.textContent.includes('Modo Escuro'))) {
+  // Captura qualquer elemento (botão, span ou div) que contenha "Modo Claro" ou "Modo Escuro"
+  const target = event.target;
+  const btnText = target.textContent ? target.textContent.trim() : '';
+
+  if (btnText === 'Modo Claro' || btnText === 'Modo Escuro') {
     event.preventDefault();
     
-    // Alterna a classe de tema claro
+    // Alterna o tema no HTML e no Body
     document.body.classList.toggle('light-theme');
     document.documentElement.classList.toggle('light-theme');
     
     const isLight = document.body.classList.contains('light-theme');
 
-    // Troca o texto do botão
-    btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+    // Atualiza o texto de todos os botões de tema na tela
+    target.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
 
-    // Procura e alterna todas as imagens de logo do sistema
-    const brandLogos = document.querySelectorAll('#brand-logo, .brand img, .brand-img');
-    brandLogos.forEach(logo => {
-      logo.src = isLight ? 'logo-preta.png' : 'logo-branca.png';
+    // Troca a imagem da logo para o tema selecionado
+    const brandLogos = document.querySelectorAll('#brand-logo, .brand img, .brand-img, .brand');
+    brandLogos.forEach(element => {
+      if (element.tagName === 'IMG') {
+        element.src = isLight ? 'logo-preta.png' : 'logo-branca.png';
+      } else {
+        const imgInside = element.querySelector('img');
+        if (imgInside) imgInside.src = isLight ? 'logo-preta.png' : 'logo-branca.png';
+      }
     });
   }
 });

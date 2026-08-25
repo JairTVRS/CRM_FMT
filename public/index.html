@@ -10,8 +10,8 @@
   <link rel="shortcut icon" type="image/png" href="./Icone-Aba.png">
   <link rel="apple-touch-icon" href="./Icone-Aba.png">
 
-  <!-- CSS Principal com Anti-Cache -->
-  <link rel="stylesheet" href="./assets/css/main.css?v=2.5.17">
+  <!-- CSS Principal -->
+  <link rel="stylesheet" href="./assets/css/main.css">
 
   <style>
     :root {
@@ -432,9 +432,9 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div>
-        <div class="brand">
-  <img id="brand-logo" src="logo-branca.png" alt="Formatar Gestão e Governança" class="brand-img">
-</div>
+      <div class="brand">
+        <img id="brand-logo" src="logo-branca.png" alt="Formatar Gestão e Governança" class="brand-img">
+      </div>
 
       <nav class="menu">
         <a href="#leads" class="menu-item active" data-target="view-leads">Leads</a>
@@ -444,14 +444,14 @@
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span id="app-version">v2.5.19</span>
+      <span id="app-version">--</span>
     </div>
   </aside>
 
   <!-- Main Content -->
   <main class="main-content">
     <header class="topbar">
-      <button class="topbar-btn" id="btn-theme" onclick="toggleTheme()">Modo Claro</button>
+      <button class="topbar-btn" id="btn-theme">Modo Claro</button>
       <div class="user-profile">
         <span class="user-avatar">J</span>
         <span>Jair Tavares</span>
@@ -756,232 +756,6 @@
   </div>
 
   <!-- JavaScript Global -->
-  <script>
-    // FUNÇÃO GLOBAL DE ALTERNÂNCIA DE TEMA E LOGO
-    function toggleTheme() {
-      const isLight = document.body.classList.toggle('light-theme');
-      document.documentElement.classList.toggle('light-theme', isLight);
-      
-      const btnTheme = document.getElementById('btn-theme');
-      const brandLogo = document.getElementById('brand-logo');
-
-      if (btnTheme) {
-        btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
-      }
-      if (brandLogo) {
-        brandLogo.src = isLight ? './logo-preta.png' : './logo-branca.png';
-      }
-    }
-
-    function updateCounter() {
-      const tbody = document.getElementById('table-leads-body');
-      const countEl = document.getElementById('total-registros');
-      if (tbody && countEl) {
-        countEl.textContent = `Total de Registros: ${tbody.children.length}`;
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const menuItems = document.querySelectorAll('.menu-item');
-      const viewLeads = document.getElementById('view-leads');
-      const viewConfig = document.getElementById('view-configuracoes');
-
-      const btnIncluirLead = document.getElementById('btn-incluir-lead');
-
-      const modalLead = document.getElementById('modal-lead');
-      const modalTitle = document.getElementById('modal-lead-title');
-      const tabBtns = document.querySelectorAll('.tab-btn');
-      const tabContents = document.querySelectorAll('.tab-content');
-
-      const subtabBtns = document.querySelectorAll('.subtab-btn');
-      const subtabContents = document.querySelectorAll('.subtab-content');
-
-      function switchTab(targetId) {
-        menuItems.forEach(item => {
-          if (item.getAttribute('data-target') === targetId) {
-            item.classList.add('active');
-          } else {
-            item.classList.remove('active');
-          }
-        });
-
-        if (targetId === 'view-configuracoes') {
-          viewLeads.classList.add('hidden');
-          viewConfig.classList.remove('hidden');
-        } else {
-          viewConfig.classList.add('hidden');
-          viewLeads.classList.remove('hidden');
-        }
-      }
-
-      menuItems.forEach(item => {
-        item.addEventListener('click', () => {
-          const target = item.getAttribute('data-target');
-          if (target) switchTab(target);
-        });
-      });
-
-      function openLeadModal(leadData = null, defaultTab = 'tab-geral') {
-        if (leadData) {
-          document.getElementById('lead-input-nome').value = leadData.nome || '';
-          document.getElementById('lead-input-doc').value = leadData.doc || '';
-          document.getElementById('lead-input-phone').value = leadData.phone || '';
-          document.getElementById('lead-input-origem').value = leadData.origem || '';
-          modalTitle.textContent = `Ficha do Lead: ${leadData.nome || 'Lead'}`;
-        } else {
-          document.getElementById('lead-input-nome').value = '';
-          document.getElementById('lead-input-doc').value = '';
-          document.getElementById('lead-input-phone').value = '';
-          document.getElementById('lead-input-origem').value = '';
-          modalTitle.textContent = 'Novo Lead';
-        }
-
-        tabBtns.forEach(btn => {
-          if (btn.getAttribute('data-tab') === defaultTab) {
-            btn.classList.add('active');
-          } else {
-            btn.classList.remove('active');
-          }
-        });
-
-        tabContents.forEach(content => {
-          if (content.id === defaultTab) {
-            content.classList.remove('hidden');
-          } else {
-            content.classList.add('hidden');
-          }
-        });
-
-        modalLead.classList.remove('hidden');
-      }
-
-      function closeLeadModal() {
-        modalLead.classList.add('hidden');
-      }
-
-      if (btnIncluirLead) {
-        btnIncluirLead.addEventListener('click', () => {
-          openLeadModal(null, 'tab-geral');
-        });
-      }
-
-      document.getElementById('btn-modal-close').addEventListener('click', closeLeadModal);
-      document.getElementById('btn-modal-cancel').addEventListener('click', closeLeadModal);
-
-      // SALVAR E ADICIONAR NA TABELA
-      document.getElementById('btn-modal-save').addEventListener('click', () => {
-        const nome = document.getElementById('lead-input-nome').value.trim();
-        const doc = document.getElementById('lead-input-doc').value.trim();
-        const phone = document.getElementById('lead-input-phone').value.trim();
-        const origem = document.getElementById('lead-input-origem').value || 'Não informada';
-
-        if (!nome) {
-          alert('Por favor, informe ao menos o Nome/Razão Social do lead.');
-          return;
-        }
-
-        const tbody = document.getElementById('table-leads-body');
-        const now = new Date().toLocaleString('pt-BR');
-        const cleanPhone = phone.replace(/\D/g, '');
-
-        const leadObj = { nome, doc, phone, origem };
-
-        const tr = document.createElement('tr');
-        tr.setAttribute('data-lead', JSON.stringify(leadObj));
-        tr.innerHTML = `
-          <td>
-            <div class="action-group">
-              <a href="https://wa.me/55${cleanPhone}" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
-              <button class="btn-action btn-ai" title="Analisar com IA">A</button>
-              <button class="btn-action btn-edit" title="Editar Lead">✏️</button>
-              <button class="btn-action btn-delete" title="Excluir Lead">🗑️</button>
-            </div>
-          </td>
-          <td><strong>${nome}</strong><br><small>Doc: ${doc || 'N/I'}</small></td>
-          <td>${phone || 'N/I'}</td>
-          <td>${origem}</td>
-          <td>${now}<br><small class="text-orange">Novo</small></td>
-        `;
-
-        tbody.insertBefore(tr, tbody.firstChild);
-        updateCounter();
-
-        alert('Dados salvos com sucesso!');
-        closeLeadModal();
-      });
-
-      // MANIPULAÇÃO DAS ABAS PRINCIPAIS DO MODAL
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const targetTab = btn.getAttribute('data-tab');
-          tabBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          tabContents.forEach(content => {
-            if (content.id === targetTab) {
-              content.classList.remove('hidden');
-            } else {
-              content.classList.add('hidden');
-            }
-          });
-        });
-      });
-
-      // MANIPULAÇÃO DAS SUB-ABAS INTERNAS DA IA
-      subtabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const targetSubtab = btn.getAttribute('data-subtab');
-          subtabBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          subtabContents.forEach(content => {
-            if (content.id === targetSubtab) {
-              content.classList.remove('hidden');
-            } else {
-              content.classList.add('hidden');
-            }
-          });
-        });
-      });
-
-      document.addEventListener('click', (e) => {
-        const target = e.target;
-        const row = target.closest('tr');
-        let leadData = null;
-
-        if (row && row.getAttribute('data-lead')) {
-          try { leadData = JSON.parse(row.getAttribute('data-lead')); } catch(err){}
-        }
-
-        if (target.classList.contains('btn-ai')) {
-          openLeadModal(leadData, 'tab-ia');
-        } else if (target.classList.contains('btn-edit')) {
-          openLeadModal(leadData, 'tab-geral');
-        } else if (target.classList.contains('btn-delete')) {
-          if (confirm(`Tem certeza de que deseja remover o lead ${leadData ? leadData.nome : ''}?`)) {
-            row.remove();
-            updateCounter();
-          }
-        }
-      });
-    });
-
-    function promptUrl(tipo) {
-      const url = prompt(`Digite a URL correta do ${tipo.toUpperCase()}:`);
-      if (url) {
-        const el = tipo === 'site' ? document.getElementById('link-site') : document.getElementById('link-insta');
-        if (el) {
-          el.href = url;
-          el.textContent = url;
-        }
-      }
-    }
-
-    function executarBuscaIA() {
-      alert('IA re-processando dados das URLs informadas... Resumo e classificações atualizados!');
-    }
-  </script>
-
-  <script src="./js/configuracoes.js?v="></script>
-  <script src="./js/leads.js?v="></script>
-  <script src="./js/app.js?v="></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>
