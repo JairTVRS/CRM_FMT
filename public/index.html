@@ -20,6 +20,7 @@
       --table-header-bg: #f8f9fa;
       --primary: #ff3b00;
       --primary-hover: #e03400;
+      --ai-color: #0070f3;
     }
 
     [data-theme="dark"] {
@@ -79,7 +80,7 @@
     }
     .btn-login:hover { background-color: var(--primary-hover); }
 
-    /* Top Navbar Fixa sem o texto extra */
+    /* Top Navbar Fixa */
     .top-header {
       position: fixed; top: 0; left: 0; width: 100%; height: 60px;
       background-color: var(--bg-header);
@@ -116,24 +117,30 @@
     /* Sidebar */
     .sidebar {
       width: 240px; background-color: var(--bg-sidebar); color: #fff;
-      padding: 20px; display: flex; flex-direction: column; justify-content: space-between;
+      padding: 20px 10px; display: flex; flex-direction: column; justify-content: space-between;
       min-height: calc(100vh - 60px);
     }
 
     .menu-item {
-      background-color: var(--primary); color: #fff; padding: 12px 15px;
-      border-radius: 6px; font-weight: bold; display: flex; align-items: center; gap: 10px;
+      color: #aaa; padding: 12px 15px; border-radius: 6px; font-weight: bold;
+      display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s;
+      margin-bottom: 5px;
+    }
+    .menu-item:hover, .menu-item.active {
+      background-color: var(--primary); color: #fff;
     }
 
     .sidebar-footer {
       display: flex; justify-content: space-between; align-items: center;
-      font-size: 11px; color: #777; border-top: 1px solid #222; padding-top: 15px;
+      font-size: 11px; color: #777; border-top: 1px solid #222; padding-top: 15px; margin: 0 10px;
     }
 
     .badge-version { background-color: #1a1a1a; color: #aaa; padding: 3px 8px; border-radius: 4px; font-size: 10px; }
 
     /* Content Area */
-    .content { flex: 1; padding: 30px; }
+    .content { flex: 1; padding: 30px; display: none; }
+    .content.active-view { display: block; }
+
     .header-tag { color: var(--primary); font-size: 12px; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px; }
     .header-title-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     .header-title { font-size: 28px; font-weight: bold; }
@@ -166,12 +173,20 @@
     .lead-doc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .lead-log { font-size: 11px; color: var(--primary); margin-top: 4px; font-style: italic; }
 
-    .actions-container { display: flex; align-items: center; gap: 12px; }
+    .actions-container { display: flex; align-items: center; gap: 8px; }
     .action-icon { text-decoration: none; font-size: 16px; cursor: pointer; background: none; border: none; padding: 2px; display: inline-flex; align-items: center; justify-content: center; transition: transform 0.1s; }
     .action-icon:hover { transform: scale(1.15); }
     .wsp-icon-svg { width: 20px; height: 20px; fill: #25D366; }
 
-    /* Modal Styling com Abas */
+    /* Estilo do Ícone de IA */
+    .ai-btn-icon {
+      background: transparent; border: none; cursor: pointer; padding: 2px;
+      display: inline-flex; align-items: center; justify-content: center; transition: transform 0.15s ease;
+    }
+    .ai-btn-icon:hover { transform: scale(1.2); }
+    .ai-svg-icon { width: 22px; height: 22px; }
+
+    /* Modal Styling */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0, 0, 0, 0.6); align-items: center; justify-content: center; z-index: 1200;
@@ -204,7 +219,7 @@
     .btn-clock-clean svg { width: 18px; height: 18px; stroke: var(--text-muted); transition: stroke 0.2s; }
     .btn-clock-clean:hover svg { stroke: var(--primary); }
 
-    /* Visual das Abas */
+    /* Abas */
     .modal-tabs {
       display: flex; gap: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
     }
@@ -234,7 +249,7 @@
     .btn-save { background-color: var(--primary); color: white; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
     .btn-cancel { background-color: #ccc; color: #333; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
 
-    /* Estilos do Prompt IA */
+    /* Prompt IA Box */
     .ia-prompt-box {
       width: 100%; height: 220px; font-family: monospace; font-size: 12px;
       padding: 12px; border: 1px solid var(--border-color); border-radius: 6px;
@@ -249,6 +264,15 @@
       transition: background 0.2s;
     }
     .btn-copy-prompt:hover { background-color: #0e8e6f; }
+
+    /* Configurações de API Key */
+    .config-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;
+    }
+    .config-card {
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px;
+    }
+    .config-card h3 { font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
 
     /* Drawer de Histórico */
     .history-drawer {
@@ -271,19 +295,15 @@
       width: 30px; height: 30px; cursor: pointer; font-size: 16px; color: var(--text-muted);
       display: flex; align-items: center; justify-content: center;
     }
-    .btn-close-drawer:hover { background-color: var(--table-header-bg); color: var(--text-main); }
 
     .drawer-body { flex: 1; padding: 20px; overflow-y: auto; }
 
-    /* Timeline de Logs Clean */
     .timeline { position: relative; padding-left: 28px; }
     .timeline::before {
       content: ''; position: absolute; left: 11px; top: 8px; bottom: 8px;
       width: 2px; background-color: var(--border-color);
     }
     .timeline-item { position: relative; margin-bottom: 24px; }
-    .timeline-item:last-child { margin-bottom: 0; }
-    
     .timeline-icon {
       position: absolute; left: -28px; top: 0; width: 24px; height: 24px;
       border-radius: 50%; background-color: var(--table-header-bg);
@@ -291,7 +311,6 @@
       justify-content: center; font-size: 11px;
     }
     .timeline-content { font-size: 13px; line-height: 1.5; color: var(--text-main); }
-    .timeline-content strong { color: var(--text-main); font-weight: 600; }
     .timeline-time { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
   </style>
 </head>
@@ -308,7 +327,7 @@
     </div>
   </div>
 
-  <!-- Header Fixo Limpo -->
+  <!-- Header Fixo -->
   <header class="top-header">
     <div class="header-logo-container">
       <img id="brandLogo" src="logo-preta.png" alt="Formatar Gestão" class="brand-logo" onerror="this.style.display='none'">
@@ -326,16 +345,17 @@
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-top">
-      <div class="menu-item">👥 Leads</div>
+      <div class="menu-item active" id="menuLeads" onclick="navTo('leads')">👥 Leads</div>
+      <div class="menu-item" id="menuConfig" onclick="navTo('config')">⚙️ Configurações</div>
     </div>
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v2.3</span>
+      <span class="badge-version">v2.4</span>
     </div>
   </div>
 
-  <!-- Content -->
-  <div class="content">
+  <!-- Módulo 1: Leads -->
+  <div class="content active-view" id="viewLeads">
     <div class="header-tag">— MÓDULO DE CAPTAÇÃO</div>
     <div class="header-title-container">
       <h1 class="header-title">Leads</h1>
@@ -350,7 +370,7 @@
       <table>
         <thead>
           <tr>
-            <th style="width: 110px;">AÇÕES</th>
+            <th style="width: 140px;">AÇÕES</th>
             <th class="sortable" onclick="ordenarTabela('nome')">NOME / DOCUMENTO <span id="sort_nome">↕️</span></th>
             <th class="sortable" onclick="ordenarTabela('whatsapp')">WHATSAPP <span id="sort_whatsapp">↕️</span></th>
             <th class="sortable" onclick="ordenarTabela('origem')">ORIGEM <span id="sort_origem">↕️</span></th>
@@ -366,13 +386,84 @@
     </div>
   </div>
 
-  <!-- Modal Cadastro/Edição com Abas de Dados e IA -->
+  <!-- Módulo 2: Configurações de IA -->
+  <div class="content" id="viewConfig">
+    <div class="header-tag">— SISTEMA & INTEGRAÇÕES</div>
+    <div class="header-title-container">
+      <h1 class="header-title">Configurações de IA</h1>
+    </div>
+
+    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+      Gerencie suas chaves de API dos provedores de Inteligência Artificial para habilitar pesquisas automáticas e due diligence.
+    </p>
+
+    <div class="config-grid">
+      <!-- ChatGPT -->
+      <div class="config-card">
+        <h3>🤖 ChatGPT (OpenAI)</h3>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="key_openai" placeholder="sk-proj-...">
+        </div>
+      </div>
+
+      <!-- Claude -->
+      <div class="config-card">
+        <h3>🧠 Claude (Anthropic)</h3>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="key_anthropic" placeholder="sk-ant-api03-...">
+        </div>
+      </div>
+
+      <!-- Google Gemini -->
+      <div class="config-card">
+        <h3>✨ Gemini (Google)</h3>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="key_gemini" placeholder="AIzaSy...">
+        </div>
+      </div>
+
+      <!-- DeepSeek -->
+      <div class="config-card">
+        <h3>🐳 DeepSeek</h3>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="key_deepseek" placeholder="sk-...">
+        </div>
+      </div>
+
+      <!-- Groq -->
+      <div class="config-card">
+        <h3>⚡ Groq</h3>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="key_groq" placeholder="gsk_...">
+        </div>
+      </div>
+
+      <!-- Ollama -->
+      <div class="config-card">
+        <h3>🦙 Ollama (Local)</h3>
+        <div class="form-group">
+          <label>URL Host Local</label>
+          <input type="text" id="key_ollama" placeholder="http://localhost:11434">
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 25px; display: flex; justify-content: flex-end;">
+      <button class="btn-add" onclick="salvarConfiguracoesKeys()">💾 Salvar Chaves de API</button>
+    </div>
+  </div>
+
+  <!-- Modal Cadastro/Edição com Abas -->
   <div class="modal-overlay" id="modalLead">
     <div class="modal-box">
       <div class="modal-header-container">
         <h2 id="modalTitle">Editar Lead</h2>
         <div class="modal-top-actions">
-          <!-- Botão de Relógio Minimalista Clean -->
           <button class="btn-clock-clean" title="Histórico de alterações" onclick="abrirHistorico()">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -382,18 +473,18 @@
         </div>
       </div>
 
-      <!-- Controladores de Abas -->
       <div class="modal-tabs">
         <button class="tab-btn active" id="btnTabDados" onclick="switchTab('dados')">📝 Cadastro</button>
         <button class="tab-btn" id="btnTabIA" onclick="switchTab('ia')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0070f3" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="M7 17L12 7L17 17M9 13H15"/>
           </svg>
           Inteligência IA
         </button>
       </div>
 
-      <!-- Aba 1: Dados do Form -->
+      <!-- Aba 1: Dados -->
       <div class="tab-content active" id="tabDados">
         <input type="hidden" id="leadId">
         <div class="form-group">
@@ -425,7 +516,7 @@
         </div>
       </div>
 
-      <!-- Aba 2: Prompt Completo de Due Diligence / Inteligência IA -->
+      <!-- Aba 2: Prompt IA -->
       <div class="tab-content" id="tabIA">
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
           Copie o prompt de due diligence abaixo pré-preenchido com os dados deste lead para enviar à IA:
@@ -438,7 +529,7 @@
     </div>
   </div>
 
-  <!-- Drawer do Histórico de Alterações -->
+  <!-- Drawer do Histórico -->
   <div id="historyDrawer" class="history-drawer">
     <div class="drawer-header">
       <h3>Histórico de alterações</h3>
@@ -508,6 +599,22 @@
     let sortColumn = 'created_at';
     let sortAscending = false;
 
+    function navTo(view) {
+      document.getElementById('viewLeads').classList.remove('active-view');
+      document.getElementById('viewConfig').classList.remove('active-view');
+      document.getElementById('menuLeads').classList.remove('active');
+      document.getElementById('menuConfig').classList.remove('active');
+
+      if (view === 'leads') {
+        document.getElementById('viewLeads').classList.add('active-view');
+        document.getElementById('menuLeads').classList.add('active');
+      } else {
+        document.getElementById('viewConfig').classList.add('active-view');
+        document.getElementById('menuConfig').classList.add('active');
+        carregarConfiguracoesKeys();
+      }
+    }
+
     function checarSessao() {
       const sessao = localStorage.getItem('crm_user');
       if (sessao) {
@@ -571,7 +678,7 @@
       }
     }
 
-    // Modal, Abas e IA
+    // Modal e Abas
     function switchTab(tabName) {
       document.getElementById('tabDados').classList.remove('active');
       document.getElementById('tabIA').classList.remove('active');
@@ -600,93 +707,18 @@ CNPJ: ${doc}
 Sua missão é pesquisar na internet e em fontes públicas confiáveis e consolidar o máximo possível de informações verificáveis sobre essa empresa.
 
 1. Identificação cadastral
-Razão social
-Nome fantasia
-CNPJ
-Data de abertura
-Situação cadastral
-Natureza jurídica
-Porte
-Capital social, quando disponível
-CNAE principal
-CNAEs secundários
-Endereço
-Telefones
-E-mails públicos
-Site oficial
-Redes sociais oficiais
-
 2. Estrutura societária
-Pesquisar, quando disponível publicamente:
-Sócios
-Administradores
-Participações societárias
-Empresas relacionadas aos mesmos sócios
-Alterações societárias relevantes
-Grupo econômico ao qual pertence
-
 3. Operação e posicionamento
-Identificar:
-O que a empresa faz
-Principais produtos e serviços
-Segmentos de atuação
-Regiões onde atua
-Número aproximado de unidades/filiais
-Principais marcas
-Principais clientes, quando houver informação pública
-Principais fornecedores ou parceiros mencionados publicamente
-Posicionamento e proposta de valor
-
 4. Dados financeiros e porte
-Buscar informações públicas sobre:
-Faturamento ou receita estimada/divulgada
-Número de funcionários
-Crescimento
-Investimentos
-Expansões
-Aquisições
-Rodadas de investimento
-Indicadores financeiros publicados
-Evolução do porte da empresa
-Não invente estimativas. Diferencie claramente dado oficial, estimativa e informação não confirmada.
-
 5. Presença digital e reputação
-Pesquisar:
-Google, Site oficial, LinkedIn, Instagram, Facebook, YouTube, Reclame Aqui, Avaliações públicas, Notícias, Entrevistas, Publicações institucionais
-Avaliar:
-Reputação, Principais reclamações, Principais elogios, Percepção dos clientes, Força da marca, Presença digital
-
 6. Notícias e movimentos estratégicos
-Priorize informações dos últimos 24 meses, identificando:
-Expansões, Novas unidades, Novos produtos, Mudanças de estratégia, Fusões e aquisições, Investimentos, Mudanças na liderança, Crises, Processos relevantes, Premiações, Parcerias estratégicas, Movimentos competitivos
-
 7. Jurídico e compliance
-Pesquisar fontes públicas sobre:
-Processos judiciais relevantes, Processos trabalhistas relevantes, Processos tributários, Processos consumeristas, Recuperação judicial/falência, Autos ou sanções de órgãos públicos, Problemas ambientais, Investigações ou irregularidades
-
 8. Mercado e concorrência
-Identificar:
-Segmento econômico, Principais concorrentes, Empresas semelhantes, Posicionamento competitivo, Diferenciais, Vulnerabilidades, Tendências que afetam o negócio
+9. Inteligência executiva (SWOT)
+10. Score de inteligência (0-10)
+11. Fontes com nível de confiabilidade
 
-9. Inteligência executiva
-Com base exclusivamente nas evidências encontradas, produzir:
-FORÇAS (5 principais)
-FRAQUEZAS (5 principais)
-OPORTUNIDADES (5 principais)
-AMEAÇAS (5 principais)
-RISCOS (5 principais)
-MOVIMENTOS ESTRATÉGICOS (O que a empresa parece estar fazendo e para onde parece estar indo)
-
-10. Score de inteligência
-Atribua notas de 0 a 10 para: Porte, Crescimento, Presença digital, Reputação, Governança, Solidez financeira, Inovação, Competitividade, Risco, Potencial estratégico. Explique brevemente cada nota.
-
-11. Fontes
-Para cada informação relevante, informe: Fonte, Link, Data da publicação/consulta, Grau de confiabilidade (ALTO / MÉDIO / BAIXO)
-
-Regras críticas:
-- Não invente informações.
-- Se uma informação não estiver disponível publicamente, escreva "Não localizado em fontes públicas".
-- Ao final, apresente um Resumo Executivo de no máximo 15 linhas, como se fosse um briefing para um conselho de administração.`;
+Ao final, apresente um Resumo Executivo de no máximo 15 linhas.`;
 
       document.getElementById('iaPromptContent').value = promptTemplate;
     }
@@ -699,9 +731,8 @@ Regras críticas:
       });
     }
 
-    function openModal(lead = null) {
+    function openModal(lead = null, tabToOpen = 'dados') {
       fecharHistorico();
-      switchTab('dados');
       leadAtualSelecionado = lead;
 
       if (lead) {
@@ -719,8 +750,14 @@ Regras críticas:
         document.getElementById('leadWhatsapp').value = '';
         document.getElementById('leadOrigem').value = '';
       }
-      atualizarPromptIA();
+
+      switchTab(tabToOpen);
       document.getElementById('modalLead').style.display = 'flex';
+    }
+
+    function abrirIAExterna(id) {
+      const lead = leadsCache.find(item => item.id == id);
+      if (lead) openModal(lead, 'ia');
     }
 
     function closeModal() {
@@ -730,39 +767,20 @@ Regras críticas:
 
     function abrirHistorico() {
       const timeline = document.getElementById('timelineList');
-      
       if (!leadAtualSelecionado) {
-        timeline.innerHTML = `
-          <div class="timeline-item">
-            <div class="timeline-icon">ℹ️</div>
-            <div class="timeline-content">Novo registro ainda não possui histórico cadastrado.</div>
-          </div>
-        `;
+        timeline.innerHTML = `<div class="timeline-item"><div class="timeline-content">Novo registro sem histórico.</div></div>`;
       } else {
-        const dataCriacao = leadAtualSelecionado.created_at 
-          ? new Date(leadAtualSelecionado.created_at).toLocaleString('pt-BR') 
-          : 'Data legada';
-
+        const dataCriacao = leadAtualSelecionado.created_at ? new Date(leadAtualSelecionado.created_at).toLocaleString('pt-BR') : 'Data legada';
         const operador = usuarioLogado ? usuarioLogado.Nome : 'Jair Tavares';
 
         timeline.innerHTML = `
           <div class="timeline-item">
             <div class="timeline-icon">🕒</div>
-            <div class="timeline-content">
-              Alteração realizada por <strong>${operador}</strong>
-            </div>
-            <div class="timeline-time">${dataCriacao}</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-icon">✨</div>
-            <div class="timeline-content">
-              Criação realizada por <strong>${operador}</strong>
-            </div>
+            <div class="timeline-content">Alteração realizada por <strong>${operador}</strong></div>
             <div class="timeline-time">${dataCriacao}</div>
           </div>
         `;
       }
-
       document.getElementById('historyDrawer').classList.add('open');
     }
 
@@ -770,29 +788,44 @@ Regras críticas:
       document.getElementById('historyDrawer').classList.remove('open');
     }
 
-    // Carregar Leads
-    async function carregarLeads() {
-      const { data, error } = await supabaseClient
-        .from('leads')
-        .select('*');
+    // Configurações das Keys de IA
+    function salvarConfiguracoesKeys() {
+      const keys = {
+        openai: document.getElementById('key_openai').value,
+        anthropic: document.getElementById('key_anthropic').value,
+        gemini: document.getElementById('key_gemini').value,
+        deepseek: document.getElementById('key_deepseek').value,
+        groq: document.getElementById('key_groq').value,
+        ollama: document.getElementById('key_ollama').value,
+      };
+      localStorage.setItem('crm_ai_keys', JSON.stringify(keys));
+      alert('Configurações e Chaves de API salvas com sucesso!');
+    }
 
-      if (error) {
-        console.error('Erro ao buscar leads:', error.message);
-        return;
+    function carregarConfiguracoesKeys() {
+      const saved = localStorage.getItem('crm_ai_keys');
+      if (saved) {
+        const keys = JSON.parse(saved);
+        if (keys.openai) document.getElementById('key_openai').value = keys.openai;
+        if (keys.anthropic) document.getElementById('key_anthropic').value = keys.anthropic;
+        if (keys.gemini) document.getElementById('key_gemini').value = keys.gemini;
+        if (keys.deepseek) document.getElementById('key_deepseek').value = keys.deepseek;
+        if (keys.groq) document.getElementById('key_groq').value = keys.groq;
+        if (keys.ollama) document.getElementById('key_ollama').value = keys.ollama;
       }
+    }
 
+    // Supabase & Tabela
+    async function carregarLeads() {
+      const { data, error } = await supabaseClient.from('leads').select('*');
+      if (error) { console.error('Erro ao buscar leads:', error.message); return; }
       leadsCache = data || [];
       renderizarTabela();
     }
 
-    // Ordenação e Renderização
     function ordenarTabela(coluna) {
-      if (sortColumn === coluna) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = coluna;
-        sortAscending = true;
-      }
+      if (sortColumn === coluna) sortAscending = !sortAscending;
+      else { sortColumn = coluna; sortAscending = true; }
 
       ['nome', 'whatsapp', 'origem', 'created_at'].forEach(c => {
         const el = document.getElementById(`sort_${c}`);
@@ -818,10 +851,8 @@ Regras críticas:
       leadsCache.sort((a, b) => {
         let valA = a[sortColumn] || '';
         let valB = b[sortColumn] || '';
-
         if (typeof valA === 'string') valA = valA.toLowerCase();
         if (typeof valB === 'string') valB = valB.toLowerCase();
-
         if (valA < valB) return sortAscending ? -1 : 1;
         if (valA > valB) return sortAscending ? 1 : -1;
         return 0;
@@ -829,21 +860,19 @@ Regras críticas:
 
       const svgWhatsapp = `<svg class="wsp-icon-svg" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>`;
 
+      const svgAI = `<svg class="ai-svg-icon" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#0070f3"/><path d="M6 18L12 6L18 18M8.5 13H15.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17.5" cy="6.5" r="2.5" fill="#52a8ff"/></svg>`;
+
       tbody.innerHTML = leadsCache.map(lead => {
         const numLimpo = (lead.whatsapp || '').replace(/\D/g, '');
         const wspUrl = numLimpo ? `https://wa.me/55${numLimpo}` : '#';
-
         const dataHora = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
 
         return `
           <tr>
             <td>
               <div class="actions-container">
-                ${numLimpo ? `
-                  <a href="${wspUrl}" target="_blank" class="action-icon" title="Conversar no WhatsApp">
-                    ${svgWhatsapp}
-                  </a>
-                ` : '<span class="action-icon" style="opacity:0.3;" title="Sem número">💬</span>'}
+                ${numLimpo ? `<a href="${wspUrl}" target="_blank" class="action-icon" title="Conversar no WhatsApp">${svgWhatsapp}</a>` : '<span class="action-icon" style="opacity:0.3;">💬</span>'}
+                <button class="ai-btn-icon" onclick="abrirIAExterna('${lead.id}')" title="Gerar Inteligência IA">${svgAI}</button>
                 <button class="action-icon" onclick="editarLead('${lead.id}')" title="Editar">✏️</button>
                 <button class="action-icon" onclick="excluirLead('${lead.id}')" title="Excluir">🗑️</button>
               </div>
@@ -883,30 +912,17 @@ Regras críticas:
       const whatsapp = document.getElementById('leadWhatsapp').value.trim();
       const origem = document.getElementById('leadOrigem').value;
 
-      if (!nome || !origem) {
-        alert('Por favor, preencha Nome e Origem.');
-        return;
-      }
+      if (!nome || !origem) { alert('Por favor, preencha Nome e Origem.'); return; }
 
       let res;
-
       if (id) {
-        res = await supabaseClient
-          .from('leads')
-          .update({ nome, documento, whatsapp, origem })
-          .eq('id', id);
+        res = await supabaseClient.from('leads').update({ nome, documento, whatsapp, origem }).eq('id', id);
       } else {
-        res = await supabaseClient
-          .from('leads')
-          .insert([{ nome, documento, whatsapp, origem }]);
+        res = await supabaseClient.from('leads').insert([{ nome, documento, whatsapp, origem }]);
       }
 
-      if (res.error) {
-        alert('Erro ao salvar no Supabase: ' + res.error.message);
-      } else {
-        closeModal();
-        carregarLeads();
-      }
+      if (res.error) alert('Erro ao salvar no Supabase: ' + res.error.message);
+      else { closeModal(); carregarLeads(); }
     }
 
     // Inicialização
