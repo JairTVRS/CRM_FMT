@@ -355,6 +355,41 @@
       background: var(--card-bg);
     }
 
+    /* ESTILOS DE SUB-ABAS DE IA */
+    .subtabs-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .subtab-btn {
+      padding: 8px 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .subtab-btn:hover {
+      color: var(--text-color);
+      border-color: var(--accent-color);
+    }
+
+    .subtab-btn.active {
+      background: var(--accent-color);
+      color: #ffffff;
+      border-color: var(--accent-color);
+    }
+
+    .subtab-content { display: block; }
+    .subtab-content.hidden { display: none !important; }
+
     .modal-body {
       padding: 20px;
       overflow-y: auto;
@@ -623,80 +658,93 @@
 
         <!-- Aba 2: Análise de IA & Enrichment -->
         <div class="tab-content hidden" id="tab-ia">
-          <div style="margin-bottom: 20px;">
-            <h3 class="kicker" style="margin-bottom: 10px;">1. FONTES ENCONTRADAS PELA IA NA INTERNET</h3>
-            
-            <div class="source-box">
-              <div class="source-info">
-                <span class="form-label" style="margin:0;">Site Oficial</span>
-                <a href="#" id="link-site" target="_blank">Não identificado</a>
-              </div>
-              <div>
-                <button class="btn-sm btn-confirm" onclick="alert('Site confirmado!')">✓ Confirmar</button>
-                <button class="btn-sm btn-edit-url" onclick="promptUrl('site')">✏️ Corrigir</button>
-              </div>
-            </div>
-
-            <div class="source-box">
-              <div class="source-info">
-                <span class="form-label" style="margin:0;">Instagram</span>
-                <a href="#" id="link-insta" target="_blank">Não identificado</a>
-              </div>
-              <div>
-                <button class="btn-sm btn-confirm" onclick="alert('Instagram confirmado!')">✓ Confirmar</button>
-                <button class="btn-sm btn-edit-url" onclick="promptUrl('instagram')">✏️ Corrigir</button>
-              </div>
-            </div>
-
-            <button class="btn-primary" style="font-size: 12px; padding: 8px 14px;" onclick="executarBuscaIA()">🔍 Pesquisar na Internet com IA</button>
+          <!-- Sub-Navegação interna de IA -->
+          <div class="subtabs-nav">
+            <button type="button" class="subtab-btn active" data-subtab="subtab-resumo">Resumo Descritivo</button>
+            <button type="button" class="subtab-btn" data-subtab="subtab-painel">Painel Executivo</button>
           </div>
 
-          <div style="margin-bottom: 20px;">
-            <h3 class="kicker" style="margin-bottom: 10px;">2. CLASSIFICAÇÃO PREDITIVA</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">Ramo (Permitidos)</label>
-                <select class="form-select" id="select-ramo">
-                  <option value="">Selecione...</option>
-                  <option value="AGRONEGÓCIO">AGRONEGÓCIO</option>
-                  <option value="ALIMENTOS">ALIMENTOS</option>
-                  <option value="AUTOMOBILÍSTICO">AUTOMOBILÍSTICO</option>
-                  <option value="CONSTRUÇÃO CIVIL">CONSTRUÇÃO CIVIL</option>
-                  <option value="ECOMMERCE">ECOMMERCE</option>
-                  <option value="HIGIENE">HIGIENE</option>
-                  <option value="IMPORTADORA">IMPORTADORA</option>
-                  <option value="LAZER">LAZER</option>
-                  <option value="LOGÍSTICA">LOGÍSTICA</option>
-                  <option value="METALÚRGICA">METALÚRGICA</option>
-                  <option value="MODA E VESTUÁRIO">MODA E VESTUÁRIO</option>
-                  <option value="MÓVEIS E DECORAÇÕES">MÓVEIS E DECORAÇÕES</option>
-                  <option value="ONG">ONG</option>
-                  <option value="PUBLICIDADE">PUBLICIDADE</option>
-                  <option value="SAUDE E ESTÉTICA">SAUDE E ESTÉTICA</option>
-                  <option value="SEGURANÇA">SEGURANÇA</option>
-                  <option value="TECNOLOGIA">TECNOLOGIA</option>
-                </select>
+          <!-- Sub-Aba 1: Resumo Descritivo -->
+          <div class="subtab-content" id="subtab-resumo">
+            <div style="margin-bottom: 20px;">
+              <h3 class="kicker" style="margin-bottom: 10px;">1. FONTES ENCONTRADAS PELA IA NA INTERNET</h3>
+              
+              <div class="source-box">
+                <div class="source-info">
+                  <span class="form-label" style="margin:0;">Site Oficial</span>
+                  <a href="#" id="link-site" target="_blank">Não identificado</a>
+                </div>
+                <div>
+                  <button class="btn-sm btn-confirm" onclick="alert('Site confirmado!')">✓ Confirmar</button>
+                  <button class="btn-sm btn-edit-url" onclick="promptUrl('site')">✏️ Corrigir</button>
+                </div>
               </div>
 
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">Segmento (Permitidos)</label>
-                <select class="form-select" id="select-segmento">
-                  <option value="">Selecione...</option>
-                  <option value="INDÚSTRIA">INDÚSTRIA</option>
-                  <option value="ONG">ONG</option>
-                  <option value="SERVIÇOS">SERVIÇOS</option>
-                  <option value="VAREJO">VAREJO</option>
-                </select>
+              <div class="source-box">
+                <div class="source-info">
+                  <span class="form-label" style="margin:0;">Instagram</span>
+                  <a href="#" id="link-insta" target="_blank">Não identificado</a>
+                </div>
+                <div>
+                  <button class="btn-sm btn-confirm" onclick="alert('Instagram confirmado!')">✓ Confirmar</button>
+                  <button class="btn-sm btn-edit-url" onclick="promptUrl('instagram')">✏️ Corrigir</button>
+                </div>
+              </div>
+
+              <button class="btn-primary" style="font-size: 12px; padding: 8px 14px;" onclick="executarBuscaIA()">🔍 Pesquisar na Internet com IA</button>
+            </div>
+
+            <div>
+              <h3 class="kicker" style="margin-bottom: 10px;">2. RESUMO ANALÍTICO DA IA (3 PARÁGRAFOS)</h3>
+              <div class="ai-summary-box" id="ai-resumo-texto">
+                <p style="color: var(--text-muted); font-style: italic;">Insira os dados do lead e clique em "Pesquisar na Internet com IA" para gerar o resumo detalhado.</p>
               </div>
             </div>
           </div>
 
-          <div>
-            <h3 class="kicker" style="margin-bottom: 10px;">3. RESUMO ANALÍTICO DA IA (3 PARÁGRAFOS)</h3>
-            <div class="ai-summary-box" id="ai-resumo-texto">
-              <p style="color: var(--text-muted); font-style: italic;">Insira os dados do lead e clique em "Pesquisar na Internet com IA" para gerar o resumo detalhado.</p>
+          <!-- Sub-Aba 2: Painel Executivo -->
+          <div class="subtab-content hidden" id="subtab-painel">
+            <div style="margin-bottom: 20px;">
+              <h3 class="kicker" style="margin-bottom: 10px;">CLASSIFICAÇÃO PREDITIVA & MÉTRICAS DE RAMO</h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">Ramo (Permitidos)</label>
+                  <select class="form-select" id="select-ramo">
+                    <option value="">Selecione...</option>
+                    <option value="AGRONEGÓCIO">AGRONEGÓCIO</option>
+                    <option value="ALIMENTOS">ALIMENTOS</option>
+                    <option value="AUTOMOBILÍSTICO">AUTOMOBILÍSTICO</option>
+                    <option value="CONSTRUÇÃO CIVIL">CONSTRUÇÃO CIVIL</option>
+                    <option value="ECOMMERCE">ECOMMERCE</option>
+                    <option value="HIGIENE">HIGIENE</option>
+                    <option value="IMPORTADORA">IMPORTADORA</option>
+                    <option value="LAZER">LAZER</option>
+                    <option value="LOGÍSTICA">LOGÍSTICA</option>
+                    <option value="METALÚRGICA">METALÚRGICA</option>
+                    <option value="MODA E VESTUÁRIO">MODA E VESTUÁRIO</option>
+                    <option value="MÓVEIS E DECORAÇÕES">MÓVEIS E DECORAÇÕES</option>
+                    <option value="ONG">ONG</option>
+                    <option value="PUBLICIDADE">PUBLICIDADE</option>
+                    <option value="SAUDE E ESTÉTICA">SAUDE E ESTÉTICA</option>
+                    <option value="SEGURANÇA">SEGURANÇA</option>
+                    <option value="TECNOLOGIA">TECNOLOGIA</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">Segmento (Permitidos)</label>
+                  <select class="form-select" id="select-segmento">
+                    <option value="">Selecione...</option>
+                    <option value="INDÚSTRIA">INDÚSTRIA</option>
+                    <option value="ONG">ONG</option>
+                    <option value="SERVIÇOS">SERVIÇOS</option>
+                    <option value="VAREJO">VAREJO</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -744,6 +792,9 @@
       const modalTitle = document.getElementById('modal-lead-title');
       const tabBtns = document.querySelectorAll('.tab-btn');
       const tabContents = document.querySelectorAll('.tab-content');
+
+      const subtabBtns = document.querySelectorAll('.subtab-btn');
+      const subtabContents = document.querySelectorAll('.subtab-content');
 
       function switchTab(targetId) {
         menuItems.forEach(item => {
@@ -859,6 +910,7 @@
         closeLeadModal();
       });
 
+      // MANIPULAÇÃO DAS ABAS PRINCIPAIS DO MODAL
       tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
           const targetTab = btn.getAttribute('data-tab');
@@ -866,6 +918,22 @@
           btn.classList.add('active');
           tabContents.forEach(content => {
             if (content.id === targetTab) {
+              content.classList.remove('hidden');
+            } else {
+              content.classList.add('hidden');
+            }
+          });
+        });
+      });
+
+      // MANIPULAÇÃO DAS SUB-ABAS INTERNAS DA IA
+      subtabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetSubtab = btn.getAttribute('data-subtab');
+          subtabBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          subtabContents.forEach(content => {
+            if (content.id === targetSubtab) {
               content.classList.remove('hidden');
             } else {
               content.classList.add('hidden');
