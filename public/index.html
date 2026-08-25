@@ -12,25 +12,19 @@
   <aside class="sidebar">
     <div>
       <div class="brand">
-        <div class="brand-mark">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2">
-            <path d="M4 9h16M5 9v9M19 9v9M3 21h18M7 9V6l5-3 5 3v3M9 12v6M12 12v6M15 12v6"/>
-          </svg>
-        </div>
-        <div class="brand-word">
-          formatar<small>college</small>
-        </div>
+        <!-- Logo dinâmica -->
+        <img id="brand-logo" src="logo-branca.png" alt="Formatar Gestão, Governança e Conexões" class="brand-img">
       </div>
 
       <nav class="menu">
-        <a href="#leads" class="menu-item">Leads</a>
-        <a href="#configuracoes" class="menu-item active">Configurações</a>
+        <a href="#leads" class="menu-item active" data-target="view-leads">Leads</a>
+        <a href="#configuracoes" class="menu-item" data-target="view-configuracoes">Configurações</a>
       </nav>
     </div>
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span>v2.4</span>
+      <span>v2.5</span>
     </div>
   </aside>
 
@@ -45,7 +39,68 @@
       <button class="topbar-btn" id="btn-logout">Sair</button>
     </header>
 
-    <section class="content-body" id="view-configuracoes">
+    <!-- View: Leads -->
+    <section class="content-body" id="view-leads">
+      <div class="page-header-action">
+        <div>
+          <p class="kicker">— MÓDULO DE CAPTAÇÃO</p>
+          <h1 class="pagetitle">Leads</h1>
+        </div>
+        <button class="btn-primary">+ Incluir Lead</button>
+      </div>
+
+      <div class="card card-table">
+        <div class="table-header-info">
+          <span class="table-title">BASE SUPABASE EM TEMPO REAL</span>
+          <span class="table-count">Total de Registros: 4</span>
+        </div>
+
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>AÇÕES</th>
+              <th>NOME / DOCUMENTO ⇅</th>
+              <th>WHATSAPP ⇅</th>
+              <th>ORIGEM ⇅</th>
+              <th>DATA / OPERADOR ⇅</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="action-icons">💬 🅰️ ✏️ 🗑️</span></td>
+              <td><strong>Teste2</strong><br><small>Doc: 1122536555</small></td>
+              <td>3799854236</td>
+              <td>eventos</td>
+              <td>24/08/2026, 16:40:29<br><small class="text-orange">Legado</small></td>
+            </tr>
+            <tr>
+              <td><span class="action-icons">💬 🅰️ ✏️ 🗑️</span></td>
+              <td><strong>Felipe</strong><br><small>Doc: 1522365895</small></td>
+              <td>3798574265</td>
+              <td>redes</td>
+              <td>24/08/2026, 12:03:15<br><small class="text-orange">Legado</small></td>
+            </tr>
+            <tr>
+              <td><span class="action-icons">💬 🅰️ ✏️ 🗑️</span></td>
+              <td><strong>Daby</strong><br><small>Doc: 0709114900017</small></td>
+              <td>37 9118-1176</td>
+              <td>Inbound</td>
+              <td>24/08/2026, 12:00:00<br><small class="text-orange">Legado</small></td>
+            </tr>
+            <tr>
+              <td><span class="action-icons">💬 🅰️ ✏️ 🗑️</span></td>
+              <td><strong>Jair</strong><br><small>Doc: 11559150600</small></td>
+              <td>37991752215</td>
+              <td>eventos</td>
+              <td>24/08/2026, 11:59:21<br><small class="text-orange">Legado</small></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- View: Configurações -->
+    <section class="content-body hidden" id="view-configuracoes">
       <p class="kicker">— SISTEMA & INTEGRAÇÕES</p>
       <h1 class="pagetitle">Configurações de IA</h1>
       <p class="description">Gerencie suas chaves de API dos provedores de Inteligência Artificial para habilitar pesquisas automáticas e due diligence.</p>
@@ -55,7 +110,7 @@
           <div class="card">
             <h2 class="card-title">ChatGPT (OpenAI)</h2>
             <div class="form-group">
-              <label class="form-label" for="api-openai">API Key</label>
+              <label class="form-label" for="api-openai">API KEY</label>
               <input type="password" class="form-input" id="api-openai" placeholder="sk-proj-...">
             </div>
           </div>
@@ -63,7 +118,7 @@
           <div class="card">
             <h2 class="card-title">Claude (Anthropic)</h2>
             <div class="form-group">
-              <label class="form-label" for="api-anthropic">API Key</label>
+              <label class="form-label" for="api-anthropic">API KEY</label>
               <input type="password" class="form-input" id="api-anthropic" placeholder="sk-ant-api03-...">
             </div>
           </div>
@@ -71,7 +126,7 @@
           <div class="card">
             <h2 class="card-title">Gemini (Google)</h2>
             <div class="form-group">
-              <label class="form-label" for="api-google">API Key</label>
+              <label class="form-label" for="api-google">API KEY</label>
               <input type="password" class="form-input" id="api-google" placeholder="AlzaSy...">
             </div>
           </div>
@@ -79,7 +134,7 @@
           <div class="card">
             <h2 class="card-title">DeepSeek</h2>
             <div class="form-group">
-              <label class="form-label" for="api-deepseek">API Key</label>
+              <label class="form-label" for="api-deepseek">API KEY</label>
               <input type="password" class="form-input" id="api-deepseek" placeholder="sk-...">
             </div>
           </div>
@@ -87,7 +142,7 @@
           <div class="card">
             <h2 class="card-title">Groq</h2>
             <div class="form-group">
-              <label class="form-label" for="api-groq">API Key</label>
+              <label class="form-label" for="api-groq">API KEY</label>
               <input type="password" class="form-input" id="api-groq" placeholder="gsk_...">
             </div>
           </div>
@@ -95,7 +150,7 @@
           <div class="card">
             <h2 class="card-title">Ollama (Local)</h2>
             <div class="form-group">
-              <label class="form-label" for="api-ollama">URL Host Local</label>
+              <label class="form-label" for="api-ollama">URL HOST LOCAL</label>
               <input type="text" class="form-input" id="api-ollama" placeholder="http://localhost:11434">
             </div>
           </div>
@@ -106,6 +161,7 @@
         </div>
       </form>
     </section>
+
   </main>
 
   <script src="js/configuracoes.js"></script>
