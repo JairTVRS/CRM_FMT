@@ -2,6 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('Módulo de Leads carregado.');
 });
 
+// Define a URL base da API dinamicamente
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3000'
+  : '';
+
 // Função acionada pelo botão "Pesquisar na Internet com IA"
 async function executarBuscaIA(leadId) {
   // Captura o nome do lead na interface ou no modal
@@ -31,7 +36,7 @@ async function executarBuscaIA(leadId) {
   }
 
   try {
-    const response = await fetch('/api/enrich-lead', {
+    const response = await fetch(`${API_BASE_URL}/api/enrich-lead`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: leadId, nome, doc, phone })
