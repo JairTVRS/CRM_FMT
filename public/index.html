@@ -55,7 +55,6 @@
       top: 0;
       left: 0;
       z-index: 10;
-      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .brand-img {
@@ -120,11 +119,6 @@
       border-radius: 6px;
       cursor: pointer;
       font-weight: 500;
-      transition: all 0.2s;
-    }
-
-    .topbar-btn:hover {
-      border-color: var(--accent-color);
     }
 
     .user-profile {
@@ -132,7 +126,6 @@
       align-items: center;
       gap: 10px;
       font-weight: 600;
-      color: var(--text-color);
     }
 
     .user-avatar {
@@ -192,7 +185,6 @@
       border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 20px;
-      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .table-header-info {
@@ -224,7 +216,6 @@
       text-transform: uppercase;
     }
 
-    /* ESTILO DOS BOTÕES DE AÇÃO INTERATIVOS NA TABELA */
     .action-group {
       display: flex;
       gap: 6px;
@@ -244,11 +235,13 @@
       font-size: 14px;
       transition: all 0.2s ease;
       text-decoration: none;
+      color: var(--text-color);
     }
 
     .btn-action:hover {
       background: var(--accent-color);
       border-color: var(--accent-color);
+      color: #fff;
       transform: translateY(-2px);
     }
 
@@ -269,9 +262,118 @@
     .card-title { font-size: 16px; font-weight: 600; color: var(--text-color); }
     .form-group { margin-top: 15px; }
     .form-label { display: block; font-size: 12px; margin-bottom: 6px; color: var(--text-muted); font-weight: 600; }
-    .form-input { width: 100%; padding: 10px 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); outline: none; }
-    .form-input:focus { border-color: var(--accent-color); }
-    .actions-bar { margin-top: 25px; display: flex; justify-content: flex-end; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-color);
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent-color); }
+    .actions-bar { margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px; }
+
+    /* MODAL DE CADASTRO E DETALHES DO LEAD */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-overlay.hidden { display: none !important; }
+
+    .modal-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 900px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .modal-tabs {
+      display: flex;
+      background: var(--header-table-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab-btn {
+      padding: 12px 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-btn.active {
+      color: var(--accent-color);
+      border-bottom-color: var(--accent-color);
+      background: var(--card-bg);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .tab-content { display: block; }
+    .tab-content.hidden { display: none !important; }
+
+    /* ESTILOS ESPECÍFICOS DA IA & DUE DILIGENCE */
+    .source-box {
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .source-info { display: flex; flex-direction: column; gap: 4px; }
+    .source-info a { color: #3b82f6; text-decoration: none; font-weight: 600; word-break: break-all; }
+    .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 4px; cursor: pointer; border: none; font-weight: 600; }
+    .btn-confirm { background: #10b981; color: #fff; }
+    .btn-edit-url { background: #64748b; color: #fff; }
+
+    .ai-summary-box {
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      line-height: 1.6;
+      font-size: 14px;
+      color: var(--text-color);
+    }
   </style>
 </head>
 <body>
@@ -280,7 +382,7 @@
   <aside class="sidebar">
     <div>
       <div class="brand">
-        <img id="brand-logo" src="./logo-branca.png" alt="Formatar Gestão, Governança e Conexões" class="brand-img">
+        <img id="brand-logo" src="./logo-branca.png" alt="Formatar Gestão" class="brand-img">
       </div>
 
       <nav class="menu">
@@ -291,7 +393,7 @@
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span>v2.5.7</span>
+      <span>v2.5.8</span>
     </div>
   </aside>
 
@@ -333,7 +435,7 @@
             </tr>
           </thead>
           <tbody id="table-leads-body">
-            <tr>
+            <tr data-lead='{"nome":"Teste2","doc":"1122536555","phone":"3799854236","origem":"eventos"}'>
               <td>
                 <div class="action-group">
                   <a href="https://wa.me/553799854236" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
@@ -347,7 +449,7 @@
               <td>eventos</td>
               <td>24/08/2026, 16:40:29<br><small class="text-orange">Legado</small></td>
             </tr>
-            <tr>
+            <tr data-lead='{"nome":"Felipe","doc":"1522365895","phone":"3798574265","origem":"redes"}'>
               <td>
                 <div class="action-group">
                   <a href="https://wa.me/553798574265" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
@@ -361,7 +463,7 @@
               <td>redes</td>
               <td>24/08/2026, 12:03:15<br><small class="text-orange">Legado</small></td>
             </tr>
-            <tr>
+            <tr data-lead='{"nome":"Daby","doc":"0709114900017","phone":"3791181176","origem":"Inbound"}'>
               <td>
                 <div class="action-group">
                   <a href="https://wa.me/553791181176" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
@@ -375,7 +477,7 @@
               <td>Inbound</td>
               <td>24/08/2026, 12:00:00<br><small class="text-orange">Legado</small></td>
             </tr>
-            <tr>
+            <tr data-lead='{"nome":"Jair","doc":"11559150600","phone":"37991752215","origem":"eventos"}'>
               <td>
                 <div class="action-group">
                   <a href="https://wa.me/5537991752215" target="_blank" class="btn-action" title="Abrir WhatsApp">💬</a>
@@ -398,7 +500,7 @@
     <section class="content-body hidden" id="view-configuracoes">
       <p class="kicker">— SISTEMA & INTEGRAÇÕES</p>
       <h1 class="pagetitle">Configurações de IA</h1>
-      <p class="description">Gerencie suas chaves de API dos provedores de Inteligência Artificial para habilitar pesquisas automáticas e due diligence.</p>
+      <p class="description">Gerencie suas chaves de API dos provedores de Inteligência Artificial.</p>
 
       <form id="form-configuracoes">
         <div class="cards-grid">
@@ -459,7 +561,134 @@
 
   </main>
 
-  <!-- Script Global de Eventos das Ações -->
+  <!-- MODAL DE CADASTRO / DETALHES DO LEAD -->
+  <div class="modal-overlay hidden" id="modal-lead">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="card-title" id="modal-lead-title">Ficha do Lead: Teste2</h2>
+        <button class="modal-close" id="btn-modal-close">✕</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="tab-geral">Dados Gerais</button>
+        <button class="tab-btn" data-tab="tab-ia">Análise de IA & Enrichment</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Aba 1: Dados Gerais -->
+        <div class="tab-content" id="tab-geral">
+          <div class="cards-grid" style="grid-template-columns: 1fr 1fr; margin-top: 0;">
+            <div class="form-group">
+              <label class="form-label">Nome / Razão Social</label>
+              <input type="text" class="form-input" id="lead-input-nome" value="Teste2">
+            </div>
+            <div class="form-group">
+              <label class="form-label">CPF / CNPJ</label>
+              <input type="text" class="form-input" id="lead-input-doc" value="1122536555">
+            </div>
+            <div class="form-group">
+              <label class="form-label">WhatsApp</label>
+              <input type="text" class="form-input" id="lead-input-phone" value="3799854236">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Origem</label>
+              <input type="text" class="form-input" id="lead-input-origem" value="eventos">
+            </div>
+          </div>
+        </div>
+
+        <!-- Aba 2: Análise de IA & Enrichment -->
+        <div class="tab-content hidden" id="tab-ia">
+          <!-- Bloco 1: Validação de Fontes -->
+          <div style="margin-bottom: 20px;">
+            <h3 class="kicker" style="margin-bottom: 10px;">1. FONTES ENCONTRADAS PELA IA NA INTERNET</h3>
+            
+            <div class="source-box">
+              <div class="source-info">
+                <span class="form-label" style="margin:0;">Site Oficial</span>
+                <a href="#" id="link-site" target="_blank">https://www.maderminas.com.br</a>
+              </div>
+              <div>
+                <button class="btn-sm btn-confirm" onclick="alert('Site confirmado pelo usuário!')">✓ Confirmar</button>
+                <button class="btn-sm btn-edit-url" onclick="promptUrl('site')">✏️ Corrigir</button>
+              </div>
+            </div>
+
+            <div class="source-box">
+              <div class="source-info">
+                <span class="form-label" style="margin:0;">Instagram</span>
+                <a href="#" id="link-insta" target="_blank">https://instagram.com/maderminas_oficial</a>
+              </div>
+              <div>
+                <button class="btn-sm btn-confirm" onclick="alert('Instagram confirmado pelo usuário!')">✓ Confirmar</button>
+                <button class="btn-sm btn-edit-url" onclick="promptUrl('instagram')">✏️ Corrigir</button>
+              </div>
+            </div>
+
+            <button class="btn-primary" style="font-size: 12px; padding: 8px 14px;" onclick="executarBuscaIA()">🔍 Refazer Pesquisa da IA com os Links</button>
+          </div>
+
+          <!-- Bloco 2: Classificação de Ramo e Segmento -->
+          <div style="margin-bottom: 20px;">
+            <h3 class="kicker" style="margin-bottom: 10px;">2. CLASSIFICAÇÃO PREDITIVA</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Ramo (Permitidos)</label>
+                <select class="form-select" id="select-ramo">
+                  <option value="">Selecione...</option>
+                  <option value="AGRONEGÓCIO">AGRONEGÓCIO</option>
+                  <option value="ALIMENTOS">ALIMENTOS</option>
+                  <option value="AUTOMOBILÍSTICO">AUTOMOBILÍSTICO</option>
+                  <option value="CONSTRUÇÃO CIVIL">CONSTRUÇÃO CIVIL</option>
+                  <option value="ECOMMERCE">ECOMMERCE</option>
+                  <option value="HIGIENE">HIGIENE</option>
+                  <option value="IMPORTADORA">IMPORTADORA</option>
+                  <option value="LAZER">LAZER</option>
+                  <option value="LOGÍSTICA">LOGÍSTICA</option>
+                  <option value="METALÚRGICA">METALÚRGICA</option>
+                  <option value="MODA E VESTUÁRIO">MODA E VESTUÁRIO</option>
+                  <option value="MÓVEIS E DECORAÇÕES" selected>MÓVEIS E DECORAÇÕES</option>
+                  <option value="ONG">ONG</option>
+                  <option value="PUBLICIDADE">PUBLICIDADE</option>
+                  <option value="SAUDE E ESTÉTICA">SAUDE E ESTÉTICA</option>
+                  <option value="SEGURANÇA">SEGURANÇA</option>
+                  <option value="TECNOLOGIA">TECNOLOGIA</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Segmento (Permitidos)</label>
+                <select class="form-select" id="select-segmento">
+                  <option value="">Selecione...</option>
+                  <option value="INDÚSTRIA" selected>INDÚSTRIA</option>
+                  <option value="ONG">ONG</option>
+                  <option value="SERVIÇOS">SERVIÇOS</option>
+                  <option value="VAREJO">VAREJO</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloco 3: Resumo Analítico -->
+          <div>
+            <h3 class="kicker" style="margin-bottom: 10px;">3. RESUMO ANALÍTICO DA IA (3 PARÁGRAFOS)</h3>
+            <div class="ai-summary-box" id="ai-resumo-texto">
+              <p style="margin-bottom: 10px;">Com 15 anos de atuação, a MaderMinas, de Cláudio, consolidou sua trajetória no mercado moveleiro e, em 2018, deu um importante passo de expansão em seus negócios.</p>
+              <p style="margin-bottom: 10px;">Para Danilo, sócio-fundador, o propósito da empresa vai além da fabricação de móveis: é criar peças com conceito, identidade e personalidade própria, unindo criatividade, durabilidade e processos cada vez mais profissionalizados.</p>
+              <p>Com foco no fortalecimento da marca e na ampliação de sua presença no mercado, a MaderMinas investe em vendas por anúncios e em seu próprio showroom, aproximando seus produtos dos clientes e valorizando a experiência de compra.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-bar" style="padding: 15px 20px; border-top: 1px solid var(--border-color); background: var(--header-table-bg);">
+        <button class="topbar-btn" id="btn-modal-cancel">Cancelar</button>
+        <button class="btn-primary" id="btn-modal-save">Salvar Alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Global -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const menuItems = document.querySelectorAll('.menu-item');
@@ -467,6 +696,12 @@
       const viewConfig = document.getElementById('view-configuracoes');
       const btnTheme = document.getElementById('btn-theme');
       const brandLogo = document.getElementById('brand-logo');
+
+      // Modal Controls
+      const modalLead = document.getElementById('modal-lead');
+      const modalTitle = document.getElementById('modal-lead-title');
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
 
       function switchTab(targetId) {
         menuItems.forEach(item => {
@@ -493,17 +728,78 @@
         });
       });
 
-      function checkHash() {
-        const hash = window.location.hash;
-        if (hash === '#configuracoes') {
-          switchTab('view-configuracoes');
-        } else {
-          switchTab('view-leads');
-        }
+      function openLeadModal(leadData, defaultTab = 'tab-geral') {
+        document.getElementById('lead-input-nome').value = leadData.nome || '';
+        document.getElementById('lead-input-doc').value = leadData.doc || '';
+        document.getElementById('lead-input-phone').value = leadData.phone || '';
+        document.getElementById('lead-input-origem').value = leadData.origem || '';
+        modalTitle.textContent = `Ficha do Lead: ${leadData.nome || 'Novo Lead'}`;
+
+        // Alternar para a aba solicitada
+        tabBtns.forEach(btn => {
+          if (btn.getAttribute('data-tab') === defaultTab) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+
+        tabContents.forEach(content => {
+          if (content.id === defaultTab) {
+            content.classList.remove('hidden');
+          } else {
+            content.classList.add('hidden');
+          }
+        });
+
+        modalLead.classList.remove('hidden');
       }
 
-      window.addEventListener('hashchange', checkHash);
-      checkHash();
+      function closeLeadModal() {
+        modalLead.classList.add('hidden');
+      }
+
+      document.getElementById('btn-modal-close').addEventListener('click', closeLeadModal);
+      document.getElementById('btn-modal-cancel').addEventListener('click', closeLeadModal);
+      document.getElementById('btn-modal-save').addEventListener('click', () => {
+        alert('Dados salvos com sucesso!');
+        closeLeadModal();
+      });
+
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.getAttribute('data-tab');
+          tabBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          tabContents.forEach(content => {
+            if (content.id === targetTab) {
+              content.classList.remove('hidden');
+            } else {
+              content.classList.add('hidden');
+            }
+          });
+        });
+      });
+
+      // Eventos da Tabela de Leads
+      document.addEventListener('click', (e) => {
+        const target = e.target;
+        const row = target.closest('tr');
+        let leadData = {};
+        if (row && row.getAttribute('data-lead')) {
+          try { leadData = JSON.parse(row.getAttribute('data-lead')); } catch(err){}
+        }
+
+        if (target.classList.contains('btn-ai')) {
+          openLeadModal(leadData, 'tab-ia');
+        } else if (target.classList.contains('btn-edit')) {
+          openLeadModal(leadData, 'tab-geral');
+        } else if (target.classList.contains('btn-delete')) {
+          if (confirm(`Tem certeza de que deseja remover o lead ${leadData.nome}?`)) {
+            row.remove();
+          }
+        }
+      });
 
       if (btnTheme) {
         btnTheme.addEventListener('click', () => {
@@ -515,27 +811,22 @@
           btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
         });
       }
-
-      // Eventos dos botões da tabela
-      document.addEventListener('click', (e) => {
-        const target = e.target;
-        if (target.classList.contains('btn-ai')) {
-          const row = target.closest('tr');
-          const name = row ? row.cells[1].querySelector('strong').innerText : 'Lead';
-          alert(`Iniciando análise preditiva de IA para o lead: ${name}`);
-        } else if (target.classList.contains('btn-edit')) {
-          const row = target.closest('tr');
-          const name = row ? row.cells[1].querySelector('strong').innerText : 'Lead';
-          alert(`Abrindo formulário de edição para: ${name}`);
-        } else if (target.classList.contains('btn-delete')) {
-          const row = target.closest('tr');
-          const name = row ? row.cells[1].querySelector('strong').innerText : 'Lead';
-          if (confirm(`Tem certeza de que deseja remover o lead ${name}?`)) {
-            row.remove();
-          }
-        }
-      });
     });
+
+    function promptUrl(tipo) {
+      const url = prompt(`Digite a URL correta do ${tipo.toUpperCase()}:`);
+      if (url) {
+        const el = tipo === 'site' ? document.getElementById('link-site') : document.getElementById('link-insta');
+        if (el) {
+          el.href = url;
+          el.textContent = url;
+        }
+      }
+    }
+
+    function executarBuscaIA() {
+      alert('IA re-processando dados das URLs informadas... Resumo e classificações atualizados!');
+    }
   </script>
 
   <script src="./js/configuracoes.js"></script>
