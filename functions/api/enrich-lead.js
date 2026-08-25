@@ -25,16 +25,17 @@ Análise o lead fornecido e retorne ESTRITAMENTE um JSON válido no seguinte for
 RAMOS PERMITIDOS: AGRONEGÓCIO, ALIMENTOS, AUTOMOBILÍSTICO, CONSTRUÇÃO CIVIL, ECOMMERCE, HIGIENE, IMPORTADORA, LAZER, LOGÍSTICA, METALÚRGICA, MODA E VESTUÁRIO, MÓVEIS E DECORAÇÕES, ONG, PUBLICIDADE, SAUDE E ESTÉTICA, SEGURANÇA, TECNOLOGIA.
 SEGMENTOS PERMITIDOS: INDÚSTRIA, ONG, SERVIÇOS, VAREJO.`;
 
-    const openAiApiKey = context.env.OPENAI_API_KEY;
+    const deepseekApiKey = context.env.DEEPSEEK_API_KEY;
 
-    const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Chamada à API da DeepSeek (compatível com o formato OpenAI)
+    const deepseekResponse = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAiApiKey}`
+        'Authorization': `Bearer ${deepseekApiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'deepseek-chat',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: `Lead: ${nome} | Doc: ${doc || 'N/A'} | Phone: ${phone || 'N/A'}` }
@@ -43,7 +44,15 @@ SEGMENTOS PERMITIDOS: INDÚSTRIA, ONG, SERVIÇOS, VAREJO.`;
       })
     });
 
-    const aiDataRaw = await openAiResponse.json();
+    const aiDataRaw = await deepseekResponse.json();
+
+    if (!deepseekResponse.ok) {
+      return new Response(JSON.stringify({ error: 'Erro ao consultar a API do DeepSeek.', details: aiDataRaw }), {
+        status: deepseekResponse.status,
+        headers
+      });
+    }
+
     const resultJson = JSON.parse(aiDataRaw.choices[0].message.content);
 
     return new Response(JSON.stringify({ success: true, data: resultJson }), {

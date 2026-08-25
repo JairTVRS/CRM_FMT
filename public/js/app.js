@@ -1,4 +1,13 @@
+// FONTE ÚNICA DA VERDADE DA VERSÃO DO SISTEMA
+const APP_VERSION = 'v2.5.18';
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Atualiza a versão exibida na tela automaticamente
+  const versionSpan = document.getElementById('app-version');
+  if (versionSpan) {
+    versionSpan.textContent = APP_VERSION;
+  }
+
   const btnTheme = document.getElementById('btn-theme') || document.querySelector('.btn-theme');
   const brandLogo = document.getElementById('brand-logo');
 
