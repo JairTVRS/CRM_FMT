@@ -178,6 +178,11 @@
       border-radius: 6px;
       font-weight: 600;
       cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
     }
 
     .card {
@@ -393,7 +398,7 @@
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span>v2.5.8</span>
+      <span>v2.5.9</span>
     </div>
   </aside>
 
@@ -565,7 +570,7 @@
   <div class="modal-overlay hidden" id="modal-lead">
     <div class="modal-container">
       <div class="modal-header">
-        <h2 class="card-title" id="modal-lead-title">Ficha do Lead: Teste2</h2>
+        <h2 class="card-title" id="modal-lead-title">Novo Lead</h2>
         <button class="modal-close" id="btn-modal-close">✕</button>
       </div>
 
@@ -580,19 +585,19 @@
           <div class="cards-grid" style="grid-template-columns: 1fr 1fr; margin-top: 0;">
             <div class="form-group">
               <label class="form-label">Nome / Razão Social</label>
-              <input type="text" class="form-input" id="lead-input-nome" value="Teste2">
+              <input type="text" class="form-input" id="lead-input-nome" placeholder="Digite o nome do lead...">
             </div>
             <div class="form-group">
               <label class="form-label">CPF / CNPJ</label>
-              <input type="text" class="form-input" id="lead-input-doc" value="1122536555">
+              <input type="text" class="form-input" id="lead-input-doc" placeholder="Apenas números...">
             </div>
             <div class="form-group">
               <label class="form-label">WhatsApp</label>
-              <input type="text" class="form-input" id="lead-input-phone" value="3799854236">
+              <input type="text" class="form-input" id="lead-input-phone" placeholder="DDD + Número...">
             </div>
             <div class="form-group">
               <label class="form-label">Origem</label>
-              <input type="text" class="form-input" id="lead-input-origem" value="eventos">
+              <input type="text" class="form-input" id="lead-input-origem" placeholder="Ex: Inbound, Eventos...">
             </div>
           </div>
         </div>
@@ -606,10 +611,10 @@
             <div class="source-box">
               <div class="source-info">
                 <span class="form-label" style="margin:0;">Site Oficial</span>
-                <a href="#" id="link-site" target="_blank">https://www.maderminas.com.br</a>
+                <a href="#" id="link-site" target="_blank">Não identificado</a>
               </div>
               <div>
-                <button class="btn-sm btn-confirm" onclick="alert('Site confirmado pelo usuário!')">✓ Confirmar</button>
+                <button class="btn-sm btn-confirm" onclick="alert('Site confirmado!')">✓ Confirmar</button>
                 <button class="btn-sm btn-edit-url" onclick="promptUrl('site')">✏️ Corrigir</button>
               </div>
             </div>
@@ -617,15 +622,15 @@
             <div class="source-box">
               <div class="source-info">
                 <span class="form-label" style="margin:0;">Instagram</span>
-                <a href="#" id="link-insta" target="_blank">https://instagram.com/maderminas_oficial</a>
+                <a href="#" id="link-insta" target="_blank">Não identificado</a>
               </div>
               <div>
-                <button class="btn-sm btn-confirm" onclick="alert('Instagram confirmado pelo usuário!')">✓ Confirmar</button>
+                <button class="btn-sm btn-confirm" onclick="alert('Instagram confirmado!')">✓ Confirmar</button>
                 <button class="btn-sm btn-edit-url" onclick="promptUrl('instagram')">✏️ Corrigir</button>
               </div>
             </div>
 
-            <button class="btn-primary" style="font-size: 12px; padding: 8px 14px;" onclick="executarBuscaIA()">🔍 Refazer Pesquisa da IA com os Links</button>
+            <button class="btn-primary" style="font-size: 12px; padding: 8px 14px;" onclick="executarBuscaIA()">🔍 Pesquisar na Internet com IA</button>
           </div>
 
           <!-- Bloco 2: Classificação de Ramo e Segmento -->
@@ -647,7 +652,7 @@
                   <option value="LOGÍSTICA">LOGÍSTICA</option>
                   <option value="METALÚRGICA">METALÚRGICA</option>
                   <option value="MODA E VESTUÁRIO">MODA E VESTUÁRIO</option>
-                  <option value="MÓVEIS E DECORAÇÕES" selected>MÓVEIS E DECORAÇÕES</option>
+                  <option value="MÓVEIS E DECORAÇÕES">MÓVEIS E DECORAÇÕES</option>
                   <option value="ONG">ONG</option>
                   <option value="PUBLICIDADE">PUBLICIDADE</option>
                   <option value="SAUDE E ESTÉTICA">SAUDE E ESTÉTICA</option>
@@ -660,7 +665,7 @@
                 <label class="form-label">Segmento (Permitidos)</label>
                 <select class="form-select" id="select-segmento">
                   <option value="">Selecione...</option>
-                  <option value="INDÚSTRIA" selected>INDÚSTRIA</option>
+                  <option value="INDÚSTRIA">INDÚSTRIA</option>
                   <option value="ONG">ONG</option>
                   <option value="SERVIÇOS">SERVIÇOS</option>
                   <option value="VAREJO">VAREJO</option>
@@ -673,9 +678,7 @@
           <div>
             <h3 class="kicker" style="margin-bottom: 10px;">3. RESUMO ANALÍTICO DA IA (3 PARÁGRAFOS)</h3>
             <div class="ai-summary-box" id="ai-resumo-texto">
-              <p style="margin-bottom: 10px;">Com 15 anos de atuação, a MaderMinas, de Cláudio, consolidou sua trajetória no mercado moveleiro e, em 2018, deu um importante passo de expansão em seus negócios.</p>
-              <p style="margin-bottom: 10px;">Para Danilo, sócio-fundador, o propósito da empresa vai além da fabricação de móveis: é criar peças com conceito, identidade e personalidade própria, unindo criatividade, durabilidade e processos cada vez mais profissionalizados.</p>
-              <p>Com foco no fortalecimento da marca e na ampliação de sua presença no mercado, a MaderMinas investe em vendas por anúncios e em seu próprio showroom, aproximando seus produtos dos clientes e valorizando a experiência de compra.</p>
+              <p style="color: var(--text-muted); font-style: italic;">Insira os dados do lead e clique em "Pesquisar na Internet com IA" para gerar o resumo detalhado.</p>
             </div>
           </div>
         </div>
@@ -683,7 +686,7 @@
 
       <div class="actions-bar" style="padding: 15px 20px; border-top: 1px solid var(--border-color); background: var(--header-table-bg);">
         <button class="topbar-btn" id="btn-modal-cancel">Cancelar</button>
-        <button class="btn-primary" id="btn-modal-save">Salvar Alterações</button>
+        <button class="btn-primary" id="btn-modal-save">Salvar Lead</button>
       </div>
     </div>
   </div>
@@ -696,6 +699,9 @@
       const viewConfig = document.getElementById('view-configuracoes');
       const btnTheme = document.getElementById('btn-theme');
       const brandLogo = document.getElementById('brand-logo');
+
+      // Botão Incluir Lead
+      const btnIncluirLead = document.getElementById('btn-incluir-lead');
 
       // Modal Controls
       const modalLead = document.getElementById('modal-lead');
@@ -728,14 +734,23 @@
         });
       });
 
-      function openLeadModal(leadData, defaultTab = 'tab-geral') {
-        document.getElementById('lead-input-nome').value = leadData.nome || '';
-        document.getElementById('lead-input-doc').value = leadData.doc || '';
-        document.getElementById('lead-input-phone').value = leadData.phone || '';
-        document.getElementById('lead-input-origem').value = leadData.origem || '';
-        modalTitle.textContent = `Ficha do Lead: ${leadData.nome || 'Novo Lead'}`;
+      function openLeadModal(leadData = null, defaultTab = 'tab-geral') {
+        if (leadData) {
+          document.getElementById('lead-input-nome').value = leadData.nome || '';
+          document.getElementById('lead-input-doc').value = leadData.doc || '';
+          document.getElementById('lead-input-phone').value = leadData.phone || '';
+          document.getElementById('lead-input-origem').value = leadData.origem || '';
+          modalTitle.textContent = `Ficha do Lead: ${leadData.nome || 'Lead'}`;
+        } else {
+          // Novo Lead (campos limpos)
+          document.getElementById('lead-input-nome').value = '';
+          document.getElementById('lead-input-doc').value = '';
+          document.getElementById('lead-input-phone').value = '';
+          document.getElementById('lead-input-origem').value = '';
+          modalTitle.textContent = 'Novo Lead';
+        }
 
-        // Alternar para a aba solicitada
+        // Alternar aba
         tabBtns.forEach(btn => {
           if (btn.getAttribute('data-tab') === defaultTab) {
             btn.classList.add('active');
@@ -757,6 +772,13 @@
 
       function closeLeadModal() {
         modalLead.classList.add('hidden');
+      }
+
+      // Evento de Clique no Botão "+ Incluir Lead"
+      if (btnIncluirLead) {
+        btnIncluirLead.addEventListener('click', () => {
+          openLeadModal(null, 'tab-geral');
+        });
       }
 
       document.getElementById('btn-modal-close').addEventListener('click', closeLeadModal);
@@ -781,11 +803,12 @@
         });
       });
 
-      // Eventos da Tabela de Leads
+      // Eventos das Ações da Tabela
       document.addEventListener('click', (e) => {
         const target = e.target;
         const row = target.closest('tr');
-        let leadData = {};
+        let leadData = null;
+
         if (row && row.getAttribute('data-lead')) {
           try { leadData = JSON.parse(row.getAttribute('data-lead')); } catch(err){}
         }
@@ -795,7 +818,7 @@
         } else if (target.classList.contains('btn-edit')) {
           openLeadModal(leadData, 'tab-geral');
         } else if (target.classList.contains('btn-delete')) {
-          if (confirm(`Tem certeza de que deseja remover o lead ${leadData.nome}?`)) {
+          if (confirm(`Tem certeza de que deseja remover o lead ${leadData ? leadData.nome : ''}?`)) {
             row.remove();
           }
         }
