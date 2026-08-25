@@ -1,35 +1,35 @@
 // FONTE ÚNICA DA VERDADE DA VERSÃO DO SISTEMA
-const APP_VERSION = 'v2.5.18';
+const APP_VERSION = 'v2.5.19';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Atualiza a versão exibida na tela automaticamente
+  // 1. Atualiza a versão exibida no rodapé
   const versionSpan = document.getElementById('app-version');
   if (versionSpan) {
     versionSpan.textContent = APP_VERSION;
   }
+});
 
-  // 2. Mapeamento de elementos para alternância do Modo Claro/Escuro
-  const btnTheme = document.getElementById('btn-theme') || document.querySelector('.topbar-btn');
+// 2. Escuta de cliques globais (garante o clique mesmo se o botão recarregar na tela)
+document.addEventListener('click', (event) => {
+  // Verifica se o clique foi no botão de tema ou em texto dentro dele
+  const btnTheme = event.target.closest('#btn-theme, .topbar-btn, button[onclick*="theme"]');
   
-  if (btnTheme) {
-    btnTheme.addEventListener('click', () => {
-      document.body.classList.toggle('light-theme');
-      document.documentElement.classList.toggle('light-theme');
-      
-      const isLight = document.body.classList.contains('light-theme');
+  if (btnTheme && (btnTheme.textContent.includes('Modo Claro') || btnTheme.textContent.includes('Modo Escuro'))) {
+    event.preventDefault();
+    
+    // Alterna a classe de tema claro
+    document.body.classList.toggle('light-theme');
+    document.documentElement.classList.toggle('light-theme');
+    
+    const isLight = document.body.classList.contains('light-theme');
 
-      // Busca o elemento da logo por id ou pelas classes comuns da marca
-      const brandLogo = document.getElementById('brand-logo') || 
-                        document.querySelector('.brand img') || 
-                        document.querySelector('.brand-img');
+    // Troca o texto do botão
+    btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
 
-      if (brandLogo) {
-        // Altera a imagem com base no tema atual
-        brandLogo.src = isLight ? 'logo-preta.png' : 'logo-branca.png';
-      }
-
-      // Atualiza o texto do botão
-      btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+    // Procura e alterna todas as imagens de logo do sistema
+    const brandLogos = document.querySelectorAll('#brand-logo, .brand img, .brand-img');
+    brandLogos.forEach(logo => {
+      logo.src = isLight ? 'logo-preta.png' : 'logo-branca.png';
     });
   }
 });
