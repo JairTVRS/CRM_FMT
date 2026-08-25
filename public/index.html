@@ -10,8 +10,8 @@
   <link rel="shortcut icon" type="image/png" href="./Icone-Aba.png">
   <link rel="apple-touch-icon" href="./Icone-Aba.png">
 
-  <!-- CSS Principal com Fallback Anti-Cache -->
-  <link rel="stylesheet" href="./assets/css/main.css?v=2.5.11">
+  <!-- CSS Principal com Anti-Cache -->
+  <link rel="stylesheet" href="./assets/css/main.css?v=2.5.12">
 
   <style>
     :root {
@@ -26,16 +26,19 @@
       --input-bg: #0f172a;
     }
 
-    body.light-theme {
-      --bg-color: #f1f5f9;
-      --card-bg: #ffffff;
-      --text-color: #0f172a;
-      --text-muted: #475569;
-      --text-subtle: #94a3b8;
-      --border-color: #cbd5e1;
-      --accent-color: #ea580c;
-      --header-table-bg: #e2e8f0;
-      --input-bg: #f8fafc;
+    /* MODO CLARO COM OVERRIDE FORÇADO */
+    html.light-theme, body.light-theme {
+      --bg-color: #f1f5f9 !important;
+      --card-bg: #ffffff !important;
+      --text-color: #0f172a !important;
+      --text-muted: #475569 !important;
+      --text-subtle: #94a3b8 !important;
+      --border-color: #cbd5e1 !important;
+      --accent-color: #ea580c !important;
+      --header-table-bg: #e2e8f0 !important;
+      --input-bg: #f8fafc !important;
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
@@ -45,7 +48,7 @@
       min-height: 100vh;
       background-color: var(--bg-color);
       color: var(--text-color);
-      transition: background-color 0.3s ease, color 0.3s ease;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     .sidebar {
@@ -187,9 +190,7 @@
       transition: opacity 0.2s;
     }
 
-    .btn-primary:hover {
-      opacity: 0.9;
-    }
+    .btn-primary:hover { opacity: 0.9; }
 
     .card {
       background: var(--card-bg);
@@ -264,9 +265,7 @@
       font-size: 12px;
     }
 
-    .btn-action.btn-ai:hover {
-      background: #2563eb;
-    }
+    .btn-action.btn-ai:hover { background: #2563eb; }
 
     .text-orange { color: var(--accent-color); }
     .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
@@ -358,7 +357,6 @@
     .tab-content { display: block; }
     .tab-content.hidden { display: none !important; }
 
-    /* ESTILOS ESPECÍFICOS DA IA & DUE DILIGENCE */
     .source-box {
       background: var(--input-bg);
       border: 1px solid var(--border-color);
@@ -404,14 +402,14 @@
 
     <div class="sidebar-footer">
       <span>#EuSouFormatar</span>
-      <span>v2.5.11</span>
+      <span>v2.5.12</span>
     </div>
   </aside>
 
   <!-- Main Content -->
   <main class="main-content">
     <header class="topbar">
-      <button class="topbar-btn" id="btn-theme">Modo Claro</button>
+      <button class="topbar-btn" id="btn-theme" onclick="toggleTheme()">Modo Claro</button>
       <div class="user-profile">
         <span class="user-avatar">J</span>
         <span>Jair Tavares</span>
@@ -610,7 +608,6 @@
 
         <!-- Aba 2: Análise de IA & Enrichment -->
         <div class="tab-content hidden" id="tab-ia">
-          <!-- Bloco 1: Validação de Fontes -->
           <div style="margin-bottom: 20px;">
             <h3 class="kicker" style="margin-bottom: 10px;">1. FONTES ENCONTRADAS PELA IA NA INTERNET</h3>
             
@@ -639,7 +636,6 @@
             <button class="btn-primary" style="font-size: 12px; padding: 8px 14px;" onclick="executarBuscaIA()">🔍 Pesquisar na Internet com IA</button>
           </div>
 
-          <!-- Bloco 2: Classificação de Ramo e Segmento -->
           <div style="margin-bottom: 20px;">
             <h3 class="kicker" style="margin-bottom: 10px;">2. CLASSIFICAÇÃO PREDITIVA</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -680,7 +676,6 @@
             </div>
           </div>
 
-          <!-- Bloco 3: Resumo Analítico -->
           <div>
             <h3 class="kicker" style="margin-bottom: 10px;">3. RESUMO ANALÍTICO DA IA (3 PARÁGRAFOS)</h3>
             <div class="ai-summary-box" id="ai-resumo-texto">
@@ -699,17 +694,29 @@
 
   <!-- JavaScript Global -->
   <script>
+    // FUNÇÃO GLOBAL DE ALTERNÂNCIA DE TEMA
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle('light-theme');
+      document.documentElement.classList.toggle('light-theme', isLight);
+      
+      const btnTheme = document.getElementById('btn-theme');
+      const brandLogo = document.getElementById('brand-logo');
+
+      if (btnTheme) {
+        btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+      }
+      if (brandLogo) {
+        brandLogo.src = isLight ? './logo-preta.png' : './logo-branca.png';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const menuItems = document.querySelectorAll('.menu-item');
       const viewLeads = document.getElementById('view-leads');
       const viewConfig = document.getElementById('view-configuracoes');
-      const btnTheme = document.getElementById('btn-theme');
-      const brandLogo = document.getElementById('brand-logo');
 
-      // Botão Incluir Lead
       const btnIncluirLead = document.getElementById('btn-incluir-lead');
 
-      // Modal Controls
       const modalLead = document.getElementById('modal-lead');
       const modalTitle = document.getElementById('modal-lead-title');
       const tabBtns = document.querySelectorAll('.tab-btn');
@@ -748,7 +755,6 @@
           document.getElementById('lead-input-origem').value = leadData.origem || '';
           modalTitle.textContent = `Ficha do Lead: ${leadData.nome || 'Lead'}`;
         } else {
-          // Novo Lead (campos limpos)
           document.getElementById('lead-input-nome').value = '';
           document.getElementById('lead-input-doc').value = '';
           document.getElementById('lead-input-phone').value = '';
@@ -756,7 +762,6 @@
           modalTitle.textContent = 'Novo Lead';
         }
 
-        // Alternar aba
         tabBtns.forEach(btn => {
           if (btn.getAttribute('data-tab') === defaultTab) {
             btn.classList.add('active');
@@ -780,7 +785,6 @@
         modalLead.classList.add('hidden');
       }
 
-      // Evento de Clique no Botão "+ Incluir Lead"
       if (btnIncluirLead) {
         btnIncluirLead.addEventListener('click', () => {
           openLeadModal(null, 'tab-geral');
@@ -809,7 +813,6 @@
         });
       });
 
-      // Eventos das Ações da Tabela
       document.addEventListener('click', (e) => {
         const target = e.target;
         const row = target.closest('tr');
@@ -829,17 +832,6 @@
           }
         }
       });
-
-      if (btnTheme) {
-        btnTheme.addEventListener('click', () => {
-          document.body.classList.toggle('light-theme');
-          const isLight = document.body.classList.contains('light-theme');
-          if (brandLogo) {
-            brandLogo.src = isLight ? './logo-preta.png' : './logo-branca.png';
-          }
-          btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
-        });
-      }
     });
 
     function promptUrl(tipo) {
@@ -858,8 +850,8 @@
     }
   </script>
 
-  <script src="./js/configuracoes.js?v=2.5.11"></script>
-  <script src="./js/leads.js?v=2.5.11"></script>
-  <script src="./js/app.js?v=2.5.11"></script>
+  <script src="./js/configuracoes.js?v=2.5.12"></script>
+  <script src="./js/leads.js?v=2.5.12"></script>
+  <script src="./js/app.js?v=2.5.12"></script>
 </body>
 </html>
