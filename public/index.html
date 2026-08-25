@@ -1,932 +1,115 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="light">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CRM Leads — Formatar Gestão</title>
-  
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <style>
-    :root {
-      --bg-body: #f4f5f7;
-      --bg-card: #ffffff;
-      --bg-header: #ffffff;
-      --bg-sidebar: #000000;
-      --text-main: #222222;
-      --text-muted: #666666;
-      --border-color: #eeeeee;
-      --table-header-bg: #f8f9fa;
-      --primary: #ff3b00;
-      --primary-hover: #e03400;
-      --ai-color: #0070f3;
-    }
-
-    [data-theme="dark"] {
-      --bg-body: #121212;
-      --bg-card: #1e1e1e;
-      --bg-header: #1e1e1e;
-      --bg-sidebar: #000000;
-      --text-main: #f1f1f1;
-      --text-muted: #aaaaaa;
-      --border-color: #333333;
-      --table-header-bg: #2a2a2a;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-
-    body {
-      display: flex;
-      background-color: var(--bg-body);
-      color: var(--text-main);
-      min-height: 100vh;
-      padding-top: 60px;
-      transition: background-color 0.3s, color 0.3s;
-    }
-
-    /* Tela de Login Modal */
-    #loginOverlay {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #000000;
-      display: flex; align-items: center; justify-content: center;
-      z-index: 2000;
-    }
-
-    .login-box {
-      background: #1e1e1e;
-      color: #fff;
-      padding: 35px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 380px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-
-    .login-box h2 { margin-bottom: 8px; color: #fff; letter-spacing: 1px; }
-    .login-box p { font-size: 13px; color: #aaa; margin-bottom: 20px; }
-    .login-box input {
-      width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444;
-      background: #2b2b2b; color: #fff; margin-bottom: 15px; font-size: 14px; outline: none;
-    }
-    .login-box input:focus { border-color: var(--primary); }
-
-    .btn-login {
-      width: 100%; background-color: var(--primary); color: #fff; border: none;
-      padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;
-      transition: background 0.2s;
-    }
-    .btn-login:hover { background-color: var(--primary-hover); }
-
-    /* Top Navbar Fixa */
-    .top-header {
-      position: fixed; top: 0; left: 0; width: 100%; height: 60px;
-      background-color: var(--bg-header);
-      border-bottom: 1px solid var(--border-color);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px; z-index: 1100; transition: all 0.3s;
-    }
-
-    .header-logo-container { display: flex; align-items: center; gap: 10px; }
-    .brand-logo { height: 36px; object-fit: contain; }
-
-    .header-actions { display: flex; align-items: center; gap: 15px; }
-
-    .theme-toggle-btn {
-      background: none; border: 1px solid var(--border-color); color: var(--text-main);
-      padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px;
-      display: flex; align-items: center; gap: 6px; transition: border-color 0.2s;
-    }
-    .theme-toggle-btn:hover { border-color: var(--primary); }
-
-    .user-info { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-
-    .user-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background-color: var(--primary); color: #fff;
-      display: flex; align-items: center; justify-content: center; font-weight: bold;
-    }
-
-    .btn-logout {
-      background: none; border: none; color: #ff3b00; cursor: pointer; font-size: 12px; margin-left: 5px;
-      text-decoration: underline;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 240px; background-color: var(--bg-sidebar); color: #fff;
-      padding: 20px 10px; display: flex; flex-direction: column; justify-content: space-between;
-      min-height: calc(100vh - 60px);
-    }
-
-    .menu-item {
-      color: #aaa; padding: 12px 15px; border-radius: 6px; font-weight: bold;
-      display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s;
-      margin-bottom: 5px;
-    }
-    .menu-item:hover, .menu-item.active {
-      background-color: var(--primary); color: #fff;
-    }
-
-    .sidebar-footer {
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 11px; color: #777; border-top: 1px solid #222; padding-top: 15px; margin: 0 10px;
-    }
-
-    .badge-version { background-color: #1a1a1a; color: #aaa; padding: 3px 8px; border-radius: 4px; font-size: 10px; }
-
-    /* Content Area */
-    .content { flex: 1; padding: 30px; display: none; }
-    .content.active-view { display: block; }
-
-    .header-tag { color: var(--primary); font-size: 12px; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px; }
-    .header-title-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .header-title { font-size: 28px; font-weight: bold; }
-
-    .btn-add {
-      background-color: var(--primary); color: white; border: none;
-      padding: 12px 24px; font-size: 15px; font-weight: bold; border-radius: 6px; cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn-add:hover { background-color: var(--primary-hover); }
-
-    .card {
-      background-color: var(--bg-card); border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;
-      border: 1px solid var(--border-color); transition: all 0.3s;
-    }
-
-    .card-header {
-      background-color: #000000; color: #fff; padding: 15px 20px;
-      display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;
-    }
-
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    
-    th.sortable { cursor: pointer; user-select: none; transition: background-color 0.2s; }
-    th.sortable:hover { background-color: rgba(255, 59, 0, 0.1); color: var(--primary); }
-    th { background-color: var(--table-header-bg); color: var(--text-muted); font-size: 12px; font-weight: bold; padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
-    td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid var(--border-color); vertical-align: middle; color: var(--text-main); }
-
-    .lead-doc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-    .lead-log { font-size: 11px; color: var(--primary); margin-top: 4px; font-style: italic; }
-
-    .actions-container { display: flex; align-items: center; gap: 8px; }
-    .action-icon { text-decoration: none; font-size: 16px; cursor: pointer; background: none; border: none; padding: 2px; display: inline-flex; align-items: center; justify-content: center; transition: transform 0.1s; }
-    .action-icon:hover { transform: scale(1.15); }
-    .wsp-icon-svg { width: 20px; height: 20px; fill: #25D366; }
-
-    /* Estilo do Ícone de IA */
-    .ai-btn-icon {
-      background: transparent; border: none; cursor: pointer; padding: 2px;
-      display: inline-flex; align-items: center; justify-content: center; transition: transform 0.15s ease;
-    }
-    .ai-btn-icon:hover { transform: scale(1.2); }
-    .ai-svg-icon { width: 22px; height: 22px; }
-
-    /* Modal Styling */
-    .modal-overlay {
-      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.6); align-items: center; justify-content: center; z-index: 1200;
-    }
-
-    .modal-box {
-      position: relative; background: var(--bg-card); color: var(--text-main); padding: 25px;
-      border-radius: 8px; width: 100%; max-width: 500px; border: 1px solid var(--border-color);
-      max-height: 90vh; overflow-y: auto;
-    }
-
-    .modal-header-container {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
-    }
-
-    .modal-box h2 { font-size: 20px; }
-
-    .modal-top-actions { display: flex; align-items: center; gap: 8px; }
-
-    .btn-clock-clean {
-      background: transparent; border: 1px solid var(--border-color);
-      width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .btn-clock-clean:hover {
-      border-color: var(--primary); background-color: rgba(255, 59, 0, 0.08);
-      transform: translateY(-1px);
-    }
-    .btn-clock-clean svg { width: 18px; height: 18px; stroke: var(--text-muted); transition: stroke 0.2s; }
-    .btn-clock-clean:hover svg { stroke: var(--primary); }
-
-    /* Abas */
-    .modal-tabs {
-      display: flex; gap: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
-    }
-
-    .tab-btn {
-      padding: 8px 14px; border: none; background: transparent;
-      color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: bold;
-      border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px;
-      transition: all 0.2s;
-    }
-
-    .tab-btn.active {
-      color: var(--primary); border-bottom-color: var(--primary);
-    }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
-    .form-group input, .form-group select {
-      width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;
-      font-size: 14px; background-color: var(--bg-card); color: var(--text-main);
-    }
-
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-    .btn-save { background-color: var(--primary); color: white; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-    .btn-cancel { background-color: #ccc; color: #333; border: none; padding: 10px 18px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-
-    /* Prompt IA Box */
-    .ia-prompt-box {
-      width: 100%; height: 220px; font-family: monospace; font-size: 12px;
-      padding: 12px; border: 1px solid var(--border-color); border-radius: 6px;
-      background-color: var(--table-header-bg); color: var(--text-main);
-      resize: vertical; outline: none; margin-bottom: 12px;
-    }
-
-    .btn-copy-prompt {
-      background-color: #10a37f; color: white; border: none; padding: 10px 15px;
-      font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer;
-      display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center;
-      transition: background 0.2s;
-    }
-    .btn-copy-prompt:hover { background-color: #0e8e6f; }
-
-    /* Configurações de API Key */
-    .config-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;
-    }
-    .config-card {
-      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px;
-    }
-    .config-card h3 { font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-
-    /* Drawer de Histórico */
-    .history-drawer {
-      position: fixed; top: 0; right: -420px; width: 380px; height: 100vh;
-      background-color: var(--bg-card); border-left: 1px solid var(--border-color);
-      box-shadow: -5px 0 25px rgba(0,0,0,0.2); z-index: 2100;
-      transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex; flex-direction: column;
-    }
-    .history-drawer.open { right: 0; }
-
-    .drawer-header {
-      padding: 20px; border-bottom: 1px solid var(--border-color);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .drawer-header h3 { font-size: 18px; font-weight: 600; color: var(--text-main); }
-    
-    .btn-close-drawer {
-      background: none; border: 1px solid var(--border-color); border-radius: 6px;
-      width: 30px; height: 30px; cursor: pointer; font-size: 16px; color: var(--text-muted);
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .drawer-body { flex: 1; padding: 20px; overflow-y: auto; }
-
-    .timeline { position: relative; padding-left: 28px; }
-    .timeline::before {
-      content: ''; position: absolute; left: 11px; top: 8px; bottom: 8px;
-      width: 2px; background-color: var(--border-color);
-    }
-    .timeline-item { position: relative; margin-bottom: 24px; }
-    .timeline-icon {
-      position: absolute; left: -28px; top: 0; width: 24px; height: 24px;
-      border-radius: 50%; background-color: var(--table-header-bg);
-      border: 2px solid var(--border-color); display: flex; align-items: center;
-      justify-content: center; font-size: 11px;
-    }
-    .timeline-content { font-size: 13px; line-height: 1.5; color: var(--text-main); }
-    .timeline-time { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-  </style>
+  <title>CRM Formatar — Gestão, Governança & Conexões</title>
+  <link rel="stylesheet" href="assets/css/main.css">
 </head>
 <body>
 
-  <!-- Modal de Login -->
-  <div id="loginOverlay">
-    <div class="login-box">
-      <h2>FORMATAR GESTÃO</h2>
-      <p>Digite seu e-mail corporativo para acessar o CRM</p>
-      <input type="email" id="loginEmail" placeholder="seu.email@formatar.com.br" onkeypress="if(event.key==='Enter') autenticarUsuario()">
-      <button class="btn-login" onclick="autenticarUsuario()">Entrar no Sistema</button>
-      <div id="loginError" style="color: #ff4d4d; font-size: 12px; margin-top: 10px; display: none;"></div>
-    </div>
-  </div>
-
-  <!-- Header Fixo -->
-  <header class="top-header">
-    <div class="header-logo-container">
-      <img id="brandLogo" src="logo-preta.png" alt="Formatar Gestão" class="brand-logo" onerror="this.style.display='none'">
-    </div>
-    <div class="header-actions">
-      <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙 Modo Escuro</button>
-      <div class="user-info">
-        <div class="user-avatar" id="userAvatar">--</div>
-        <span id="userName">Carregando...</span>
-        <button class="btn-logout" onclick="logout()" title="Sair">(Sair)</button>
-      </div>
-    </div>
-  </header>
-
   <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-top">
-      <div class="menu-item active" id="menuLeads" onclick="navTo('leads')">👥 Leads</div>
-      <div class="menu-item" id="menuConfig" onclick="navTo('config')">⚙️ Configurações</div>
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-mark">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2">
+            <path d="M4 9h16M5 9v9M19 9v9M3 21h18M7 9V6l5-3 5 3v3M9 12v6M12 12v6M15 12v6"/>
+          </svg>
+        </div>
+        <div class="brand-word">
+          formatar<small>college</small>
+        </div>
+      </div>
+
+      <nav class="menu">
+        <a href="#leads" class="menu-item">Leads</a>
+        <a href="#configuracoes" class="menu-item active">Configurações</a>
+      </nav>
     </div>
+
     <div class="sidebar-footer">
       <span>#EuSouFormataria</span>
-      <span class="badge-version">v2.4</span>
+      <span>v2.4</span>
     </div>
-  </div>
+  </aside>
 
-  <!-- Módulo 1: Leads -->
-  <div class="content active-view" id="viewLeads">
-    <div class="header-tag">— MÓDULO DE CAPTAÇÃO</div>
-    <div class="header-title-container">
-      <h1 class="header-title">Leads</h1>
-      <button class="btn-add" onclick="openModal()">+ Incluir Lead</button>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <span>BASE SUPABASE EM TEMPO REAL</span>
-        <span>Total de Registros: <strong id="totalRegistros">0</strong></span>
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="topbar">
+      <button class="topbar-btn" id="btn-theme">Modo Escuro</button>
+      <div class="user-profile">
+        <span class="user-avatar">J</span>
+        <span>Jair Tavares</span>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 140px;">AÇÕES</th>
-            <th class="sortable" onclick="ordenarTabela('nome')">NOME / DOCUMENTO <span id="sort_nome">↕️</span></th>
-            <th class="sortable" onclick="ordenarTabela('whatsapp')">WHATSAPP <span id="sort_whatsapp">↕️</span></th>
-            <th class="sortable" onclick="ordenarTabela('origem')">ORIGEM <span id="sort_origem">↕️</span></th>
-            <th class="sortable" onclick="ordenarTabela('created_at')">DATA / OPERADOR <span id="sort_created_at">↕️</span></th>
-          </tr>
-        </thead>
-        <tbody id="tabelaLeads">
-          <tr>
-            <td colspan="5" style="text-align: center; color: var(--text-muted);">Carregando registros...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+      <button class="topbar-btn" id="btn-logout">Sair</button>
+    </header>
 
-  <!-- Módulo 2: Configurações de IA -->
-  <div class="content" id="viewConfig">
-    <div class="header-tag">— SISTEMA & INTEGRAÇÕES</div>
-    <div class="header-title-container">
-      <h1 class="header-title">Configurações de IA</h1>
-    </div>
+    <section class="content-body" id="view-configuracoes">
+      <p class="kicker">— SISTEMA & INTEGRAÇÕES</p>
+      <h1 class="pagetitle">Configurações de IA</h1>
+      <p class="description">Gerencie suas chaves de API dos provedores de Inteligência Artificial para habilitar pesquisas automáticas e due diligence.</p>
 
-    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
-      Gerencie suas chaves de API dos provedores de Inteligência Artificial para habilitar pesquisas automáticas e due diligence.
-    </p>
-
-    <div class="config-grid">
-      <!-- ChatGPT -->
-      <div class="config-card">
-        <h3>🤖 ChatGPT (OpenAI)</h3>
-        <div class="form-group">
-          <label>API Key</label>
-          <input type="password" id="key_openai" placeholder="sk-proj-...">
-        </div>
-      </div>
-
-      <!-- Claude -->
-      <div class="config-card">
-        <h3>🧠 Claude (Anthropic)</h3>
-        <div class="form-group">
-          <label>API Key</label>
-          <input type="password" id="key_anthropic" placeholder="sk-ant-api03-...">
-        </div>
-      </div>
-
-      <!-- Google Gemini -->
-      <div class="config-card">
-        <h3>✨ Gemini (Google)</h3>
-        <div class="form-group">
-          <label>API Key</label>
-          <input type="password" id="key_gemini" placeholder="AIzaSy...">
-        </div>
-      </div>
-
-      <!-- DeepSeek -->
-      <div class="config-card">
-        <h3>🐳 DeepSeek</h3>
-        <div class="form-group">
-          <label>API Key</label>
-          <input type="password" id="key_deepseek" placeholder="sk-...">
-        </div>
-      </div>
-
-      <!-- Groq -->
-      <div class="config-card">
-        <h3>⚡ Groq</h3>
-        <div class="form-group">
-          <label>API Key</label>
-          <input type="password" id="key_groq" placeholder="gsk_...">
-        </div>
-      </div>
-
-      <!-- Ollama -->
-      <div class="config-card">
-        <h3>🦙 Ollama (Local)</h3>
-        <div class="form-group">
-          <label>URL Host Local</label>
-          <input type="text" id="key_ollama" placeholder="http://localhost:11434">
-        </div>
-      </div>
-    </div>
-
-    <div style="margin-top: 25px; display: flex; justify-content: flex-end;">
-      <button class="btn-add" onclick="salvarConfiguracoesKeys()">💾 Salvar Chaves de API</button>
-    </div>
-  </div>
-
-  <!-- Modal Cadastro/Edição com Abas -->
-  <div class="modal-overlay" id="modalLead">
-    <div class="modal-box">
-      <div class="modal-header-container">
-        <h2 id="modalTitle">Editar Lead</h2>
-        <div class="modal-top-actions">
-          <button class="btn-clock-clean" title="Histórico de alterações" onclick="abrirHistorico()">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="modal-tabs">
-        <button class="tab-btn active" id="btnTabDados" onclick="switchTab('dados')">📝 Cadastro</button>
-        <button class="tab-btn" id="btnTabIA" onclick="switchTab('ia')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0070f3" stroke-width="2">
-            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-            <path d="M7 17L12 7L17 17M9 13H15"/>
-          </svg>
-          Inteligência IA
-        </button>
-      </div>
-
-      <!-- Aba 1: Dados -->
-      <div class="tab-content active" id="tabDados">
-        <input type="hidden" id="leadId">
-        <div class="form-group">
-          <label for="leadNome">Nome Completo</label>
-          <input type="text" id="leadNome" placeholder="Ex: João Silva" oninput="atualizarPromptIA()">
-        </div>
-        <div class="form-group">
-          <label for="leadDocumento">CPF / CNPJ</label>
-          <input type="text" id="leadDocumento" placeholder="Ex: 000.000.000-00" oninput="atualizarPromptIA()">
-        </div>
-        <div class="form-group">
-          <label for="leadWhatsapp">WhatsApp</label>
-          <input type="text" id="leadWhatsapp" placeholder="Ex: (31) 99999-9999">
-        </div>
-        <div class="form-group">
-          <label for="leadOrigem">Origem</label>
-          <select id="leadOrigem">
-            <option value="">Selecione uma opção...</option>
-            <option value="eventos">eventos</option>
-            <option value="Inbound">Inbound</option>
-            <option value="outbound">outbound</option>
-            <option value="redes">redes</option>
-            <option value="tráfego pago">tráfego pago</option>
-          </select>
-        </div>
-        <div class="modal-actions">
-          <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-          <button class="btn-save" onclick="salvarLead()">Salvar Lead</button>
-        </div>
-      </div>
-
-      <!-- Aba 2: Prompt IA -->
-      <div class="tab-content" id="tabIA">
-        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
-          Copie o prompt de due diligence abaixo pré-preenchido com os dados deste lead para enviar à IA:
-        </p>
-        <textarea id="iaPromptContent" class="ia-prompt-box" readonly></textarea>
-        <button class="btn-copy-prompt" onclick="copiarPromptIA()">
-          📋 Copiar Prompt de Inteligência
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Drawer do Histórico -->
-  <div id="historyDrawer" class="history-drawer">
-    <div class="drawer-header">
-      <h3>Histórico de alterações</h3>
-      <button class="btn-close-drawer" onclick="fecharHistorico()">✕</button>
-    </div>
-    <div class="drawer-body">
-      <div class="timeline" id="timelineList"></div>
-    </div>
-  </div>
-
-  <script>
-    const SUPABASE_URL = 'https://lvcrttnklojyvfhzszkn.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_a6cAxCqWYD2gqvLbyj3MIg_Z6n8x3HR';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const USUARIOS_PERMITIDOS = [
-      {"NID":74,"Nome":"Adriana Aparecida","E-mail":"jairdasilvatj@hotmail.com"},
-      {"NID":49,"Nome":"Aline Campos","E-mail":"formatar.rh@formatar.com.br"},
-      {"NID":64,"Nome":"Alvaro Junior","E-mail":"alvarocesar.adm@gmail.com"},
-      {"NID":45,"Nome":"Alyne Oliveira","E-mail":"alyne@formatar.com.br"},
-      {"NID":35,"Nome":"Amanda Bernardes","E-mail":"amanda@formatar.com.br"},
-      {"NID":7,"Nome":"Ana Clara Quirino","E-mail":"anaclaraquirino@formatar.com.br"},
-      {"NID":67,"Nome":"Ana L. Morais","E-mail":"analuiza060508@gmail.com"},
-      {"NID":28,"Nome":"Ana Luiza","E-mail":"informacoes@formatar.com.br"},
-      {"NID":75,"Nome":"Ana Paula","E-mail":"apgestaoesuporte@gmail.com"},
-      {"NID":41,"Nome":"Andreza Lacerda","E-mail":"andrezalacerda@formatar.com.br"},
-      {"NID":58,"Nome":"Arthur Wasconcelos","E-mail":"arthur@formatar.com.br"},
-      {"NID":6,"Nome":"Daby Romina","E-mail":"daby@formatar.com.br"},
-      {"NID":34,"Nome":"Eduarda Melo","E-mail":"marketing@formatar.com.br"},
-      {"NID":70,"Nome":"Eduardo Pimenta","E-mail":"eduardo.pimenta@formatar.com.br"},
-      {"NID":54,"Nome":"Geovana Silva","E-mail":"geovana@formatar.com.br"},
-      {"NID":71,"Nome":"Gustavo Henrique","E-mail":"guhenriquetomaz@gmail.com"},
-      {"NID":19,"Nome":"Helton Cardoso","E-mail":"helton@formatar.com.br"},
-      {"NID":47,"Nome":"Isabella Duarte","E-mail":"isabella.duartemoreira@gmail.com"},
-      {"NID":55,"Nome":"Ivana Sales","E-mail":"jairdasilvatj@gmail.com"},
-      {"NID":3,"Nome":"Jair Tavares","E-mail":"jair@formatar.com.br"},
-      {"NID":68,"Nome":"João Scofield","E-mail":"jgsv1503@gmail.com"},
-      {"NID":60,"Nome":"Julia Tavares","E-mail":"julia@formatar.com.br"},
-      {"NID":26,"Nome":"Larissa Salomé","E-mail":"larissa@formatar.com.br"},
-      {"NID":30,"Nome":"Leopoldo Diniz","E-mail":"leopoldo@formatar.com.br"},
-      {"NID":8,"Nome":"Letícia Rodrigues","E-mail":"leticia@formatar.com.br"},
-      {"NID":56,"Nome":"Lorena Moreira","E-mail":"lorena@formatar.com.br"},
-      {"NID":76,"Nome":"Luan Guilherme","E-mail":"luangui0109@gmail.com"},
-      {"NID":40,"Nome":"Lucas Marques","E-mail":"lucasmarques@formatar.com.br"},
-      {"NID":44,"Nome":"Luiz Felipe","E-mail":"luizfelipe@formatar.com.br"},
-      {"NID":1,"Nome":"Marco Tavares","E-mail":"marcotulio.magalhaes@gmail.com"},
-      {"NID":53,"Nome":"Maria Clara","E-mail":"clarinhafonseca15@gmail.com"},
-      {"NID":17,"Nome":"Marlon Rocha","E-mail":"marlon@formatar.com.br"},
-      {"NID":29,"Nome":"Mayra Furtado","E-mail":"mayra@formatar.com.br"},
-      {"NID":24,"Nome":"Miguel Amaral","E-mail":"miguelmapemilu@gmail.com"},
-      {"NID":22,"Nome":"Natalia Carvalho","E-mail":"natalia@formatar.com.br"},
-      {"NID":31,"Nome":"Natan Okada","E-mail":"natan@formatar.com.br"},
-      {"NID":23,"Nome":"Pedro Amaral","E-mail":"pedro@formatar.com.br"},
-      {"NID":46,"Nome":"Rafaella Christina","E-mail":"rafaella@formatar.com.br"},
-      {"NID":38,"Nome":"Raylannder Lacerda","E-mail":"raylannder@formatar.com.br"},
-      {"NID":66,"Nome":"Rita de Cássia","E-mail":"rita.cassia.formatar@gmail.com"},
-      {"NID":4,"Nome":"Ruhan Teodoro","E-mail":"ruhan@formatar.com.br"},
-      {"NID":65,"Nome":"Sofia Prado","E-mail":"agendamento@formatar.com.br"},
-      {"NID":37,"Nome":"Thauany Santos","E-mail":"thauany@formatar.com.br"},
-      {"NID":15,"Nome":"Tulio Amaral","E-mail":"tulio@formatar.com.br"},
-      {"NID":2,"Nome":"Vinícius França","E-mail":"vinicius@formatar.com.br"}
-    ];
-
-    let usuarioLogado = null;
-    let leadsCache = [];
-    let leadAtualSelecionado = null;
-    let sortColumn = 'created_at';
-    let sortAscending = false;
-
-    function navTo(view) {
-      document.getElementById('viewLeads').classList.remove('active-view');
-      document.getElementById('viewConfig').classList.remove('active-view');
-      document.getElementById('menuLeads').classList.remove('active');
-      document.getElementById('menuConfig').classList.remove('active');
-
-      if (view === 'leads') {
-        document.getElementById('viewLeads').classList.add('active-view');
-        document.getElementById('menuLeads').classList.add('active');
-      } else {
-        document.getElementById('viewConfig').classList.add('active-view');
-        document.getElementById('menuConfig').classList.add('active');
-        carregarConfiguracoesKeys();
-      }
-    }
-
-    function checarSessao() {
-      const sessao = localStorage.getItem('crm_user');
-      if (sessao) {
-        usuarioLogado = JSON.parse(sessao);
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('userName').innerText = usuarioLogado.Nome || usuarioLogado.email;
-        
-        const nomeParaAvatar = usuarioLogado.Nome || usuarioLogado.email;
-        const inicial = nomeParaAvatar ? nomeParaAvatar.charAt(0).toUpperCase() : 'U';
-        document.getElementById('userAvatar').innerText = inicial;
-        carregarLeads();
-      } else {
-        document.getElementById('loginOverlay').style.display = 'flex';
-      }
-    }
-
-    function autenticarUsuario() {
-      const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
-      const errDiv = document.getElementById('loginError');
-      errDiv.style.display = 'none';
-
-      if (!emailInput) {
-        errDiv.innerText = 'Digite um e-mail válido.';
-        errDiv.style.display = 'block';
-        return;
-      }
-
-      const user = USUARIOS_PERMITIDOS.find(u => u["E-mail"].toLowerCase().trim() === emailInput);
-
-      if (user) {
-        usuarioLogado = user;
-        localStorage.setItem('crm_user', JSON.stringify(user));
-        checarSessao();
-      } else {
-        errDiv.innerText = 'E-mail não cadastrado na lista de usuários permitidos.';
-        errDiv.style.display = 'block';
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem('crm_user');
-      location.reload();
-    }
-
-    function toggleTheme() {
-      const html = document.documentElement;
-      const currentTheme = html.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      
-      html.setAttribute('data-theme', newTheme);
-      
-      const themeBtn = document.getElementById('themeBtn');
-      const brandLogo = document.getElementById('brandLogo');
-
-      if (newTheme === 'dark') {
-        themeBtn.innerHTML = '☀️ Modo Claro';
-        brandLogo.src = 'logo-branca.png';
-      } else {
-        themeBtn.innerHTML = '🌙 Modo Escuro';
-        brandLogo.src = 'logo-preta.png';
-      }
-    }
-
-    // Modal e Abas
-    function switchTab(tabName) {
-      document.getElementById('tabDados').classList.remove('active');
-      document.getElementById('tabIA').classList.remove('active');
-      document.getElementById('btnTabDados').classList.remove('active');
-      document.getElementById('btnTabIA').classList.remove('active');
-
-      if (tabName === 'dados') {
-        document.getElementById('tabDados').classList.add('active');
-        document.getElementById('btnTabDados').classList.add('active');
-      } else {
-        document.getElementById('tabIA').classList.add('active');
-        document.getElementById('btnTabIA').classList.add('active');
-        atualizarPromptIA();
-      }
-    }
-
-    function atualizarPromptIA() {
-      const nome = document.getElementById('leadNome').value || '[NOME]';
-      const doc = document.getElementById('leadDocumento').value || '[CNPJ/CPF]';
-
-      const promptTemplate = `Atue como um analista de inteligência empresarial e due diligence.
-Vou fornecer:
-
-Razão Social / Nome da empresa: ${nome}
-CNPJ: ${doc}
-Sua missão é pesquisar na internet e em fontes públicas confiáveis e consolidar o máximo possível de informações verificáveis sobre essa empresa.
-
-1. Identificação cadastral
-2. Estrutura societária
-3. Operação e posicionamento
-4. Dados financeiros e porte
-5. Presença digital e reputação
-6. Notícias e movimentos estratégicos
-7. Jurídico e compliance
-8. Mercado e concorrência
-9. Inteligência executiva (SWOT)
-10. Score de inteligência (0-10)
-11. Fontes com nível de confiabilidade
-
-Ao final, apresente um Resumo Executivo de no máximo 15 linhas.`;
-
-      document.getElementById('iaPromptContent').value = promptTemplate;
-    }
-
-    function copiarPromptIA() {
-      const textarea = document.getElementById('iaPromptContent');
-      textarea.select();
-      navigator.clipboard.writeText(textarea.value).then(() => {
-        alert('Prompt de Due Diligence copiado com sucesso!');
-      });
-    }
-
-    function openModal(lead = null, tabToOpen = 'dados') {
-      fecharHistorico();
-      leadAtualSelecionado = lead;
-
-      if (lead) {
-        document.getElementById('modalTitle').innerText = 'Editar Lead';
-        document.getElementById('leadId').value = lead.id;
-        document.getElementById('leadNome').value = lead.nome || '';
-        document.getElementById('leadDocumento').value = lead.documento || '';
-        document.getElementById('leadWhatsapp').value = lead.whatsapp || '';
-        document.getElementById('leadOrigem').value = lead.origem || '';
-      } else {
-        document.getElementById('modalTitle').innerText = 'Incluir Novo Lead';
-        document.getElementById('leadId').value = '';
-        document.getElementById('leadNome').value = '';
-        document.getElementById('leadDocumento').value = '';
-        document.getElementById('leadWhatsapp').value = '';
-        document.getElementById('leadOrigem').value = '';
-      }
-
-      switchTab(tabToOpen);
-      document.getElementById('modalLead').style.display = 'flex';
-    }
-
-    function abrirIAExterna(id) {
-      const lead = leadsCache.find(item => item.id == id);
-      if (lead) openModal(lead, 'ia');
-    }
-
-    function closeModal() {
-      document.getElementById('modalLead').style.display = 'none';
-      fecharHistorico();
-    }
-
-    function abrirHistorico() {
-      const timeline = document.getElementById('timelineList');
-      if (!leadAtualSelecionado) {
-        timeline.innerHTML = `<div class="timeline-item"><div class="timeline-content">Novo registro sem histórico.</div></div>`;
-      } else {
-        const dataCriacao = leadAtualSelecionado.created_at ? new Date(leadAtualSelecionado.created_at).toLocaleString('pt-BR') : 'Data legada';
-        const operador = usuarioLogado ? usuarioLogado.Nome : 'Jair Tavares';
-
-        timeline.innerHTML = `
-          <div class="timeline-item">
-            <div class="timeline-icon">🕒</div>
-            <div class="timeline-content">Alteração realizada por <strong>${operador}</strong></div>
-            <div class="timeline-time">${dataCriacao}</div>
+      <form id="form-configuracoes">
+        <div class="cards-grid">
+          <div class="card">
+            <h2 class="card-title">ChatGPT (OpenAI)</h2>
+            <div class="form-group">
+              <label class="form-label" for="api-openai">API Key</label>
+              <input type="password" class="form-input" id="api-openai" placeholder="sk-proj-...">
+            </div>
           </div>
-        `;
-      }
-      document.getElementById('historyDrawer').classList.add('open');
-    }
 
-    function fecharHistorico() {
-      document.getElementById('historyDrawer').classList.remove('open');
-    }
+          <div class="card">
+            <h2 class="card-title">Claude (Anthropic)</h2>
+            <div class="form-group">
+              <label class="form-label" for="api-anthropic">API Key</label>
+              <input type="password" class="form-input" id="api-anthropic" placeholder="sk-ant-api03-...">
+            </div>
+          </div>
 
-    // Configurações das Keys de IA
-    function salvarConfiguracoesKeys() {
-      const keys = {
-        openai: document.getElementById('key_openai').value,
-        anthropic: document.getElementById('key_anthropic').value,
-        gemini: document.getElementById('key_gemini').value,
-        deepseek: document.getElementById('key_deepseek').value,
-        groq: document.getElementById('key_groq').value,
-        ollama: document.getElementById('key_ollama').value,
-      };
-      localStorage.setItem('crm_ai_keys', JSON.stringify(keys));
-      alert('Configurações e Chaves de API salvas com sucesso!');
-    }
+          <div class="card">
+            <h2 class="card-title">Gemini (Google)</h2>
+            <div class="form-group">
+              <label class="form-label" for="api-google">API Key</label>
+              <input type="password" class="form-input" id="api-google" placeholder="AlzaSy...">
+            </div>
+          </div>
 
-    function carregarConfiguracoesKeys() {
-      const saved = localStorage.getItem('crm_ai_keys');
-      if (saved) {
-        const keys = JSON.parse(saved);
-        if (keys.openai) document.getElementById('key_openai').value = keys.openai;
-        if (keys.anthropic) document.getElementById('key_anthropic').value = keys.anthropic;
-        if (keys.gemini) document.getElementById('key_gemini').value = keys.gemini;
-        if (keys.deepseek) document.getElementById('key_deepseek').value = keys.deepseek;
-        if (keys.groq) document.getElementById('key_groq').value = keys.groq;
-        if (keys.ollama) document.getElementById('key_ollama').value = keys.ollama;
-      }
-    }
+          <div class="card">
+            <h2 class="card-title">DeepSeek</h2>
+            <div class="form-group">
+              <label class="form-label" for="api-deepseek">API Key</label>
+              <input type="password" class="form-input" id="api-deepseek" placeholder="sk-...">
+            </div>
+          </div>
 
-    // Supabase & Tabela
-    async function carregarLeads() {
-      const { data, error } = await supabaseClient.from('leads').select('*');
-      if (error) { console.error('Erro ao buscar leads:', error.message); return; }
-      leadsCache = data || [];
-      renderizarTabela();
-    }
+          <div class="card">
+            <h2 class="card-title">Groq</h2>
+            <div class="form-group">
+              <label class="form-label" for="api-groq">API Key</label>
+              <input type="password" class="form-input" id="api-groq" placeholder="gsk_...">
+            </div>
+          </div>
 
-    function ordenarTabela(coluna) {
-      if (sortColumn === coluna) sortAscending = !sortAscending;
-      else { sortColumn = coluna; sortAscending = true; }
+          <div class="card">
+            <h2 class="card-title">Ollama (Local)</h2>
+            <div class="form-group">
+              <label class="form-label" for="api-ollama">URL Host Local</label>
+              <input type="text" class="form-input" id="api-ollama" placeholder="http://localhost:11434">
+            </div>
+          </div>
+        </div>
 
-      ['nome', 'whatsapp', 'origem', 'created_at'].forEach(c => {
-        const el = document.getElementById(`sort_${c}`);
-        if (el) el.innerText = '↕️';
-      });
+        <div class="actions-bar">
+          <button type="submit" class="btn-primary">Salvar Chaves de API</button>
+        </div>
+      </form>
+    </section>
+  </main>
 
-      const icon = sortAscending ? '🔼' : '🔽';
-      const activeEl = document.getElementById(`sort_${coluna}`);
-      if (activeEl) activeEl.innerText = icon;
-
-      renderizarTabela();
-    }
-
-    function renderizarTabela() {
-      const tbody = document.getElementById('tabelaLeads');
-      document.getElementById('totalRegistros').innerText = leadsCache.length;
-
-      if (leadsCache.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum lead encontrado.</td></tr>';
-        return;
-      }
-
-      leadsCache.sort((a, b) => {
-        let valA = a[sortColumn] || '';
-        let valB = b[sortColumn] || '';
-        if (typeof valA === 'string') valA = valA.toLowerCase();
-        if (typeof valB === 'string') valB = valB.toLowerCase();
-        if (valA < valB) return sortAscending ? -1 : 1;
-        if (valA > valB) return sortAscending ? 1 : -1;
-        return 0;
-      });
-
-      const svgWhatsapp = `<svg class="wsp-icon-svg" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>`;
-
-      const svgAI = `<svg class="ai-svg-icon" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#0070f3"/><path d="M6 18L12 6L18 18M8.5 13H15.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17.5" cy="6.5" r="2.5" fill="#52a8ff"/></svg>`;
-
-      tbody.innerHTML = leadsCache.map(lead => {
-        const numLimpo = (lead.whatsapp || '').replace(/\D/g, '');
-        const wspUrl = numLimpo ? `https://wa.me/55${numLimpo}` : '#';
-        const dataHora = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
-
-        return `
-          <tr>
-            <td>
-              <div class="actions-container">
-                ${numLimpo ? `<a href="${wspUrl}" target="_blank" class="action-icon" title="Conversar no WhatsApp">${svgWhatsapp}</a>` : '<span class="action-icon" style="opacity:0.3;">💬</span>'}
-                <button class="ai-btn-icon" onclick="abrirIAExterna('${lead.id}')" title="Gerar Inteligência IA">${svgAI}</button>
-                <button class="action-icon" onclick="editarLead('${lead.id}')" title="Editar">✏️</button>
-                <button class="action-icon" onclick="excluirLead('${lead.id}')" title="Excluir">🗑️</button>
-              </div>
-            </td>
-            <td>
-              <strong>${lead.nome || 'N/I'}</strong>
-              ${lead.documento ? `<div class="lead-doc">Doc: ${lead.documento}</div>` : ''}
-            </td>
-            <td>${lead.whatsapp || 'N/I'}</td>
-            <td>${lead.origem || 'Direto'}</td>
-            <td>
-              <div>${dataHora}</div>
-              <div class="lead-log">👤 Legado</div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function editarLead(id) {
-      const lead = leadsCache.find(item => item.id == id);
-      if (lead) openModal(lead);
-    }
-
-    async function excluirLead(id) {
-      if (confirm('Tem certeza que deseja excluir este lead?')) {
-        const { error } = await supabaseClient.from('leads').delete().eq('id', id);
-        if (error) alert('Erro ao excluir: ' + error.message);
-        else carregarLeads();
-      }
-    }
-
-    async function salvarLead() {
-      const id = document.getElementById('leadId').value;
-      const nome = document.getElementById('leadNome').value.trim();
-      const documento = document.getElementById('leadDocumento').value.trim();
-      const whatsapp = document.getElementById('leadWhatsapp').value.trim();
-      const origem = document.getElementById('leadOrigem').value;
-
-      if (!nome || !origem) { alert('Por favor, preencha Nome e Origem.'); return; }
-
-      let res;
-      if (id) {
-        res = await supabaseClient.from('leads').update({ nome, documento, whatsapp, origem }).eq('id', id);
-      } else {
-        res = await supabaseClient.from('leads').insert([{ nome, documento, whatsapp, origem }]);
-      }
-
-      if (res.error) alert('Erro ao salvar no Supabase: ' + res.error.message);
-      else { closeModal(); carregarLeads(); }
-    }
-
-    // Inicialização
-    checarSessao();
-  </script>
+  <script src="js/configuracoes.js"></script>
+  <script src="js/leads.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
