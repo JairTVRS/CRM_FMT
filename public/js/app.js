@@ -98,14 +98,42 @@ function initModalEvents() {
   if (btnCancel) btnCancel.addEventListener('click', closeModal);
 
   // Salvar formulário do modal
-  if (btnSave) {
+if (btnSave) {
     btnSave.addEventListener('click', () => {
       const nome = document.getElementById('lead-input-nome')?.value;
+      const doc = document.getElementById('lead-input-doc')?.value || '-';
+      const phone = document.getElementById('lead-input-phone')?.value || '-';
+      const origem = document.getElementById('lead-input-origem')?.value || 'Direto';
+
       if (!nome) {
         alert('Por favor, preencha ao menos o nome do lead.');
         return;
       }
-      alert(`Lead "${nome}" salvo com sucesso!`);
+
+      const tableBody = document.getElementById('table-leads-body');
+      if (tableBody) {
+        const leadObj = { nome, doc, phone, origem };
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-lead', JSON.stringify(leadObj));
+        tr.innerHTML = `
+          <td><strong>${nome}</strong></td>
+          <td>${doc}</td>
+          <td>${phone}</td>
+          <td><span class="badge">${origem}</span></td>
+          <td>-</td>
+          <td>-</td>
+          <td>
+            <button class="btn-action btn-ai" title="Analisar com IA">A</button>
+            <button class="btn-action btn-edit" title="Editar">✏️</button>
+            <button class="btn-action btn-delete" title="Excluir">🗑️</button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+        if (typeof atualizarContadorTabela === 'function') {
+          atualizarContadorTabela();
+        }
+      }
+
       closeModal();
     });
   }
