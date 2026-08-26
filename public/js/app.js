@@ -3,7 +3,7 @@
  * Versão do Sistema: v2.5.21
  */
 
-const APP_VERSION = 'v2.5.21';
+const APP_VERSION = 'v2.5.22';
 let editingRow = null; // Controla se o modal está em modo de edição ou novo cadastro
 
 document.addEventListener('DOMContentLoaded', () => {
