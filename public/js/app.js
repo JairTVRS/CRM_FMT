@@ -1,9 +1,9 @@
 /**
  * CRM Formatar — Gestão, Governança & Conexões
- * Versão do Sistema: v2.5.20
+ * Versão do Sistema: v2.5.21
  */
 
-const APP_VERSION = 'v2.5.20';
+const APP_VERSION = 'v2.5.21';
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Atualiza a versão dinamicamente no rodapé
