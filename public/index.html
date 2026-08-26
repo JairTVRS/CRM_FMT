@@ -237,12 +237,18 @@
               <label for="lead-input-phone">Telefone / WhatsApp</label>
               <input type="text" id="lead-input-phone" class="form-control" placeholder="(00) 00000-0000">
             </div>
-
-            <div class="form-group col-span-2">
-              <label for="lead-input-origem">Origem do Lead</label>
-              <input type="text" id="lead-input-origem" class="form-control" placeholder="Ex: Site, Prospecção Ativa, Indicação">
-            </div>
-
+<div class="form-group col-span-2">
+  <label for="lead-input-origem">Origem do Lead</label>
+  <select id="lead-input-origem" class="form-control">
+    <option value="">Selecione a Origem...</option>
+    <option value="Prospecção Ativa">Prospecção Ativa</option>
+    <option value="Indicação">Indicação</option>
+    <option value="Site">Site</option>
+    <option value="Redes Sociais">Redes Sociais</option>
+    <option value="Evento">Evento</option>
+    <option value="Outros">Outros</option>
+  </select>
+</div>
             <div class="form-group col-span-2">
               <label for="lead-input-obs">Observações Internas</label>
               <textarea id="lead-input-obs" class="form-control" rows="3" placeholder="Notas adicionais sobre o contato..."></textarea>
