@@ -1,17 +1,16 @@
 /**
  * Backend Cloudflare Pages Function: /api/enrich-lead
  * Gerencia múltiplos provedores de IA e checagem de status das chaves.
+ *
+ * AUTENTICAÇÃO: garantida pelo _middleware.js. Se a execução chegou aqui,
+ * o usuário já teve o ID token do Google validado e o cadastro confirmado
+ * como ativo no hub da Formatar. Os cabeçalhos de CORS também vêm de lá,
+ * em context.data.cabecalhos — não redefina "Access-Control-Allow-Origin".
  */
-
-const HEADERS = {
-  "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
-};
 
 // 1. CHECAGEM DE STATUS DAS CHAVES (GET)
 export async function onRequestGet(context) {
+  const cabecalhos = context.data.cabecalhos;
   const url = new URL(context.request.url);
 
   if (url.searchParams.get('checkStatus') === 'true') {
@@ -24,15 +23,21 @@ export async function onRequestGet(context) {
 
     return new Response(JSON.stringify({ providers: statusObj }), {
       status: 200,
-      headers: HEADERS
+      headers: cabecalhos
     });
   }
 
-  return new Response(JSON.stringify({ error: "Parâmetro inválido." }), { status: 400, headers: HEADERS });
+  return new Response(JSON.stringify({ error: 'Parâmetro inválido.' }), {
+    status: 400,
+    headers: cabecalhos
+  });
 }
 
 // 2. PROCESSAMENTO DO ENRIQUECIMENTO DE LEAD (POST)
 export async function onRequestPost(context) {
+  const cabecalhos = context.data.cabecalhos;
+  const usuario = context.data.usuario;
+
   try {
     const { nome, doc, documento, phone, provider = 'deepseek' } = await context.request.json();
     const docFinal = doc || documento || 'N/A';
@@ -40,9 +45,12 @@ export async function onRequestPost(context) {
     if (!nome) {
       return new Response(JSON.stringify({ error: 'Nome do lead é obrigatório.' }), {
         status: 400,
-        headers: HEADERS
+        headers: cabecalhos
       });
     }
+
+    // Rastreabilidade: fica no log do Cloudflare, útil para auditar consumo.
+    console.log(`[enrich-lead] ${usuario.email} | provider=${provider} | lead=${nome}`);
 
     const SYSTEM_PROMPT = `Você é um especialista em Inteligência de Vendas B2B e enriquecimento de dados de CRM.
 Analise o lead fornecido e retorne ESTRITAMENTE um JSON válido no seguinte formato (sem marcações markdown adicionais):
@@ -81,20 +89,17 @@ SEGMENTOS PERMITIDOS: INDÚSTRIA, ONG, SERVIÇOS, VAREJO.`;
     const cleanJsonText = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
     const resultJson = JSON.parse(cleanJsonText);
 
-    return new Response(JSON.stringify(resultJson), { status: 200, headers: HEADERS });
+    return new Response(JSON.stringify(resultJson), { status: 200, headers: cabecalhos });
 
   } catch (error) {
     return new Response(JSON.stringify({
       error: 'Falha ao processar análise da IA.',
       details: error.message
-    }), { status: 500, headers: HEADERS });
+    }), { status: 500, headers: cabecalhos });
   }
 }
 
-// 3. REQUISIÇÕES PREFLIGHT CORS (OPTIONS)
-export async function onRequestOptions() {
-  return new Response(null, { status: 204, headers: HEADERS });
-}
+/* OPTIONS é tratado pelo _middleware.js — não precisa de handler aqui. */
 
 /* ==========================================================================
    FUNÇÕES INTEGRADORAS DE APIS EXTERNAS

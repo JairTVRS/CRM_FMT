@@ -5,10 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRM Formatar — Gestão, Governança & Conexões</title>
   <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="stylesheet" href="/assets/css/auth.css">
 </head>
 <body>
 
-  <div class="app-layout">
+  <!-- ===== Tela de Login (controlada por js/auth.js) ===== -->
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-card">
+      <img class="auth-logo" src="logo-branca.png" alt="CRM Formatar">
+      <h1>Acesso ao CRM</h1>
+      <p class="auth-sub">Entre com sua conta Google. O acesso e liberado
+        conforme seu cadastro na Formatar.</p>
+      <div id="google-signin-button"></div>
+      <div id="auth-mensagem" class="auth-mensagem"></div>
+      <p class="auth-rodape">Formatar &middot; Inteligencia Comercial</p>
+    </div>
+  </div>
+
+
+  <div class="app-layout" style="display:none">
     <!-- Sidebar / Navegação Principal -->
     <aside class="sidebar">
       <div class="brand">
@@ -35,6 +50,7 @@
       </nav>
 
       <div class="sidebar-footer">
+        <div id="auth-usuario" class="auth-usuario"></div>
         <button id="btn-theme" class="btn-theme-toggle">Modo Claro</button>
         <span id="app-version" class="version-tag">v2.5.20</span>
       </div>
@@ -383,6 +399,12 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Ordem Exata dos Scripts Front-end -->
+  <!-- Google Identity Services (substitui a antiga platform.js, descontinuada) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- auth.js precisa vir ANTES dos demais: ele intercepta o fetch -->
+  <script src="js/auth.js"></script>
+
   <script src="js/configuracoes.js"></script>
   <script src="js/leads.js"></script>
   <script src="js/app.js"></script>

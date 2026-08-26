@@ -1,0 +1,111 @@
+/* ==========================================================================
+   auth.css — Tela de login e identificação do usuário
+   Arquivo separado de propósito: não mexe no main.css existente.
+   ========================================================================== */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;              /* auth.js controla */
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-color, #12151c);
+  padding: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 32px;
+  border-radius: 16px;
+  text-align: center;
+  background: var(--card-bg, #1b1f2a);
+  border: 1px solid var(--border-color, #2a3040);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+}
+
+.auth-card img.auth-logo {
+  height: 44px;
+  margin-bottom: 28px;
+}
+
+.auth-card h1 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color, #eef1f6);
+}
+
+.auth-card p.auth-sub {
+  margin: 0 0 28px;
+  font-size: .875rem;
+  line-height: 1.5;
+  color: var(--text-muted, #99a1b3);
+}
+
+#google-signin-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.auth-mensagem {
+  display: none;
+  margin-top: 24px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: .8125rem;
+  line-height: 1.45;
+  text-align: left;
+  color: #ffd9d0;
+  background: rgba(242, 66, 26, .12);
+  border: 1px solid rgba(242, 66, 26, .35);
+}
+
+.auth-rodape {
+  margin-top: 28px;
+  font-size: .75rem;
+  color: var(--text-muted, #99a1b3);
+}
+
+/* --- Identificação do usuário na sidebar --- */
+
+.auth-usuario {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: .8125rem;
+  color: var(--text-muted, #99a1b3);
+}
+
+.auth-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.auth-nome {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-logout {
+  padding: 4px 10px;
+  font-size: .75rem;
+  cursor: pointer;
+  border-radius: 6px;
+  color: var(--text-muted, #99a1b3);
+  background: transparent;
+  border: 1px solid var(--border-color, #2a3040);
+  transition: color .15s, border-color .15s;
+}
+
+.btn-logout:hover {
+  color: var(--accent-color, #F2421A);
+  border-color: var(--accent-color, #F2421A);
+}
