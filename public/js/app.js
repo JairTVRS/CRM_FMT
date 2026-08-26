@@ -4,6 +4,7 @@
  */
 
 const APP_VERSION = 'v2.5.21';
+let editingRow = null; // Controla se o modal está em modo de edição ou novo cadastro
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Atualiza a versão dinamicamente no rodapé
@@ -86,6 +87,7 @@ function initModalEvents() {
   // Abrir modal para novo lead
   if (btnIncluir && modal) {
     btnIncluir.addEventListener('click', () => {
+      editingRow = null; // Reseta referência para criar novo
       limparFormularioModal();
       document.getElementById('modal-lead-title').textContent = 'Novo Lead';
       modal.classList.remove('hidden');
@@ -97,8 +99,8 @@ function initModalEvents() {
   if (btnClose) btnClose.addEventListener('click', closeModal);
   if (btnCancel) btnCancel.addEventListener('click', closeModal);
 
-  // Salvar formulário do modal
-if (btnSave) {
+  // Salvar formulário do modal (Criar ou Editar)
+  if (btnSave) {
     btnSave.addEventListener('click', () => {
       const nome = document.getElementById('lead-input-nome')?.value;
       const doc = document.getElementById('lead-input-doc')?.value || '-';
@@ -110,30 +112,29 @@ if (btnSave) {
         return;
       }
 
-      const tableBody = document.getElementById('table-leads-body');
-      if (tableBody) {
-        const leadObj = { nome, doc, phone, origem };
-        const tr = document.createElement('tr');
-        tr.setAttribute('data-lead', JSON.stringify(leadObj));
-        tr.innerHTML = `
-          <td><strong>${nome}</strong></td>
-          <td>${doc}</td>
-          <td>${phone}</td>
-          <td><span class="badge">${origem}</span></td>
-          <td>-</td>
-          <td>-</td>
-          <td>
-            <button class="btn-action btn-ai" title="Analisar com IA">A</button>
-            <button class="btn-action btn-edit" title="Editar">✏️</button>
-            <button class="btn-action btn-delete" title="Excluir">🗑️</button>
-          </td>
-        `;
-        tableBody.appendChild(tr);
-        if (typeof atualizarContadorTabela === 'function') {
-          atualizarContadorTabela();
+      const cleanPhone = phone.replace(/\D/g, '');
+      const waLink = cleanPhone ? `https://wa.me/55${cleanPhone}` : '#';
+      const leadObj = { nome, doc, phone, origem };
+
+      if (editingRow) {
+        // MODO EDIÇÃO: Atualiza a linha existente
+        editingRow.setAttribute('data-lead', JSON.stringify(leadObj));
+        editingRow.innerHTML = renderRowContent(nome, doc, phone, origem, waLink);
+      } else {
+        // MODO CRIAÇÃO: Adiciona uma nova linha
+        const tableBody = document.getElementById('table-leads-body');
+        if (tableBody) {
+          const tr = document.createElement('tr');
+          tr.setAttribute('data-lead', JSON.stringify(leadObj));
+          tr.innerHTML = renderRowContent(nome, doc, phone, origem, waLink);
+          tableBody.appendChild(tr);
+          if (typeof atualizarContadorTabela === 'function') {
+            atualizarContadorTabela();
+          }
         }
       }
 
+      editingRow = null;
       closeModal();
     });
   }
@@ -155,6 +156,23 @@ if (btnSave) {
       });
     });
   });
+}
+
+function renderRowContent(nome, doc, phone, origem, waLink) {
+  return `
+    <td><strong>${nome}</strong></td>
+    <td>${doc}</td>
+    <td>${phone}</td>
+    <td><span class="badge">${origem}</span></td>
+    <td>-</td>
+    <td>-</td>
+    <td style="text-align: left;">
+      <button class="btn-action btn-edit" title="Editar">✏️</button>
+      <a href="${waLink}" target="_blank" class="btn-action btn-wa" title="WhatsApp" style="text-decoration: none; display: inline-block;">💬</a>
+      <button class="btn-action btn-ai" title="Analisar com IA">A</button>
+      <button class="btn-action btn-delete" title="Excluir">🗑️</button>
+    </td>
+  `;
 }
 
 function initSubTabs() {
@@ -196,7 +214,7 @@ function limparFormularioModal() {
 }
 
 /* ==========================================================================
-   Ações da Tabela de Leads (Editar, Excluir, Analisar)
+   Ações da Tabela de Leads (Editar, WhatsApp, Excluir, Analisar)
    ========================================================================== */
 
 function initTableActions() {
@@ -213,6 +231,7 @@ function initTableActions() {
 
     // Botão Editar
     if (target.classList.contains('btn-edit')) {
+      editingRow = tr;
       abrirModalComLead(leadData);
     }
 
@@ -226,12 +245,10 @@ function initTableActions() {
 
     // Botão Analisar com IA (A)
     if (target.classList.contains('btn-ai')) {
+      editingRow = tr;
       abrirModalComLead(leadData);
-      // Alterna para a aba de IA
       const tabIaBtn = document.querySelector('[data-tab="tab-ia"]');
       if (tabIaBtn) tabIaBtn.click();
-      
-      // Executa a busca
       executarBuscaIA();
     }
   });
@@ -305,7 +322,6 @@ async function executarBuscaIA() {
 
     const data = await response.json();
 
-    // Atualiza Links no Front se retornados pela IA
     if (data.site) {
       const linkSite = document.getElementById('link-site');
       if (linkSite) { linkSite.href = data.site; linkSite.textContent = data.site; }
@@ -315,7 +331,6 @@ async function executarBuscaIA() {
       if (linkInsta) { linkInsta.href = data.instagram; linkInsta.textContent = data.instagram; }
     }
 
-    // Atualiza Ramo e Segmento
     if (data.ramo) {
       const selRamo = document.getElementById('select-ramo');
       if (selRamo) selRamo.value = data.ramo;
@@ -325,13 +340,11 @@ async function executarBuscaIA() {
       if (selSeg) selSeg.value = data.segmento;
     }
 
-    // Exibe Resumo da IA
     resumoBox.innerHTML = data.resumoHtml || `<p>${data.resumo || 'Análise concluída com sucesso.'}</p>`;
 
   } catch (err) {
     console.warn('Backend indisponível no momento. Exibindo resposta simulada:', err);
     
-    // Fallback gracioso para visualização offline / sem servidor rodando
     setTimeout(() => {
       resumoBox.innerHTML = `
         <p><strong>Visão Geral:</strong> Empresa atuante no mercado com presença digital identificada (Processado via ${providerAtivo.toUpperCase()}).</p>
@@ -342,6 +355,6 @@ async function executarBuscaIA() {
   }
 }
 
-// Expõe globalmente para uso inline do HTML (onClick="promptUrl(...)")
+// Expõe globalmente para uso inline do HTML
 window.promptUrl = promptUrl;
 window.executarBuscaIA = executarBuscaIA;
