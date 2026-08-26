@@ -60,6 +60,7 @@ SEGMENTOS PERMITIDOS: INDÚSTRIA, ONG, SERVIÇOS, VAREJO.`;
     const userPrompt = `Lead: ${nome} | Doc: ${docFinal} | Phone: ${phone || 'N/A'}`;
     let rawContent = '';
 
+    // Roteamento conforme a escolha de IA nas Configurações
     switch (provider) {
       case 'chatgpt':
         rawContent = await callChatGPT(SYSTEM_PROMPT, userPrompt, context.env.OPENAI_API_KEY);
@@ -77,7 +78,7 @@ SEGMENTOS PERMITIDOS: INDÚSTRIA, ONG, SERVIÇOS, VAREJO.`;
     }
 
     // Limpeza defensiva de blocos de código ```json ... ```
-    const cleanJsonText = rawContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const cleanJsonText = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
     const resultJson = JSON.parse(cleanJsonText);
 
     return new Response(JSON.stringify(resultJson), { status: 200, headers: HEADERS });
