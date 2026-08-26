@@ -10,7 +10,7 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
   ? 'http://localhost:3000'
   : '';
 
-// Estado da Aplicação para Paginacao e Filtros
+// Estado da Aplicação para Paginação e Filtros
 let paginaAtual = 1;
 const itensPorPagina = 10;
 let leadIdEmEdicao = null;
@@ -20,7 +20,6 @@ let leadIdEmEdicao = null;
 function obterLeadsDoStorage() {
   const dados = localStorage.getItem('crm_leads_data');
   if (!dados) {
-    // Dados demonstrativos caso a tabela esteja vazia pela primeira vez
     const leadsIniciais = [
       {
         id: 1,
@@ -191,7 +190,6 @@ function salvarLead(event) {
   let leads = obterLeadsDoStorage();
 
   if (leadIdEmEdicao) {
-    // Editar
     const index = leads.findIndex(l => l.id === leadIdEmEdicao);
     if (index !== -1) {
       leads[index] = {
@@ -200,7 +198,6 @@ function salvarLead(event) {
       };
     }
   } else {
-    // Criar Novo
     const novoLead = {
       id: Date.now(),
       nome, doc, phone, origem, obs, ramo, segmento,
@@ -250,7 +247,7 @@ function trocarAbaModal(abaId) {
   });
 }
 
-// --- INTEGRACAO COM IA (ENRICH LEAD) ---
+// --- INTEGRAÇÃO COM IA (ENRICH LEAD) ---
 
 async function executarBuscaIA(leadId) {
   const inputNome = document.getElementById('lead-input-nome');
@@ -269,8 +266,11 @@ async function executarBuscaIA(leadId) {
     return;
   }
 
+  // Tenta recuperar o provedor selecionado nas configurações da aplicação
+  const providerConfig = localStorage.getItem('crm_ai_provider') || 'deepseek';
+
   const btnBusca = document.querySelector('button[onclick*="executarBuscaIA"]') || document.getElementById('btn-buscar-ia');
-  const textoOriginal = btnBusca ? btnBusca.innerHTML : '🔍 Pesquisar na Internet com IA';
+  const textoOriginal = btnBusca ? btnBusca.innerHTML : 'Pesquisar na Internet com IA';
   
   if (btnBusca) {
     btnBusca.disabled = true;
@@ -281,22 +281,27 @@ async function executarBuscaIA(leadId) {
     const response = await fetch(`${API_BASE_URL}/api/enrich-lead`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: leadId || leadIdEmEdicao, nome, doc, phone })
+      body: JSON.stringify({
+        id: leadId || leadIdEmEdicao,
+        nome,
+        doc,
+        phone,
+        provider: providerConfig
+      })
     });
 
     const res = await response.json();
 
-    if (res.success && res.data) {
-      preencherDadosIA(res.data);
+    if (response.ok && res) {
+      preencherDadosIA(res);
 
-      // Salva os dados de IA no storage para o lead atual se estiver editando
       if (leadIdEmEdicao) {
         let leads = obterLeadsDoStorage();
         const idx = leads.findIndex(l => l.id === leadIdEmEdicao);
         if (idx !== -1) {
-          leads[idx].aiData = res.data;
-          if (res.data.classificacao?.ramo) leads[idx].ramo = res.data.classificacao.ramo;
-          if (res.data.classificacao?.segmento) leads[idx].segmento = res.data.classificacao.segmento;
+          leads[idx].aiData = res;
+          if (res.ramo) leads[idx].ramo = res.ramo;
+          if (res.segmento) leads[idx].segmento = res.segmento;
           salvarLeadsNoStorage(leads);
           renderizarTabela();
         }
@@ -318,16 +323,22 @@ async function executarBuscaIA(leadId) {
 }
 
 function preencherDadosIA(data) {
-  const { fontes, classificacao, resumo_descritivo } = data;
+  if (!data) return;
+
+  const site = data.site || data.fontes?.site_oficial;
+  const instagram = data.instagram || data.fontes?.instagram;
+  const ramo = data.ramo || data.classificacao?.ramo;
+  const segmento = data.segmento || data.classificacao?.segmento;
+  const resumoHtml = data.resumoHtml || data.resumo_descritivo;
 
   // 1. Preenche links
   const linkSite = document.getElementById('link-site');
   const linkInsta = document.getElementById('link-insta');
 
   if (linkSite) {
-    if (fontes?.site_oficial) {
-      linkSite.href = fontes.site_oficial;
-      linkSite.textContent = fontes.site_oficial;
+    if (site && site !== 'N/A') {
+      linkSite.href = site.startsWith('http') ? site : `https://${site}`;
+      linkSite.textContent = site;
     } else {
       linkSite.href = '#';
       linkSite.textContent = 'Não identificado';
@@ -335,39 +346,42 @@ function preencherDadosIA(data) {
   }
 
   if (linkInsta) {
-    if (fontes?.instagram) {
-      linkInsta.href = fontes.instagram;
-      linkInsta.textContent = fontes.instagram;
+    if (instagram && instagram !== 'N/A') {
+      linkInsta.href = instagram.startsWith('http') ? instagram : `https://${instagram}`;
+      linkInsta.textContent = instagram;
     } else {
       linkInsta.href = '#';
       linkInsta.textContent = 'Não identificado';
     }
   }
 
-  // 2. Preenche os Parágrafos
+  // 2. Preenche o Resumo
   const resumoBox = document.getElementById('ai-resumo-texto');
-  if (resumoBox && resumo_descritivo) {
-    resumoBox.innerHTML = `
-      <p style="margin-bottom: 12px; line-height: 1.5;">${resumo_descritivo.paragrafo_1 || ''}</p>
-      <p style="margin-bottom: 12px; line-height: 1.5;">${resumo_descritivo.paragrafo_2 || ''}</p>
-      <p style="line-height: 1.5;">${resumo_descritivo.paragrafo_3 || ''}</p>
-    `;
+  if (resumoBox && resumoHtml) {
+    if (typeof resumoHtml === 'string') {
+      resumoBox.innerHTML = resumoHtml;
+    } else if (typeof resumoHtml === 'object') {
+      resumoBox.innerHTML = `
+        <p style="margin-bottom: 12px; line-height: 1.5;">${resumoHtml.paragrafo_1 || ''}</p>
+        <p style="margin-bottom: 12px; line-height: 1.5;">${resumoHtml.paragrafo_2 || ''}</p>
+        <p style="line-height: 1.5;">${resumoHtml.paragrafo_3 || ''}</p>
+      `;
+    }
   }
 
   // 3. Preenche Selects
   const selectRamo = document.getElementById('select-ramo');
   const selectSegmento = document.getElementById('select-segmento');
 
-  if (selectRamo && classificacao?.ramo) {
-    selectRamo.value = classificacao.ramo;
+  if (selectRamo && ramo) {
+    selectRamo.value = ramo;
   }
-  if (selectSegmento && classificacao?.segmento) {
-    selectSegmento.value = classificacao.segmento;
+  if (selectSegmento && segmento) {
+    selectSegmento.value = segmento;
   }
 }
 
 function carregarRamosESegmentosFiltro() {
-  // Carrega opções dinâmicas caso existam selects de filtro no topo da tabela
   const filterRamo = document.getElementById('filter-ramo');
   const filterSeg = document.getElementById('filter-segmento');
   if (filterRamo) filterRamo.addEventListener('change', renderizarTabela);
