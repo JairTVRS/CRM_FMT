@@ -102,7 +102,15 @@ Bio: ${d.bio || '—'}
 Legendas recentes:
 ${d.legendas?.map((l, i) => `  [${i + 1}] ${l}`).join('\n') || '  (nenhuma)'}`);
   } else {
-    partes.push(`\n=== INSTAGRAM ===\nSem dados: ${instagramResultado?.erro || 'não informado'}.`);
+    partes.push(`
+=== INSTAGRAM ===
+NAO INFORMADO nesta análise (${instagramResultado?.erro || 'sem dados'}).
+
+ATENÇÃO: isto significa apenas que o dado não foi coletado — NÃO significa
+que a empresa não tenha presença no Instagram. Não afirme que a empresa
+"não tem presença digital", "não atua em redes sociais" ou equivalente,
+e não use essa ausência como ponto de atenção, risco ou oportunidade.
+Simplesmente não trate do tema.`);
   }
 
   partes.push(`
@@ -267,7 +275,9 @@ export async function onRequestPost(context) {
       instagramResultado.aviso
     ].filter(Boolean);
 
-    const dados = montarDossie({
+    const geradoEm = new Date().toISOString();
+
+    const montarDados = (versao) => montarDossie({
       cnpjDados: cnpjResultado.ok ? cnpjResultado.dados : null,
       siteDados: siteResultado.ok ? siteResultado : null,
       instagramDados: instagramResultado.ok ? instagramResultado.dados : null,
@@ -275,14 +285,18 @@ export async function onRequestPost(context) {
       meta: {
         cnpj, nomeInformado: nome, site,
         fonteCnpj: fontes.cnpj, fonteSite: fontes.site, fonteInstagram: fontes.instagram,
-        avisosFonte, geradoPor: usuario.email, provider,
-        geradoEm: new Date().toISOString()
+        avisosFonte, geradoPor: usuario.email, provider, geradoEm, versao
       }
     });
 
-    const html = renderizarDossie(dados);
+    // O número da versão só é conhecido dentro de salvarDossie, e o rodapé
+    // do documento precisa dele. Por isso passamos uma função, não o HTML.
+    const dados = montarDados(null);
 
-    const gravacao = await salvarDossie({ db, cnpj, html, dados, usuario, provider, fontes });
+    const gravacao = await salvarDossie({
+      db, cnpj, dados, usuario, provider, fontes,
+      montarHtml: (versao) => renderizarDossie(montarDados(versao))
+    });
     if (!gravacao.ok) {
       return json({ error: `Dossiê gerado, mas não foi possível salvar: ${gravacao.erro}` }, 500, cabecalhos);
     }

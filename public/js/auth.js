@@ -90,8 +90,31 @@ const Auth = (() => {
     const resposta = await fetch('/api/config');
     if (!resposta.ok) throw new Error('Não foi possível obter a configuração do servidor.');
     const dados = await resposta.json();
+
+    // A configuração do servidor é a fonte única da versão. Publicamos
+    // aqui porque o /api/config já é buscado no arranque — evita uma
+    // segunda requisição só para exibir o rodapé.
+    window.CRM_CONFIG = dados;
+    aplicarVersao(dados);
+
     if (!dados.googleClientId) throw new Error('GOOGLE_CLIENT_ID não configurado no servidor.');
     return dados.googleClientId;
+  }
+
+  /**
+   * Escreve a versão no rodapé. Em preview, mostra também o commit,
+   * para não haver dúvida sobre qual build está no ar.
+   */
+  function aplicarVersao(config) {
+    const alvo = document.getElementById('app-version');
+    if (!alvo || !config.versao) return;
+
+    const ehProducao = !config.ambiente || config.ambiente === 'main';
+    alvo.textContent = ehProducao || !config.commit
+      ? config.versao
+      : `${config.versao} · ${config.ambiente}@${config.commit}`;
+
+    if (config.commit) alvo.title = `commit ${config.commit}`;
   }
 
   function aoReceberCredencial(resposta) {

@@ -376,6 +376,11 @@ body{
   .rodape{padding:16px 0 0;background:none}
   .secao{page-break-inside:avoid}
   .quadrante,.dor,.sinal,.kpi{page-break-inside:avoid}
+  /* A media query de largura pegaria na pagina impressa e empilharia
+     o radar em coluna unica, gastando paginas a toa. Forca 2x2. */
+  .radar{grid-template-columns:repeat(2,1fr)!important;gap:10px}
+  .kpis{grid-template-columns:repeat(3,1fr)!important}
+  .itens{grid-template-columns:repeat(2,1fr)!important}
   .momento{background:#f2f2f2!important;color:#000!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
   .momento p{color:#333!important}

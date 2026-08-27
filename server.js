@@ -228,8 +228,14 @@ SEGMENTOS PERMITIDOS: INDÚSTRIA, ONG, SERVIÇOS, VAREJO.`;
 // Configuração inicial do frontend. Devolve também ramos/segmentos por
 // compatibilidade com a versão anterior desta rota.
 app.get('/api/config', (req, res) => {
+  // Mesma fonte única da versão que a Function do Cloudflare usa.
+  const pkg = readJson(path.join(__dirname, 'package.json'), {});
+
   res.json({
     googleClientId: process.env.GOOGLE_CLIENT_ID || null,
+    versao: pkg.version ? `v${pkg.version}` : null,
+    commit: null,
+    ambiente: 'local',
     ramos: readJson(DB_RAMOS, []),
     segmentos: readJson(DB_SEGMENTOS, [])
   });

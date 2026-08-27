@@ -6,6 +6,7 @@
   <title>CRM Formatar — Gestão, Governança & Conexões</title>
   <link rel="stylesheet" href="/assets/css/main.css">
   <link rel="stylesheet" href="/assets/css/auth.css">
+  <link rel="stylesheet" href="/assets/css/dossie.css">
 </head>
 <body>
 
@@ -305,7 +306,8 @@
         <!-- ABA 3: PESQUISA & ENRIQUECIMENTO VIA IA -->
         <div id="tab-ia" class="tab-content hidden">
           <div class="ia-actions-bar">
-            <button class="btn btn-accent" onclick="executarBuscaIA()">Pesquisar na Internet com IA</button>
+            <button class="btn btn-accent" onclick="gerarInteligencia()">Gerar Inteligência</button>
+            <button class="btn btn-secondary" onclick="executarBuscaIA()">Preencher campos com IA</button>
           </div>
 
           <!-- Sub-abas da Inteligência Artificial -->
@@ -408,5 +410,85 @@
   <script src="js/configuracoes.js"></script>
   <script src="js/leads.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/dossie.js"></script>
+
+  <!-- ===== Modal do Dossiê Executivo (js/dossie.js) ===== -->
+  <div id="dossie-modal" class="dossie-modal">
+    <div id="dossie-fundo" class="dossie-fundo"></div>
+
+    <div class="dossie-caixa">
+      <div class="dossie-topo">
+        <h3 id="dossie-titulo">Dossie Executivo</h3>
+        <span id="dossie-versao-atual" class="dossie-selo-versao"></span>
+        <button id="btn-dossie-fechar" class="dossie-fechar" title="Fechar">&times;</button>
+      </div>
+
+      <div class="dossie-corpo">
+
+        <!-- Tela inicial -->
+        <div id="dossie-inicio">
+          <p class="dossie-explicacao">
+            O dossie reune dados cadastrais da Receita Federal, o conteudo do site
+            institucional e uma analise executiva. Os dados cadastrais sao fatos
+            verificados; as secoes analiticas sao interpretacao assistida por IA.
+          </p>
+
+          <ul id="dossie-resumo-fontes" class="dossie-fontes"></ul>
+
+          <div class="dossie-insta">
+            <h4>Instagram (opcional)</h4>
+            <p>
+              O Instagram bloqueia leitura automatica. Para incluir a presenca digital
+              na analise, cole a bio e algumas legendas recentes do perfil do lead.
+              Leva alguns segundos e evita que a IA conclua que a empresa nao tem
+              presenca digital apenas por falta de informacao.
+            </p>
+            <textarea id="dossie-insta-bio" rows="2" placeholder="Bio do perfil..."></textarea>
+            <textarea id="dossie-insta-legendas" rows="4"
+              placeholder="Legendas recentes, separadas por linha em branco..."></textarea>
+          </div>
+
+          <div class="dossie-aviso-tempo">
+            A geracao leva de 30 a 60 segundos. Mantenha esta janela aberta.
+          </div>
+
+          <button id="btn-dossie-gerar" class="dossie-btn dossie-btn-primario">Gerar Inteligencia</button>
+        </div>
+
+        <!-- Progresso -->
+        <div id="dossie-progresso" class="dossie-progresso" style="display:none">
+          <div class="dossie-spinner"></div>
+          <div id="dossie-etapa" class="dossie-etapa">Iniciando...</div>
+          <div class="dossie-etapa-nota">Consultando fontes externas e produzindo a analise.</div>
+        </div>
+
+        <!-- Visualizacao -->
+        <div id="dossie-visualizacao" class="dossie-visualizacao" style="display:none">
+          <div class="dossie-barra">
+            <select id="dossie-historico" style="display:none"></select>
+            <span class="espaco"></span>
+            <button id="btn-dossie-nova-versao" class="dossie-btn dossie-btn-secundario">Gerar nova versao</button>
+            <button id="btn-dossie-baixar" class="dossie-btn dossie-btn-secundario">Baixar HTML</button>
+            <button id="btn-dossie-imprimir" class="dossie-btn dossie-btn-primario">Imprimir / PDF</button>
+          </div>
+
+          <div id="dossie-aviso-existente" class="dossie-nota" style="display:none"></div>
+          <ul id="dossie-avisos" class="dossie-avisos" style="display:none"></ul>
+
+          <iframe id="dossie-frame" class="dossie-frame" sandbox="allow-same-origin allow-modals allow-popups"></iframe>
+        </div>
+
+        <!-- Erro -->
+        <div id="dossie-erro" class="dossie-erro" style="display:none">
+          <h4 id="dossie-erro-titulo"></h4>
+          <p id="dossie-erro-msg"></p>
+          <span id="dossie-erro-codigo" class="dossie-erro-codigo"></span>
+          <button id="btn-dossie-tentar" class="dossie-btn dossie-btn-secundario">Voltar</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

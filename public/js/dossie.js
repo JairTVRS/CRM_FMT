@@ -1,0 +1,345 @@
+/**
+ * dossie.js — Modal do Dossiê Executivo ("Gerar Inteligência").
+ *
+ * Carregar DEPOIS do auth.js (que intercepta o fetch e injeta o token).
+ *
+ * Três coisas que definem o desenho:
+ *
+ * 1. O documento NUNCA é aberto por URL. O endpoint exige token, e
+ *    navegação de aba não passa pelo auth.js. Buscamos o HTML por
+ *    fetch autenticado e injetamos num iframe via srcdoc.
+ *
+ * 2. Clicar não gera necessariamente. Se já existe dossiê para o CNPJ,
+ *    abrimos o existente — evita dois consultores produzindo versões
+ *    divergentes do mesmo lead, e evita esperar um minuto à toa.
+ *
+ * 3. A geração leva de 30 a 60 segundos. Sem progresso visível o
+ *    usuário conclui que travou, então há etapas nomeadas.
+ */
+
+const Dossie = (() => {
+  let leadAtual = null;
+  let cnpjAtual = null;
+  let htmlAtual = null;
+  let versaoAtual = null;
+  let gerando = false;
+
+  const ETAPAS = [
+    { em: 0,  texto: 'Consultando dados cadastrais na Receita…' },
+    { em: 8,  texto: 'Lendo o site institucional…' },
+    { em: 16, texto: 'Analisando presença digital…' },
+    { em: 24, texto: 'Produzindo a análise executiva…' },
+    { em: 50, texto: 'Ainda analisando — documentos completos levam mais tempo…' }
+  ];
+
+  let timers = [];
+
+  /* ----------------------------------------------------------
+     Utilidades
+     ---------------------------------------------------------- */
+
+  const soDigitos = (v) => String(v || '').replace(/\D/g, '');
+
+  function el(id) { return document.getElementById(id); }
+
+  function mostrar(seletor) {
+    ['dossie-inicio', 'dossie-progresso', 'dossie-visualizacao', 'dossie-erro']
+      .forEach((id) => { const n = el(id); if (n) n.style.display = id === seletor ? '' : 'none'; });
+  }
+
+  function dataBr(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR');
+  }
+
+  function limparTimers() {
+    timers.forEach(clearTimeout);
+    timers = [];
+  }
+
+  /* ----------------------------------------------------------
+     Abertura
+     ---------------------------------------------------------- */
+
+  /**
+   * Chamado pelo botão. Recebe os dados do lead em edição.
+   */
+  async function abrir(lead) {
+    leadAtual = lead || {};
+    cnpjAtual = soDigitos(leadAtual.documento);
+    htmlAtual = null;
+    versaoAtual = null;
+
+    el('dossie-modal').classList.add('aberto');
+    document.body.style.overflow = 'hidden';
+
+    if (cnpjAtual.length !== 14) {
+      return erro(
+        'CNPJ obrigatório',
+        'O dossiê usa os dados cadastrais da Receita Federal, então precisa de um CNPJ válido. ' +
+        'Preencha o campo CNPJ/CPF na aba Dados Gerais e salve o lead antes de gerar.'
+      );
+    }
+
+    mostrar('dossie-inicio');
+    el('dossie-titulo').textContent = leadAtual.nome || 'Dossiê Executivo';
+
+    // Já existe?
+    try {
+      const r = await fetch(`/api/dossier?cnpj=${cnpjAtual}`);
+      const d = await r.json();
+
+      if (r.ok && d.existe) {
+        await carregarExistente(d.dossie);
+        return;
+      }
+    } catch (e) {
+      // Sem dossiê ou consulta falhou: segue para a tela de geração.
+    }
+
+    prepararTelaInicial(false);
+  }
+
+  function fechar() {
+    limparTimers();
+    el('dossie-modal').classList.remove('aberto');
+    document.body.style.overflow = '';
+    const frame = el('dossie-frame');
+    if (frame) frame.srcdoc = '';
+  }
+
+  /* ----------------------------------------------------------
+     Tela inicial
+     ---------------------------------------------------------- */
+
+  function prepararTelaInicial(temExistente) {
+    mostrar('dossie-inicio');
+
+    el('dossie-resumo-fontes').innerHTML = `
+      <li><strong>CNPJ:</strong> ${leadAtual.documento || '—'}</li>
+      <li><strong>Site:</strong> ${leadAtual.site || '<em>não informado</em>'}</li>
+      <li><strong>Instagram:</strong> ${leadAtual.instagram || '<em>não informado</em>'}</li>`;
+
+    el('btn-dossie-gerar').textContent = temExistente ? 'Gerar nova versão' : 'Gerar Inteligência';
+  }
+
+  /* ----------------------------------------------------------
+     Dossiê existente
+     ---------------------------------------------------------- */
+
+  async function carregarExistente(registro) {
+    versaoAtual = registro.versao;
+    mostrar('dossie-progresso');
+    el('dossie-etapa').textContent = 'Abrindo dossiê existente…';
+
+    try {
+      const r = await fetch(`/api/dossier?cnpj=${cnpjAtual}&html=true&versao=${registro.versao}`);
+      if (!r.ok) throw new Error('Não foi possível carregar o documento.');
+
+      htmlAtual = await r.text();
+      exibir(htmlAtual);
+      await carregarHistorico();
+
+      el('dossie-aviso-existente').innerHTML =
+        `Versão ${registro.versao}, gerada por <strong>${registro.gerado_por}</strong> em ${dataBr(registro.gerado_em)}.`;
+      el('dossie-aviso-existente').style.display = '';
+
+    } catch (e) {
+      erro('Falha ao abrir', e.message);
+    }
+  }
+
+  /* ----------------------------------------------------------
+     Geração
+     ---------------------------------------------------------- */
+
+  async function gerar(forcar) {
+    if (gerando) return;
+    gerando = true;
+    limparTimers();
+
+    mostrar('dossie-progresso');
+    el('dossie-etapa').textContent = ETAPAS[0].texto;
+
+    // Progresso por tempo decorrido. Não é barra de carregamento real —
+    // seria mentira, já que não há como saber onde o modelo está.
+    ETAPAS.slice(1).forEach((etapa) => {
+      timers.push(setTimeout(() => {
+        el('dossie-etapa').textContent = etapa.texto;
+      }, etapa.em * 1000));
+    });
+
+    const corpo = {
+      nome: leadAtual.nome,
+      documento: cnpjAtual,
+      site: leadAtual.site || null,
+      provider: (window.CONFIG_IA && window.CONFIG_IA.provider) || 'deepseek',
+      forcar: !!forcar,
+      instagram: {
+        perfil: leadAtual.instagram || null,
+        bio: el('dossie-insta-bio').value.trim() || null,
+        legendas: el('dossie-insta-legendas').value.trim() || null
+      }
+    };
+
+    try {
+      const r = await fetch('/api/dossier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo)
+      });
+
+      const d = await r.json();
+      limparTimers();
+
+      if (!r.ok) {
+        return erro('Não foi possível gerar', d.error || 'Erro desconhecido.', d.code);
+      }
+
+      if (d.reaproveitado) {
+        await carregarExistente(d.dossie);
+        return;
+      }
+
+      versaoAtual = d.versao;
+
+      const rh = await fetch(`/api/dossier?cnpj=${cnpjAtual}&html=true`);
+      htmlAtual = await rh.text();
+      exibir(htmlAtual);
+      await carregarHistorico();
+
+      if (d.avisos?.length) {
+        el('dossie-avisos').innerHTML = d.avisos.map((a) => `<li>${a}</li>`).join('');
+        el('dossie-avisos').style.display = '';
+      }
+
+    } catch (e) {
+      limparTimers();
+      erro('Falha na geração', e.message);
+    } finally {
+      gerando = false;
+    }
+  }
+
+  /* ----------------------------------------------------------
+     Exibição
+     ---------------------------------------------------------- */
+
+  function exibir(html) {
+    mostrar('dossie-visualizacao');
+    // srcdoc isola o CSS do dossiê do CSS do CRM — os dois têm
+    // variáveis com nomes parecidos e conflitariam.
+    el('dossie-frame').srcdoc = html;
+    el('dossie-versao-atual').textContent = versaoAtual ? `Versão ${versaoAtual}` : '';
+  }
+
+  async function carregarHistorico() {
+    try {
+      const r = await fetch(`/api/dossier?cnpj=${cnpjAtual}&historico=true`);
+      const d = await r.json();
+      const select = el('dossie-historico');
+
+      if (!d.versoes?.length) { select.style.display = 'none'; return; }
+
+      select.innerHTML = d.versoes.map((v) =>
+        `<option value="${v.versao}" ${v.versao === versaoAtual ? 'selected' : ''}>
+          Versão ${v.versao} — ${dataBr(v.gerado_em)} — ${v.gerado_por}
+        </option>`).join('');
+
+      select.style.display = d.versoes.length > 1 ? '' : 'none';
+
+    } catch (e) {
+      // histórico é acessório
+    }
+  }
+
+  async function trocarVersao(versao) {
+    try {
+      const r = await fetch(`/api/dossier?cnpj=${cnpjAtual}&html=true&versao=${versao}`);
+      if (!r.ok) return;
+      htmlAtual = await r.text();
+      versaoAtual = Number(versao);
+      exibir(htmlAtual);
+    } catch (e) { /* silencioso */ }
+  }
+
+  /* ----------------------------------------------------------
+     Ações
+     ---------------------------------------------------------- */
+
+  function baixar() {
+    if (!htmlAtual) return;
+    // Blob, não link para a URL: o endpoint exige token e um link
+    // direto responderia 401.
+    const blob = new Blob([htmlAtual], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dossie-${cnpjAtual}-v${versaoAtual || 1}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function imprimir() {
+    const frame = el('dossie-frame');
+    if (!frame?.contentWindow) return;
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+  }
+
+  function erro(titulo, mensagem, codigo) {
+    mostrar('dossie-erro');
+    el('dossie-erro-titulo').textContent = titulo;
+    el('dossie-erro-msg').textContent = mensagem;
+    el('dossie-erro-codigo').textContent = codigo ? `Código: ${codigo}` : '';
+  }
+
+  /* ----------------------------------------------------------
+     Ligação com a interface
+     ---------------------------------------------------------- */
+
+  function iniciar() {
+    el('btn-dossie-fechar')?.addEventListener('click', fechar);
+    el('dossie-fundo')?.addEventListener('click', fechar);
+    el('btn-dossie-gerar')?.addEventListener('click', () => gerar(false));
+    el('btn-dossie-nova-versao')?.addEventListener('click', () => {
+      if (confirm('Gerar uma nova versão? A atual continua disponível no histórico.')) gerar(true);
+    });
+    el('btn-dossie-baixar')?.addEventListener('click', baixar);
+    el('btn-dossie-imprimir')?.addEventListener('click', imprimir);
+    el('btn-dossie-tentar')?.addEventListener('click', () => prepararTelaInicial(false));
+    el('dossie-historico')?.addEventListener('change', (ev) => trocarVersao(ev.target.value));
+
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && el('dossie-modal')?.classList.contains('aberto')) fechar();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', iniciar);
+
+  return { abrir, fechar };
+})();
+
+/**
+ * Chamado pelo botão "Gerar Inteligência" na aba de IA do modal de lead.
+ * Os IDs abaixo são os do index.html atual — se a ficha do lead mudar,
+ * este é o único ponto a ajustar.
+ */
+function gerarInteligencia() {
+  const texto = (id) => {
+    const n = document.getElementById(id);
+    if (!n) return null;
+    const v = (n.value ?? n.textContent ?? '').trim();
+    return v && v !== 'Não identificado' && v !== '#' ? v : null;
+  };
+
+  Dossie.abrir({
+    nome: texto('lead-input-nome'),
+    documento: texto('lead-input-doc'),
+    site: texto('link-site'),
+    instagram: texto('link-insta')
+  });
+}

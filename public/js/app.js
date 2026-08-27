@@ -1,19 +1,15 @@
 /**
  * CRM Formatar — Gestão, Governança & Conexões
- * Versão do Sistema: v2.5.21
+ *
+ * A versão do sistema NÃO fica mais aqui. Ela vem do package.json,
+ * é servida por /api/config e escrita no rodapé pelo auth.js.
+ * Para subir a versão:  npm version 2.7.0 --no-git-tag-version
  */
 
-const APP_VERSION = 'v2.5.22';
 let editingRow = null; // Controla se o modal está em modo de edição ou novo cadastro
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Atualiza a versão dinamicamente no rodapé
-  const versionEl = document.getElementById('app-version');
-  if (versionEl) {
-    versionEl.textContent = APP_VERSION;
-  }
-
-  // 2. Inicialização dos eventos da interface
+  // Inicialização dos eventos da interface
   initThemeToggle();
   initNavigation();
   initModalEvents();

@@ -1,0 +1,334 @@
+/* ==========================================================================
+   dossie.css — Modal "Gerar Inteligência"
+   Arquivo separado: não altera o main.css nem o auth.css.
+   ========================================================================== */
+
+.dossie-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.dossie-modal.aberto { display: flex; }
+
+.dossie-fundo {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .6);
+  backdrop-filter: blur(2px);
+}
+
+.dossie-caixa {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1080px;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card-bg, #1b1f2a);
+  border: 1px solid var(--border-color, #2a3040);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .45);
+}
+
+/* --- Cabeçalho --- */
+
+.dossie-topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border-color, #2a3040);
+  flex-shrink: 0;
+}
+
+.dossie-topo h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-color, #eef1f6);
+}
+
+.dossie-selo-versao {
+  font-size: .75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  color: var(--accent-color, #F2421A);
+  background: rgba(242, 66, 26, .12);
+  white-space: nowrap;
+}
+
+.dossie-fechar {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  background: transparent;
+  color: var(--text-muted, #99a1b3);
+}
+
+.dossie-fechar:hover { background: rgba(255, 255, 255, .07); }
+
+/* --- Corpo --- */
+
+.dossie-corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 26px;
+}
+
+.dossie-corpo::-webkit-scrollbar { width: 9px; }
+.dossie-corpo::-webkit-scrollbar-thumb {
+  background: var(--border-color, #2a3040);
+  border-radius: 5px;
+}
+
+/* --- Tela inicial --- */
+
+.dossie-explicacao {
+  font-size: .875rem;
+  line-height: 1.65;
+  color: var(--text-muted, #99a1b3);
+  margin-bottom: 22px;
+}
+
+.dossie-fontes {
+  list-style: none;
+  padding: 16px 18px;
+  margin: 0 0 22px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid var(--border-color, #2a3040);
+}
+
+.dossie-fontes li {
+  font-size: .8125rem;
+  padding: 5px 0;
+  color: var(--text-muted, #99a1b3);
+}
+
+.dossie-fontes strong { color: var(--text-color, #eef1f6); }
+.dossie-fontes em { opacity: .6; }
+
+.dossie-insta {
+  padding: 18px;
+  border-radius: 9px;
+  margin-bottom: 22px;
+  border: 1px dashed var(--border-color, #2a3040);
+}
+
+.dossie-insta h4 {
+  font-size: .8125rem;
+  margin: 0 0 6px;
+  color: var(--text-color, #eef1f6);
+}
+
+.dossie-insta p {
+  font-size: .75rem;
+  line-height: 1.55;
+  color: var(--text-muted, #99a1b3);
+  margin: 0 0 12px;
+}
+
+.dossie-insta textarea {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: .8125rem;
+  resize: vertical;
+  color: var(--text-color, #eef1f6);
+  background: var(--input-bg, #12151c);
+  border: 1px solid var(--border-color, #2a3040);
+}
+
+.dossie-insta textarea:focus {
+  outline: none;
+  border-color: var(--accent-color, #F2421A);
+}
+
+.dossie-aviso-tempo {
+  font-size: .75rem;
+  padding: 11px 14px;
+  border-radius: 7px;
+  margin-bottom: 20px;
+  color: #ffd9d0;
+  background: rgba(242, 66, 26, .09);
+  border-left: 3px solid var(--accent-color, #F2421A);
+}
+
+/* --- Progresso --- */
+
+.dossie-progresso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-height: 340px;
+  text-align: center;
+}
+
+.dossie-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid var(--border-color, #2a3040);
+  border-top-color: var(--accent-color, #F2421A);
+  animation: dossie-girar .8s linear infinite;
+}
+
+@keyframes dossie-girar { to { transform: rotate(360deg); } }
+
+.dossie-etapa {
+  font-size: .875rem;
+  color: var(--text-color, #eef1f6);
+  max-width: 420px;
+}
+
+.dossie-etapa-nota {
+  font-size: .75rem;
+  color: var(--text-muted, #99a1b3);
+}
+
+/* --- Visualização --- */
+
+.dossie-visualizacao {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dossie-barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color, #2a3040);
+}
+
+.dossie-barra select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: .78rem;
+  font-family: inherit;
+  color: var(--text-color, #eef1f6);
+  background: var(--input-bg, #12151c);
+  border: 1px solid var(--border-color, #2a3040);
+}
+
+.dossie-barra .espaco { flex: 1; }
+
+.dossie-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 500px;
+  border: 1px solid var(--border-color, #2a3040);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.dossie-nota {
+  font-size: .75rem;
+  padding: 9px 13px;
+  border-radius: 6px;
+  margin-bottom: 13px;
+  color: var(--text-muted, #99a1b3);
+  background: rgba(255, 255, 255, .03);
+}
+
+.dossie-avisos {
+  list-style: none;
+  font-size: .75rem;
+  padding: 11px 14px;
+  margin: 0 0 13px;
+  border-radius: 6px;
+  color: #ffca9a;
+  background: rgba(199, 119, 0, .1);
+  border-left: 3px solid #c77700;
+}
+
+.dossie-avisos li { padding: 2px 0; }
+
+/* --- Erro --- */
+
+.dossie-erro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  min-height: 340px;
+  text-align: center;
+  padding: 30px;
+}
+
+.dossie-erro h4 {
+  font-size: 1rem;
+  margin: 0;
+  color: var(--text-color, #eef1f6);
+}
+
+.dossie-erro p {
+  font-size: .8125rem;
+  line-height: 1.6;
+  max-width: 460px;
+  color: var(--text-muted, #99a1b3);
+  margin: 0;
+}
+
+.dossie-erro-codigo {
+  font-size: .7rem;
+  font-family: monospace;
+  opacity: .55;
+}
+
+/* --- Botões --- */
+
+.dossie-btn {
+  padding: 9px 18px;
+  border-radius: 7px;
+  font-size: .8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: filter .15s, border-color .15s;
+}
+
+.dossie-btn:hover { filter: brightness(1.12); }
+
+.dossie-btn-primario {
+  color: #fff;
+  background: var(--accent-color, #F2421A);
+}
+
+.dossie-btn-secundario {
+  color: var(--text-muted, #99a1b3);
+  background: transparent;
+  border-color: var(--border-color, #2a3040);
+}
+
+.dossie-btn-secundario:hover { color: var(--text-color, #eef1f6); }
+
+@media (max-width: 720px) {
+  .dossie-modal { padding: 0; }
+  .dossie-caixa { height: 100vh; border-radius: 0; max-width: none; }
+  .dossie-corpo { padding: 18px; }
+}

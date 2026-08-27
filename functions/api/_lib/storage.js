@@ -161,20 +161,15 @@ async function proximaVersao(db, cnpj) {
  *
  * @returns {Promise<{ok: boolean, versao?: number, erro?: string}>}
  */
-export async function salvarDossie({ db, cnpj, html, dados, usuario, provider, fontes }) {
+export async function salvarDossie({ db, cnpj, montarHtml, dados, usuario, provider, fontes }) {
   if (!db) {
     return { ok: false, erro: 'Binding DB (D1) não configurado no ambiente.' };
   }
-
-  const bytes = new TextEncoder().encode(html || '').length;
-  if (bytes === 0) {
-    return { ok: false, erro: 'HTML do dossiê veio vazio.' };
-  }
-  if (bytes > LIMITE_HTML_BYTES) {
-    return { ok: false, erro: `Dossiê grande demais (${Math.round(bytes / 1024)} KB).` };
+  if (typeof montarHtml !== 'function') {
+    return { ok: false, erro: 'montarHtml deve ser uma função que recebe o número da versão.' };
   }
 
-  const gravar = async (versao) => {
+  const gravar = async (versao, html, bytes) => {
     await db
       .prepare(
         `INSERT INTO dossies
@@ -201,11 +196,23 @@ export async function salvarDossie({ db, cnpj, html, dados, usuario, provider, f
       .run();
   };
 
-  // Uma retentativa cobre a corrida entre dois consultores simultâneos.
+  // O HTML é renderizado DEPOIS de saber o número da versão — é o que
+  // permite ao rodapé do documento exibir "Versão N".
+  // Uma retentativa cobre a corrida entre dois consultores simultâneos:
+  // na colisão, o documento é re-renderizado com o número correto.
   for (let tentativa = 0; tentativa < 2; tentativa++) {
     const versao = await proximaVersao(db, cnpj);
+
+    const html = montarHtml(versao);
+    const bytes = new TextEncoder().encode(html || '').length;
+
+    if (bytes === 0) return { ok: false, erro: 'HTML do dossiê veio vazio.' };
+    if (bytes > LIMITE_HTML_BYTES) {
+      return { ok: false, erro: `Dossiê grande demais (${Math.round(bytes / 1024)} KB).` };
+    }
+
     try {
-      await gravar(versao);
+      await gravar(versao, html, bytes);
       return { ok: true, versao, tamanhoBytes: bytes };
     } catch (e) {
       const colisao = /UNIQUE|constraint/i.test(e.message || '');

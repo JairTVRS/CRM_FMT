@@ -100,12 +100,17 @@ function normalizar(bruto, fonte) {
   const abertura =
     bruto.data_inicio_atividade || bruto.data_abertura || bruto.abertura || null;
 
-  return {
-    cnpj: limparCnpj(bruto.cnpj || bruto.estabelecimento?.cnpj),
-    cnpjFormatado: formatarCnpj(bruto.cnpj || ''),
+  // As duas APIs divergem no nome de vários campos, e a OpenCNPJ ainda
+  // usa grafias alternativas. Cada linha tenta as variantes conhecidas.
+  const cnpjBruto = bruto.cnpj || bruto.cnpj_raiz || bruto.estabelecimento?.cnpj || '';
 
-    razaoSocial: bruto.razao_social || bruto.nome || null,
-    nomeFantasia: bruto.nome_fantasia || bruto.fantasia || null,
+  return {
+    cnpj: limparCnpj(cnpjBruto),
+    cnpjFormatado: formatarCnpj(cnpjBruto),
+
+    razaoSocial: bruto.razao_social || bruto.nome || bruto.razaoSocial || null,
+    nomeFantasia: bruto.nome_fantasia || bruto.fantasia || bruto.nomeFantasia
+      || bruto.nome_fantasia_estabelecimento || bruto.estabelecimento?.nome_fantasia || null,
 
     dataAbertura: abertura,
     anosDeMercado: anosEntre(abertura),
@@ -114,8 +119,17 @@ function normalizar(bruto, fonte) {
     dataSituacao: bruto.data_situacao_cadastral || bruto.data_situacao || null,
 
     naturezaJuridica: bruto.natureza_juridica || null,
-    porte: bruto.porte || bruto.descricao_porte || null,
-    capitalSocial: bruto.capital_social != null ? Number(bruto.capital_social) : null,
+    porte: bruto.porte || bruto.descricao_porte || bruto.porte_empresa
+      || bruto.descricao_porte_empresa || bruto.codigo_porte || null,
+    capitalSocial: (() => {
+      const v = bruto.capital_social ?? bruto.capitalSocial ?? bruto.capital ?? null;
+      if (v == null || v === '') return null;
+      // A OpenCNPJ pode devolver string ("100000.00" ou "100.000,00")
+      const n = typeof v === 'number'
+        ? v
+        : Number(String(v).replace(/\./g, '').replace(',', '.'));
+      return Number.isFinite(n) ? n : null;
+    })(),
     simplesNacional: bruto.opcao_pelo_simples ?? null,
 
     cnaePrincipal: {
