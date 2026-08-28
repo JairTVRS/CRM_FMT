@@ -456,7 +456,14 @@
 
         <!-- Progresso -->
         <div id="dossie-progresso" class="dossie-progresso" style="display:none">
-          <div class="dossie-spinner"></div>
+          <div class="dossie-anel">
+            <svg viewBox="0 0 80 80" width="80" height="80">
+              <circle class="anel-trilha" cx="40" cy="40" r="34"></circle>
+              <circle id="dossie-anel-progresso" class="anel-preenchimento"
+                      cx="40" cy="40" r="34"></circle>
+            </svg>
+            <span id="dossie-tempo" class="dossie-tempo">0s</span>
+          </div>
           <div id="dossie-etapa" class="dossie-etapa">Iniciando...</div>
           <div class="dossie-etapa-nota">Consultando fontes externas e produzindo a analise.</div>
         </div>

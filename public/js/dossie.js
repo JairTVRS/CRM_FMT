@@ -25,14 +25,24 @@ const Dossie = (() => {
   let gerando = false;
 
   const ETAPAS = [
-    { em: 0,  texto: 'Consultando dados cadastrais na Receita…' },
-    { em: 8,  texto: 'Lendo o site institucional…' },
-    { em: 16, texto: 'Analisando presença digital…' },
-    { em: 24, texto: 'Produzindo a análise executiva…' },
-    { em: 50, texto: 'Ainda analisando — documentos completos levam mais tempo…' }
+    { em: 0,   texto: 'Consultando dados cadastrais na Receita…' },
+    { em: 8,   texto: 'Lendo o site institucional…' },
+    { em: 16,  texto: 'Analisando presença digital…' },
+    { em: 24,  texto: 'Produzindo a análise executiva…' },
+    { em: 50,  texto: 'Escrevendo o painel executivo…' },
+    { em: 75,  texto: 'Documentos mais completos levam um pouco mais…' },
+    { em: 100, texto: 'Ainda trabalhando. Pode deixar a janela aberta.' },
+    { em: 140, texto: 'Está demorando mais que o normal, mas segue em andamento.' }
   ];
 
+  // Constante de tempo do anel de progresso. Com 28s, o anel chega a
+  // ~66% em 30 segundos e ~88% em 60 — que é a faixa típica.
+  const TAU_SEGUNDOS = 28;
+  const TETO_PROGRESSO = 0.93;
+
   let timers = [];
+  let cronometro = null;
+  let inicioEm = 0;
 
   /* ----------------------------------------------------------
      Utilidades
@@ -56,6 +66,52 @@ const Dossie = (() => {
   function limparTimers() {
     timers.forEach(clearTimeout);
     timers = [];
+    if (cronometro) { clearInterval(cronometro); cronometro = null; }
+  }
+
+  /**
+   * Desenha o anel de progresso.
+   *
+   * Não existe percentual real: não há como saber onde o modelo está.
+   * O anel avança em função do tempo decorrido, rápido no início e
+   * desacelerando — e para em 93%. Os 7% finais só fecham quando a
+   * resposta chega de verdade. Barra que finge 100% antes da hora é
+   * pior que barra nenhuma.
+   */
+  function desenharAnel(fracao) {
+    const circulo = el('dossie-anel-progresso');
+    if (!circulo) return;
+    const perimetro = 2 * Math.PI * 34;   // r=34 no SVG
+    circulo.style.strokeDasharray = `${perimetro}`;
+    circulo.style.strokeDashoffset = `${perimetro * (1 - fracao)}`;
+  }
+
+  function formatarDuracao(segundos) {
+    const m = Math.floor(segundos / 60);
+    const s = Math.floor(segundos % 60);
+    return m > 0 ? `${m}min ${String(s).padStart(2, '0')}s` : `${s}s`;
+  }
+
+  function iniciarCronometro() {
+    inicioEm = Date.now();
+    desenharAnel(0);
+
+    cronometro = setInterval(() => {
+      const decorrido = (Date.now() - inicioEm) / 1000;
+
+      // Curva assintótica: sobe rápido, desacelera, nunca fecha sozinha
+      const fracao = Math.min(TETO_PROGRESSO, 1 - Math.exp(-decorrido / TAU_SEGUNDOS));
+      desenharAnel(fracao);
+
+      const tempo = el('dossie-tempo');
+      if (tempo) tempo.textContent = formatarDuracao(decorrido);
+    }, 250);
+  }
+
+  /** Fecha o anel ao receber a resposta — aí sim é 100% real. */
+  function concluirCronometro() {
+    if (cronometro) { clearInterval(cronometro); cronometro = null; }
+    desenharAnel(1);
   }
 
   /* ----------------------------------------------------------
@@ -161,6 +217,7 @@ const Dossie = (() => {
 
     mostrar('dossie-progresso');
     el('dossie-etapa').textContent = ETAPAS[0].texto;
+    iniciarCronometro();
 
     // Progresso por tempo decorrido. Não é barra de carregamento real —
     // seria mentira, já que não há como saber onde o modelo está.
@@ -191,6 +248,7 @@ const Dossie = (() => {
       });
 
       const d = await r.json();
+      concluirCronometro();
       limparTimers();
 
       if (!r.ok) {

@@ -203,16 +203,44 @@
   text-align: center;
 }
 
-.dossie-spinner {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 3px solid var(--border-color, #2a3040);
-  border-top-color: var(--accent-color, #F2421A);
-  animation: dossie-girar .8s linear infinite;
+/* Anel de progresso: avanca por tempo decorrido, nao por percentual
+   real — nao ha como saber onde o modelo esta. Para em 93% e so fecha
+   quando a resposta chega. */
+.dossie-anel {
+  position: relative;
+  width: 80px;
+  height: 80px;
 }
 
-@keyframes dossie-girar { to { transform: rotate(360deg); } }
+.dossie-anel svg {
+  transform: rotate(-90deg);   /* comeca no topo */
+}
+
+.anel-trilha {
+  fill: none;
+  stroke: var(--border-color, #2a3040);
+  stroke-width: 5;
+}
+
+.anel-preenchimento {
+  fill: none;
+  stroke: var(--accent-color, #F2421A);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset .3s linear;
+}
+
+.dossie-tempo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;   /* nao "pula" ao trocar de digito */
+  color: var(--text-color, #eef1f6);
+}
 
 .dossie-etapa {
   font-size: .875rem;
