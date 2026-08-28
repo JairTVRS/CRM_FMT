@@ -48,6 +48,11 @@ Se um dado não foi fornecido, simplesmente não o mencione. Um dossiê curto e 
 Tudo que for suposição sua deve estar em "hipotesesDores" ou nos itens do "radar",
 que o documento apresenta como leitura analítica, nunca como fato.
 
+Sobre a quantidade de itens: em "radar" e "sinaisTransformacao", produza de 2 a 5
+itens por quadrante/lista, conforme o material disponível — não pare em 2 por padrão.
+Se houver base para cinco forças, escreva cinco. Se houver base para duas, escreva
+duas. Nunca invente item para preencher cota.
+
 Escreva em português do Brasil, tom executivo, direto, sem adjetivação vazia.
 Responda ESTRITAMENTE com um objeto JSON no formato abaixo, sem markdown, sem
 texto antes ou depois:
@@ -122,6 +127,53 @@ Onde faltar base, deixe o campo curto ou omita o item — não preencha por pree
 }
 
 /* ==========================================================================
+   MENSAGENS AO USUÁRIO
+   O consultor não deve precisar saber o que é um HTTP 530. Cada falha
+   técnica vira uma frase que explica o que aconteceu e o que fazer.
+   ========================================================================== */
+
+function traduzirFalhaSite(erro) {
+  if (!erro) return null;
+  const e = String(erro);
+
+  if (/HTTP 5\d\d/.test(e)) {
+    return 'O site do lead está fora do ar no momento, então não pôde ser analisado.';
+  }
+  if (/HTTP 40[34]/.test(e)) {
+    return 'O endereço do site não foi encontrado. Confira se está correto na ficha do lead.';
+  }
+  if (/HTTP 4\d\d/.test(e)) {
+    return 'O site recusou a leitura automática, então não pôde ser analisado.';
+  }
+  if (/Tempo esgotado/i.test(e)) {
+    return 'O site demorou demais para responder e a leitura foi interrompida.';
+  }
+  if (/JavaScript/i.test(e)) {
+    return 'O site não expõe texto legível para leitura automática — o conteúdo é carregado pelo navegador.';
+  }
+  if (/não é HTML/i.test(e)) {
+    return 'O endereço informado não aponta para uma página de site.';
+  }
+  if (/ausente|inválida/i.test(e)) {
+    return 'Nenhum site foi informado na ficha do lead.';
+  }
+  return 'O site não pôde ser lido nesta análise.';
+}
+
+function traduzirFalhaCnpj(erro) {
+  if (!erro) return null;
+  const e = String(erro);
+
+  if (/não encontrado/i.test(e)) {
+    return 'CNPJ não localizado na base da Receita Federal.';
+  }
+  if (/inválido/i.test(e)) {
+    return 'O CNPJ informado é inválido.';
+  }
+  return 'A consulta à Receita Federal falhou; os dados cadastrais não entraram nesta análise.';
+}
+
+/* ==========================================================================
    GET — leitura, nunca gera
    ========================================================================== */
 
@@ -130,15 +182,39 @@ export async function onRequestGet(context) {
   const { searchParams } = new URL(context.request.url);
   const db = context.env.DB;
 
-  const cnpj = limparCnpj(searchParams.get('cnpj'));
-  if (!cnpjValido(cnpj)) {
-    return json({ error: 'CNPJ inválido ou ausente.', code: 'CNPJ_INVALIDO' }, 400, cabecalhos);
-  }
   if (!db) {
     return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
   }
 
   try {
+    // ?existentes=cnpj1,cnpj2,... — quais destes já têm dossiê.
+    // Uma consulta para a página inteira da tabela, em vez de uma por linha.
+    const existentes = searchParams.get('existentes');
+    if (existentes) {
+      const lista = existentes.split(',').map(limparCnpj).filter(cnpjValido).slice(0, 100);
+      if (lista.length === 0) return json({ comDossie: {} }, 200, cabecalhos);
+
+      const marcadores = lista.map(() => '?').join(',');
+      const { results } = await db
+        .prepare(
+          `SELECT cnpj, MAX(versao) AS versao
+           FROM dossies
+           WHERE status = 'concluido' AND cnpj IN (${marcadores})
+           GROUP BY cnpj`
+        )
+        .bind(...lista)
+        .all();
+
+      const comDossie = {};
+      (results || []).forEach((r) => { comDossie[r.cnpj] = r.versao; });
+      return json({ comDossie }, 200, cabecalhos);
+    }
+
+    const cnpj = limparCnpj(searchParams.get('cnpj'));
+    if (!cnpjValido(cnpj)) {
+      return json({ error: 'CNPJ inválido ou ausente.', code: 'CNPJ_INVALIDO' }, 400, cabecalhos);
+    }
+
     if (searchParams.get('historico') === 'true') {
       return json({ cnpj, versoes: await listarVersoes(db, cnpj) }, 200, cabecalhos);
     }
@@ -268,11 +344,15 @@ export async function onRequestPost(context) {
       instagram: instagramResultado.ok ? instagramResultado.origem : 'ausente'
     };
 
+    // Só entra na lista o que o consultor precisa saber. A ausência de
+    // Instagram quando nada foi informado é esperada, não é aviso.
+    const informouInstagram = !!(instagram?.bio || instagram?.legendas);
+
     const avisosFonte = [
-      !cnpjResultado.ok && `CNPJ: ${cnpjResultado.erro}`,
-      !siteResultado.ok && site && `Site: ${siteResultado.erro}`,
-      !instagramResultado.ok && `Instagram: ${instagramResultado.erro}`,
-      instagramResultado.aviso
+      !cnpjResultado.ok && traduzirFalhaCnpj(cnpjResultado.erro),
+      !siteResultado.ok && traduzirFalhaSite(siteResultado.erro),
+      !instagramResultado.ok && informouInstagram && 'O conteúdo de Instagram informado não pôde ser aproveitado.',
+      instagramResultado.ok && instagramResultado.aviso
     ].filter(Boolean);
 
     const geradoEm = new Date().toISOString();

@@ -435,18 +435,17 @@
 
           <ul id="dossie-resumo-fontes" class="dossie-fontes"></ul>
 
-          <div class="dossie-insta">
-            <h4>Instagram (opcional)</h4>
+          <details id="dossie-insta" class="dossie-insta">
+            <summary>Complementar com conteudo do Instagram (opcional)</summary>
             <p>
-              O Instagram bloqueia leitura automatica. Para incluir a presenca digital
-              na analise, cole a bio e algumas legendas recentes do perfil do lead.
-              Leva alguns segundos e evita que a IA conclua que a empresa nao tem
-              presenca digital apenas por falta de informacao.
+              A leitura automatica de perfis depende de aprovacao da Meta, ainda em
+              andamento. Ate la, colar a bio e algumas legendas recentes enriquece a
+              analise de posicionamento.
             </p>
             <textarea id="dossie-insta-bio" rows="2" placeholder="Bio do perfil..."></textarea>
             <textarea id="dossie-insta-legendas" rows="4"
               placeholder="Legendas recentes, separadas por linha em branco..."></textarea>
-          </div>
+          </details>
 
           <div class="dossie-aviso-tempo">
             A geracao leva de 30 a 60 segundos. Mantenha esta janela aberta.
@@ -475,7 +474,13 @@
           <div id="dossie-aviso-existente" class="dossie-nota" style="display:none"></div>
           <ul id="dossie-avisos" class="dossie-avisos" style="display:none"></ul>
 
-          <iframe id="dossie-frame" class="dossie-frame" sandbox="allow-same-origin allow-modals allow-popups"></iframe>
+          <!-- allow-scripts e necessario para as abas do dossie funcionarem.
+               allow-same-origin foi REMOVIDO de proposito: junto com allow-scripts
+               ele permitiria ao conteudo do frame alcancar o CRM, e parte desse
+               conteudo vem de um modelo de IA. Sem ele o frame fica em origem
+               opaca — scripts rodam, impressao funciona, acesso ao pai nao. -->
+          <iframe id="dossie-frame" class="dossie-frame"
+                  sandbox="allow-scripts allow-modals allow-popups"></iframe>
         </div>
 
         <!-- Erro -->

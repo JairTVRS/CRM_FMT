@@ -123,18 +123,38 @@
 .dossie-fontes strong { color: var(--text-color, #eef1f6); }
 .dossie-fontes em { opacity: .6; }
 
+/* Recolhido por padrão: a colagem manual é paliativo até a Graph API
+   ser aprovada, e não deve dominar a tela. */
 .dossie-insta {
-  padding: 18px;
+  padding: 14px 18px;
   border-radius: 9px;
   margin-bottom: 22px;
   border: 1px dashed var(--border-color, #2a3040);
 }
 
-.dossie-insta h4 {
+.dossie-insta > summary {
+  cursor: pointer;
   font-size: .8125rem;
-  margin: 0 0 6px;
-  color: var(--text-color, #eef1f6);
+  font-weight: 600;
+  list-style: none;
+  color: var(--text-muted, #99a1b3);
+  transition: color .15s;
 }
+
+.dossie-insta > summary:hover { color: var(--text-color, #eef1f6); }
+
+.dossie-insta > summary::-webkit-details-marker { display: none; }
+
+.dossie-insta > summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform .15s;
+}
+
+.dossie-insta[open] > summary::before { transform: rotate(90deg); }
+
+.dossie-insta[open] > summary { margin-bottom: 12px; }
 
 .dossie-insta p {
   font-size: .75rem;
@@ -332,3 +352,15 @@
   .dossie-caixa { height: 100vh; border-radius: 0; max-width: none; }
   .dossie-corpo { padding: 18px; }
 }
+
+
+/* ==========================================================================
+   Clipe na tabela de leads — indica que o lead já tem dossiê
+   ========================================================================== */
+
+.btn-action.btn-dossie {
+  color: var(--accent-color, #F2421A);
+  filter: saturate(1.2);
+}
+
+.btn-action.btn-dossie:hover { filter: brightness(1.25); }

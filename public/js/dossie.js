@@ -268,7 +268,26 @@ const Dossie = (() => {
      Ações
      ---------------------------------------------------------- */
 
-  function baixar() {
+  /**
+   * Nome legivel: Dossie_Feheros-Shop_2026-08_v1.html
+   *
+   * A versao entra no fim porque baixar duas versoes no mesmo mes
+   * geraria "(1)" no nome, e ai nao se sabe qual e qual.
+   */
+  function montarNomeArquivo(nomeEmpresa) {
+    const base = String(nomeEmpresa || 'Empresa')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // tira acentos
+      .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')  // tipos societarios
+      .replace(/[^A-Za-z0-9\s-]/g, ' ')
+      .trim().split(/\s+/).slice(0, 4).join('-') || 'Empresa';
+
+    const d = new Date();
+    const anoMes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+    return `Dossie_${base}_${anoMes}_v${versaoAtual || 1}.html`;
+  }
+
+  function baixar(nomeEmpresa) {
     if (!htmlAtual) return;
     // Blob, não link para a URL: o endpoint exige token e um link
     // direto responderia 401.
@@ -276,11 +295,36 @@ const Dossie = (() => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `dossie-${cnpjAtual}-v${versaoAtual || 1}.html`;
+    a.download = montarNomeArquivo(nomeEmpresa || leadAtual?.nome);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /**
+   * Baixa o dossie de um lead sem abrir o modal — usado pelo clipe da tabela.
+   */
+  async function baixarDireto(cnpj, nomeEmpresa) {
+    const limpo = soDigitos(cnpj);
+    if (limpo.length !== 14) return;
+
+    try {
+      const meta = await fetch(`/api/dossier?cnpj=${limpo}`);
+      const d = await meta.json();
+      if (!d.existe) return;
+
+      const r = await fetch(`/api/dossier?cnpj=${limpo}&html=true`);
+      if (!r.ok) throw new Error('Falha ao baixar.');
+
+      cnpjAtual = limpo;
+      versaoAtual = d.dossie.versao;
+      htmlAtual = await r.text();
+      baixar(nomeEmpresa || d.dossie.razao_social);
+
+    } catch (e) {
+      alert('Não foi possível baixar o dossiê agora.');
+    }
   }
 
   function imprimir() {
@@ -308,7 +352,7 @@ const Dossie = (() => {
     el('btn-dossie-nova-versao')?.addEventListener('click', () => {
       if (confirm('Gerar uma nova versão? A atual continua disponível no histórico.')) gerar(true);
     });
-    el('btn-dossie-baixar')?.addEventListener('click', baixar);
+    el('btn-dossie-baixar')?.addEventListener('click', () => baixar());
     el('btn-dossie-imprimir')?.addEventListener('click', imprimir);
     el('btn-dossie-tentar')?.addEventListener('click', () => prepararTelaInicial(false));
     el('dossie-historico')?.addEventListener('change', (ev) => trocarVersao(ev.target.value));
@@ -320,7 +364,7 @@ const Dossie = (() => {
 
   document.addEventListener('DOMContentLoaded', iniciar);
 
-  return { abrir, fechar };
+  return { abrir, fechar, baixarDireto };
 })();
 
 /**

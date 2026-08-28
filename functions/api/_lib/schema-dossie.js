@@ -45,10 +45,10 @@ export const FORMATO_ANALISE = `{
   ],
   "momento": { "titulo": "título do momento atual", "descricao": "1 parágrafo em HTML" },
   "radar": {
-    "forcas":        [{ "titulo": "...", "descricao": "..." }],
-    "atencao":       [{ "titulo": "...", "descricao": "..." }],
-    "oportunidades": [{ "titulo": "...", "descricao": "..." }],
-    "riscos":        [{ "titulo": "...", "descricao": "..." }]
+    "forcas":        [{ "titulo": "...", "descricao": "..." }, "... de 2 a 5 itens"],
+    "atencao":       [{ "titulo": "...", "descricao": "..." }, "... de 2 a 5 itens"],
+    "oportunidades": [{ "titulo": "...", "descricao": "..." }, "... de 2 a 5 itens"],
+    "riscos":        [{ "titulo": "...", "descricao": "..." }, "... de 2 a 5 itens"]
   },
   "recomendacao": "1 parágrafo em HTML com a abordagem comercial sugerida."
 }`;
@@ -200,8 +200,10 @@ export function validarAnalise(bruto) {
       return titulo || descricao ? { titulo, descricao } : null;
     })(),
 
+    // Teto de 5 por quadrante: acima disso o radar deixa de ser um
+    // resumo executivo e vira lista.
     radar: QUADRANTES.reduce((acc, q) => {
-      acc[q] = lista(bruto.radar?.[q], itemRadar, 6);
+      acc[q] = lista(bruto.radar?.[q], itemRadar, 5);
       return acc;
     }, {}),
 

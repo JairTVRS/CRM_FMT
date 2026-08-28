@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initModalEvents();
   initSubTabs();
   initTableActions();
+  atualizarIndicadoresDossie();
 });
 
 /* ==========================================================================
@@ -116,6 +117,7 @@ function initModalEvents() {
         // MODO EDIÇÃO: Atualiza a linha existente
         editingRow.setAttribute('data-lead', JSON.stringify(leadObj));
         editingRow.innerHTML = renderRowContent(nome, doc, phone, origem, waLink);
+        atualizarIndicadoresDossie();
       } else {
         // MODO CRIAÇÃO: Adiciona uma nova linha
         const tableBody = document.getElementById('table-leads-body');
@@ -123,6 +125,7 @@ function initModalEvents() {
           const tr = document.createElement('tr');
           tr.setAttribute('data-lead', JSON.stringify(leadObj));
           tr.innerHTML = renderRowContent(nome, doc, phone, origem, waLink);
+        atualizarIndicadoresDossie();
           tableBody.appendChild(tr);
           if (typeof atualizarContadorTabela === 'function') {
             atualizarContadorTabela();
@@ -155,6 +158,7 @@ function initModalEvents() {
 }
 
 function renderRowContent(nome, doc, phone, origem, waLink) {
+  const cnpj = String(doc || '').replace(/\D/g, '');
   return `
     <td><strong>${nome}</strong></td>
     <td>${doc}</td>
@@ -166,9 +170,52 @@ function renderRowContent(nome, doc, phone, origem, waLink) {
       <button class="btn-action btn-edit" title="Editar">✏️</button>
       <a href="${waLink}" target="_blank" class="btn-action btn-wa" title="WhatsApp" style="text-decoration: none; display: inline-block;">💬</a>
       <button class="btn-action btn-ai" title="Analisar com IA">A</button>
+      <button class="btn-action btn-dossie" data-cnpj="${cnpj}" title="Baixar dossiê"
+              style="display:none">📎</button>
       <button class="btn-action btn-delete" title="Excluir">🗑️</button>
     </td>
   `;
+}
+
+/* ==========================================================================
+   Indicador de dossiê nas linhas da tabela
+   ========================================================================== */
+
+/**
+ * Marca com clipe as linhas cujo CNPJ já tem dossiê gerado.
+ *
+ * Uma única consulta para a página inteira, em vez de uma por linha:
+ * dez leads visíveis geram uma requisição, não dez.
+ *
+ * O botão nasce oculto no HTML e só aparece aqui — assim, se a consulta
+ * falhar, nenhuma linha exibe clipe enganoso.
+ */
+async function atualizarIndicadoresDossie() {
+  const botoes = Array.from(document.querySelectorAll('.btn-dossie'));
+  if (botoes.length === 0) return;
+
+  const cnpjs = [...new Set(
+    botoes.map((b) => b.dataset.cnpj).filter((c) => c && c.length === 14)
+  )];
+  if (cnpjs.length === 0) return;
+
+  try {
+    const r = await fetch(`/api/dossier?existentes=${cnpjs.join(',')}`);
+    if (!r.ok) return;
+    const { comDossie } = await r.json();
+
+    botoes.forEach((b) => {
+      const versao = comDossie[b.dataset.cnpj];
+      if (versao) {
+        b.style.display = '';
+        b.title = `Baixar dossiê (versão ${versao})`;
+      } else {
+        b.style.display = 'none';
+      }
+    });
+  } catch (e) {
+    // Sem indicador é melhor que indicador errado.
+  }
 }
 
 function initSubTabs() {
@@ -192,21 +239,40 @@ function initSubTabs() {
   });
 }
 
+/**
+ * Zera TODOS os campos das tres abas do modal de lead.
+ *
+ * A versao anterior limpava apenas quatro campos, e um cadastro novo
+ * herdava e-mail, endereco, observacoes, ramo e segmento do lead
+ * editado antes — o usuario salvava dados de outra empresa sem perceber.
+ *
+ * A limpeza agora e por varredura: qualquer input, textarea ou select
+ * dentro do modal e zerado. Assim, campo novo na ficha ja nasce coberto,
+ * sem precisar lembrar de incluir aqui.
+ */
 function limparFormularioModal() {
-  document.getElementById('lead-input-nome').value = '';
-  document.getElementById('lead-input-doc').value = '';
-  document.getElementById('lead-input-phone').value = '';
-  document.getElementById('lead-input-origem').value = '';
-  
+  const modal = document.getElementById('modal-lead');
+  if (modal) {
+    modal.querySelectorAll('input, textarea').forEach((campo) => {
+      if (campo.type === 'checkbox' || campo.type === 'radio') campo.checked = false;
+      else campo.value = '';
+    });
+    modal.querySelectorAll('select').forEach((campo) => { campo.selectedIndex = 0; });
+  }
+
   const linkSite = document.getElementById('link-site');
   const linkInsta = document.getElementById('link-insta');
   if (linkSite) { linkSite.href = '#'; linkSite.textContent = 'Não identificado'; }
   if (linkInsta) { linkInsta.href = '#'; linkInsta.textContent = 'Não identificado'; }
-  
+
   const resumoBox = document.getElementById('ai-resumo-texto');
   if (resumoBox) {
-    resumoBox.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">Insira os dados do lead e clique em "Pesquisar na Internet com IA" para gerar o resumo detalhado.</p>';
+    resumoBox.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">Insira os dados do lead e clique em "Preencher campos com IA" para gerar o resumo detalhado.</p>';
   }
+
+  // O dossie e por CNPJ: ao trocar de lead, o conteudo anterior nao vale mais.
+  const insta = document.getElementById('dossie-insta');
+  if (insta) insta.open = false;
 }
 
 /* ==========================================================================
@@ -229,6 +295,12 @@ function initTableActions() {
     if (target.classList.contains('btn-edit')) {
       editingRow = tr;
       abrirModalComLead(leadData);
+    }
+
+    // Botão Dossiê: baixa direto, sem abrir o modal
+    if (target.classList.contains('btn-dossie')) {
+      const nome = tr.querySelector('td strong')?.textContent;
+      if (typeof Dossie !== 'undefined') Dossie.baixarDireto(target.dataset.cnpj, nome);
     }
 
     // Botão Excluir
