@@ -1,27 +1,39 @@
+/* ==========================================================================
+   PALETA — cinzas neutros no tom do VS Code Dark Modern.
+
+   A paleta anterior era o "slate" do Tailwind (#0f172a, #1e293b, #334155),
+   que tem componente azul forte — daí o fundo puxar para o azulado.
+   Os tons abaixo são neutros: R, G e B iguais ou quase.
+
+   Não é preto absoluto de propósito. #000000 cansa mais a vista em tela
+   grande e faz o laranja da marca vibrar demais no contraste. O VS Code
+   usa #1f1f1f no editor e #181818 na barra lateral pelo mesmo motivo.
+   ========================================================================== */
 :root {
-  --bg-color: #0f172a;
-  --card-bg: #1e293b;
-  --text-color: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
-  --border-color: #334155;
+  --bg-color: #1a1a1a;          /* fundo da área principal */
+  --card-bg: #232323;           /* sidebar, cards, tabela, modal */
+  --text-color: #e8e8e8;
+  --text-muted: #9d9d9d;
+  --text-subtle: #6e6e6e;
+  --border-color: #333333;
   --accent-color: #f97316;
   --primary-color: #2563eb;
   --success-color: #16a34a;
   --danger-color: #dc2626;
-  --header-table-bg: #020617;
-  --input-bg: #0f172a;
+  --header-table-bg: #141414;   /* cabeçalho de tabela, mais recuado */
+  --input-bg: #161616;          /* campos afundados em relação ao card */
 }
 
-/* MODO CLARO OVERRIDE */
+/* MODO CLARO OVERRIDE — também neutralizado, para os dois temas
+   pertencerem à mesma família de cinzas. */
 html.light-theme, body.light-theme {
-  --bg-color: #f1f5f9 !important;
+  --bg-color: #f4f4f4 !important;
   --card-bg: #ffffff !important;
-  --text-color: #0f172a !important;
-  --text-muted: #475569 !important;
-  --text-subtle: #94a3b8 !important;
-  --border-color: #cbd5e1 !important;
-  --header-table-bg: #e2e8f0 !important;
+  --text-color: #1a1a1a !important;
+  --text-muted: #5c5c5c !important;
+  --text-subtle: #8a8a8a !important;
+  --border-color: #d4d4d4 !important;
+  --header-table-bg: #ebebeb !important;
   --input-bg: #ffffff !important;
 }
 
@@ -235,6 +247,14 @@ hr.divider {
   font-size: 0.875rem;
 }
 
+/* Linha vazia da tabela (nenhum lead / erro de carregamento) */
+.leads-vazio {
+  text-align: center;
+  padding: 2rem 1rem !important;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
 .table-footer {
   display: flex;
   justify-content: space-between;
@@ -384,6 +404,7 @@ hr.divider {
   margin-bottom: 1rem;
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .ai-box {
@@ -427,7 +448,7 @@ hr.divider {
 }
 
 /* BADGES E NOTIFICAÇÕES TOAST */
-.badge-status, .badge-origem {
+.badge-status, .badge-origem, .badge {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -435,7 +456,7 @@ hr.divider {
   display: inline-block;
 }
 
-.badge-origem { background-color: var(--border-color); color: var(--text-color); }
+.badge-origem, .badge { background-color: var(--border-color); color: var(--text-color); }
 .badge-warning { background-color: rgba(234, 179, 8, 0.15); color: #eab308; }
 .badge-success { background-color: rgba(22, 163, 74, 0.15); color: #22c55e; }
 
