@@ -116,15 +116,40 @@ hr.divider {
   border-top: 1px solid var(--border-color);
 }
 
-.btn-theme-toggle {
+/* Rodapé da barra lateral: configurações e tema lado a lado, só ícones */
+.footer-acoes {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icone {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
   background: transparent;
   border: 1px solid var(--border-color);
-  color: var(--text-color);
-  padding: 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
+
+.btn-icone:hover,
+.btn-icone.active {
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* Mostra o ícone do tema para o qual se vai, não o atual:
+   no escuro aparece o sol (clique para clarear), e vice-versa. */
+.btn-icone .icone-lua { display: none; }
+html.light-theme .btn-icone .icone-sol,
+body.light-theme .btn-icone .icone-sol { display: none; }
+html.light-theme .btn-icone .icone-lua,
+body.light-theme .btn-icone .icone-lua { display: block; }
 
 .version-tag {
   font-size: 0.75rem;

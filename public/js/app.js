@@ -32,7 +32,12 @@ function initThemeToggle() {
     document.documentElement.classList.toggle('light-theme');
 
     const isLight = document.body.classList.contains('light-theme');
-    btnTheme.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+
+    // O botao agora contem dois SVGs (sol e lua) e o CSS decide qual
+    // aparece. Escrever textContent aqui apagaria os dois — por isso
+    // so atualizamos o rotulo de acessibilidade.
+    btnTheme.title = isLight ? 'Mudar para modo escuro' : 'Mudar para modo claro';
+    btnTheme.setAttribute('aria-label', btnTheme.title);
 
     if (logo) {
       logo.src = isLight ? 'logo-preta.png' : 'logo-branca.png';
@@ -41,7 +46,9 @@ function initThemeToggle() {
 }
 
 function initNavigation() {
-  const menuItems = document.querySelectorAll('.menu-item');
+  // Configuracoes saiu do menu principal para o rodape, mas continua
+  // sendo navegacao — por isso o seletor cobre os dois lugares.
+  const menuItems = document.querySelectorAll('.menu-item, [data-target]');
   const sections = document.querySelectorAll('.content-body');
 
   menuItems.forEach(item => {
