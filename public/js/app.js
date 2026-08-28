@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initModalEvents();
   initSubTabs();
   initTableActions();
-  atualizarIndicadoresDossie();
 });
 
 /* ==========================================================================
@@ -85,6 +84,7 @@ function initModalEvents() {
   if (btnIncluir && modal) {
     btnIncluir.addEventListener('click', () => {
       editingRow = null; // Reseta referência para criar novo
+      Leads.novo();      // proximo salvamento cria em vez de atualizar
       limparFormularioModal();
       document.getElementById('modal-lead-title').textContent = 'Novo Lead';
       modal.classList.remove('hidden');
@@ -98,43 +98,16 @@ function initModalEvents() {
 
   // Salvar formulário do modal (Criar ou Editar)
   if (btnSave) {
-    btnSave.addEventListener('click', () => {
-      const nome = document.getElementById('lead-input-nome')?.value;
-      const doc = document.getElementById('lead-input-doc')?.value || '-';
-      const phone = document.getElementById('lead-input-phone')?.value || '-';
-      const origem = document.getElementById('lead-input-origem')?.value || 'Direto';
-
-      if (!nome) {
-        alert('Por favor, preencha ao menos o nome do lead.');
-        return;
+    // O salvamento agora GRAVA NO BANCO, via leads.js -> /api/leads.
+    // Antes isto apenas desenhava uma linha na tabela, e o cadastro
+    // se perdia no primeiro recarregamento da pagina.
+    btnSave.addEventListener('click', async () => {
+      const salvou = await Leads.salvar();
+      if (salvou) {
+        editingRow = null;
+        Leads.novo();
+        closeModal();
       }
-
-      const cleanPhone = phone.replace(/\D/g, '');
-      const waLink = cleanPhone ? `https://wa.me/55${cleanPhone}` : '#';
-      const leadObj = { nome, doc, phone, origem };
-
-      if (editingRow) {
-        // MODO EDIÇÃO: Atualiza a linha existente
-        editingRow.setAttribute('data-lead', JSON.stringify(leadObj));
-        editingRow.innerHTML = renderRowContent(nome, doc, phone, origem, waLink);
-        atualizarIndicadoresDossie();
-      } else {
-        // MODO CRIAÇÃO: Adiciona uma nova linha
-        const tableBody = document.getElementById('table-leads-body');
-        if (tableBody) {
-          const tr = document.createElement('tr');
-          tr.setAttribute('data-lead', JSON.stringify(leadObj));
-          tr.innerHTML = renderRowContent(nome, doc, phone, origem, waLink);
-        atualizarIndicadoresDossie();
-          tableBody.appendChild(tr);
-          if (typeof atualizarContadorTabela === 'function') {
-            atualizarContadorTabela();
-          }
-        }
-      }
-
-      editingRow = null;
-      closeModal();
     });
   }
 
@@ -157,66 +130,9 @@ function initModalEvents() {
   });
 }
 
-function renderRowContent(nome, doc, phone, origem, waLink) {
-  const cnpj = String(doc || '').replace(/\D/g, '');
-  return `
-    <td><strong>${nome}</strong></td>
-    <td>${doc}</td>
-    <td>${phone}</td>
-    <td><span class="badge">${origem}</span></td>
-    <td>-</td>
-    <td>-</td>
-    <td style="text-align: left;">
-      <button class="btn-action btn-edit" title="Editar">✏️</button>
-      <a href="${waLink}" target="_blank" class="btn-action btn-wa" title="WhatsApp" style="text-decoration: none; display: inline-block;">💬</a>
-      <button class="btn-action btn-ai" title="Analisar com IA">A</button>
-      <button class="btn-action btn-dossie" data-cnpj="${cnpj}" title="Baixar dossiê"
-              style="display:none">📎</button>
-      <button class="btn-action btn-delete" title="Excluir">🗑️</button>
-    </td>
-  `;
-}
-
-/* ==========================================================================
-   Indicador de dossiê nas linhas da tabela
-   ========================================================================== */
-
-/**
- * Marca com clipe as linhas cujo CNPJ já tem dossiê gerado.
- *
- * Uma única consulta para a página inteira, em vez de uma por linha:
- * dez leads visíveis geram uma requisição, não dez.
- *
- * O botão nasce oculto no HTML e só aparece aqui — assim, se a consulta
- * falhar, nenhuma linha exibe clipe enganoso.
- */
-async function atualizarIndicadoresDossie() {
-  const botoes = Array.from(document.querySelectorAll('.btn-dossie'));
-  if (botoes.length === 0) return;
-
-  const cnpjs = [...new Set(
-    botoes.map((b) => b.dataset.cnpj).filter((c) => c && c.length === 14)
-  )];
-  if (cnpjs.length === 0) return;
-
-  try {
-    const r = await fetch(`/api/dossier?existentes=${cnpjs.join(',')}`);
-    if (!r.ok) return;
-    const { comDossie } = await r.json();
-
-    botoes.forEach((b) => {
-      const versao = comDossie[b.dataset.cnpj];
-      if (versao) {
-        b.style.display = '';
-        b.title = `Baixar dossiê (versão ${versao})`;
-      } else {
-        b.style.display = 'none';
-      }
-    });
-  } catch (e) {
-    // Sem indicador é melhor que indicador errado.
-  }
-}
+/* A renderizacao da tabela migrou para leads.js, que le do banco.
+   As funcoes renderRowContent e atualizarIndicadoresDossie viviam aqui
+   e foram removidas para nao existir duas fontes desenhando as linhas. */
 
 function initSubTabs() {
   const subTabButtons = document.querySelectorAll('.subtab-btn');
@@ -288,8 +204,10 @@ function initTableActions() {
     const tr = target.closest('tr');
     if (!tr) return;
 
-    const leadDataRaw = tr.getAttribute('data-lead');
-    const leadData = leadDataRaw ? JSON.parse(leadDataRaw) : {};
+    // O registro vem do banco, nao mais de um atributo JSON na linha
+    const id = tr.dataset.id;
+    const leadData = Leads.porId(id);
+    if (!leadData) return;
 
     // Botão Editar
     if (target.classList.contains('btn-edit')) {
@@ -299,48 +217,43 @@ function initTableActions() {
 
     // Botão Dossiê: baixa direto, sem abrir o modal
     if (target.classList.contains('btn-dossie')) {
-      const nome = tr.querySelector('td strong')?.textContent;
-      if (typeof Dossie !== 'undefined') Dossie.baixarDireto(target.dataset.cnpj, nome);
+      if (typeof Dossie !== 'undefined') Dossie.baixarDireto(target.dataset.cnpj, leadData.nome);
     }
 
     // Botão Excluir
     if (target.classList.contains('btn-delete')) {
-      if (confirm(`Deseja realmente excluir o lead "${leadData.nome || 'selecionado'}"?`)) {
-        tr.remove();
-        atualizarContadorTabela();
-      }
+      Leads.excluir(id, leadData.nome);
     }
 
-    // Botão Analisar com IA (A)
+    // Botão "A": abre o modal na aba de IA e gera o dossiê
     if (target.classList.contains('btn-ai')) {
       editingRow = tr;
       abrirModalComLead(leadData);
       const tabIaBtn = document.querySelector('[data-tab="tab-ia"]');
       if (tabIaBtn) tabIaBtn.click();
-      executarBuscaIA();
+      if (typeof gerarInteligencia === 'function') gerarInteligencia();
     }
   });
 }
 
+/**
+ * Abre a ficha com o registro vindo do banco.
+ *
+ * A versao anterior preenchia apenas quatro campos, porque so isso
+ * existia no atributo JSON da linha. Agora o lead vem completo do
+ * banco e o preenchimento fica com o leads.js, que conhece todos os
+ * campos das tres abas.
+ */
 function abrirModalComLead(lead) {
   const modal = document.getElementById('modal-lead');
   if (!modal) return;
 
+  limparFormularioModal();          // evita restos do lead anterior
+  Leads.editar(lead.id);            // marca que e edicao, nao criacao
+  Leads.preencherFormulario(lead);
+
   document.getElementById('modal-lead-title').textContent = `Lead: ${lead.nome || 'Editar'}`;
-  document.getElementById('lead-input-nome').value = lead.nome || '';
-  document.getElementById('lead-input-doc').value = lead.doc || '';
-  document.getElementById('lead-input-phone').value = lead.phone || '';
-  document.getElementById('lead-input-origem').value = lead.origem || '';
-
   modal.classList.remove('hidden');
-}
-
-function atualizarContadorTabela() {
-  const total = document.querySelectorAll('#table-leads-body tr').length;
-  const countEl = document.getElementById('total-registros');
-  if (countEl) {
-    countEl.textContent = `Total de Registros: ${total}`;
-  }
 }
 
 /* ==========================================================================
