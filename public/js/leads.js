@@ -333,6 +333,11 @@ const Leads = (() => {
      Ligação com a interface
      ---------------------------------------------------------- */
 
+  /**
+   * Liga os controles da tela. Nao carrega dados ainda: no
+   * DOMContentLoaded o login do Google ainda nao terminou, e qualquer
+   * requisicao a /api sai sem token.
+   */
   function iniciar() {
     el('input-search-lead')?.addEventListener('input', (ev) => {
       clearTimeout(debounce);
@@ -346,11 +351,12 @@ const Leads = (() => {
 
     el('btn-pag-anterior')?.addEventListener('click', () => irParaPagina(estado.pagina - 1));
     el('btn-pag-proxima')?.addEventListener('click', () => irParaPagina(estado.pagina + 1));
-
-    carregar();
   }
 
   document.addEventListener('DOMContentLoaded', iniciar);
+
+  // A tabela so carrega depois que o auth.js confirma a sessao.
+  document.addEventListener('crm:autenticado', () => carregar(), { once: true });
 
   return {
     carregar, salvar, excluir, porId,

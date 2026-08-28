@@ -173,6 +173,15 @@ const Auth = (() => {
         const dados = await resposta.json();
         usuario = dados.usuario;
         mostrarApp();
+
+        // Avisa o resto do app que a sessao esta valida.
+        // Sem isto, modulos que carregam dados no DOMContentLoaded
+        // disparam suas requisicoes ANTES de existir token, recebem
+        // 401 e ficam presos numa mensagem de erro para sempre.
+        document.dispatchEvent(new CustomEvent('crm:autenticado', {
+          detail: { usuario }
+        }));
+
         return true;
       }
 
