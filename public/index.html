@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/assets/css/main.css">
   <link rel="stylesheet" href="/assets/css/auth.css">
   <link rel="stylesheet" href="/assets/css/dossie.css">
+  <link rel="stylesheet" href="/assets/css/importar.css">
 </head>
 <body>
 
@@ -82,7 +83,10 @@
             <h1>Gestão de Leads</h1>
             <p class="subtitle">Gerencie suas oportunidades de negócio e enriquecimento com IA.</p>
           </div>
-          <button id="btn-incluir-lead" class="btn btn-primary">+ Incluir Lead</button>
+          <div class="acoes-cabecalho">
+            <button id="btn-importar" class="btn btn-secondary">Importar planilha</button>
+            <button id="btn-incluir-lead" class="btn btn-primary">+ Incluir Lead</button>
+          </div>
         </header>
 
         <!-- Barra de Filtros e Pesquisa -->
@@ -426,6 +430,7 @@
   <script src="js/leads.js"></script>
   <script src="js/app.js"></script>
   <script src="js/dossie.js"></script>
+  <script src="js/importar.js"></script>
 
   <!-- ===== Modal do Dossiê Executivo (js/dossie.js) ===== -->
   <div id="dossie-modal" class="dossie-modal">
@@ -511,6 +516,107 @@
           <p id="dossie-erro-msg"></p>
           <span id="dossie-erro-codigo" class="dossie-erro-codigo"></span>
           <button id="btn-dossie-tentar" class="dossie-btn dossie-btn-secundario">Voltar</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===== Modal de importacao (js/importar.js) ===== -->
+  <div id="importar-modal" class="imp-modal">
+    <div id="imp-fundo" class="imp-fundo"></div>
+
+    <div class="imp-caixa">
+      <div class="imp-topo">
+        <h3>Importar planilha de leads</h3>
+        <button id="btn-imp-fechar" class="imp-fechar" title="Fechar">&times;</button>
+      </div>
+
+      <div class="imp-corpo">
+
+        <!-- Escolha do arquivo -->
+        <div id="imp-inicio">
+          <p class="imp-texto">
+            Selecione a planilha de prospeccao. O arquivo e lido aqui no
+            navegador: voce confere o que sera importado antes de qualquer
+            coisa ser gravada.
+          </p>
+
+          <label for="imp-arquivo" class="imp-dropzone">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none"
+                 stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <path d="M7 10l5-5 5 5"></path><path d="M12 5v13"></path>
+            </svg>
+            <strong>Escolher arquivo</strong>
+            <span>.xlsx, .csv ou .txt</span>
+          </label>
+          <input type="file" id="imp-arquivo" accept=".xlsx,.csv,.txt" hidden>
+
+          <div class="imp-nota">
+            <strong>Antes de importar:</strong> toda linha precisa de CNPJ ou CPF.
+            E o identificador do lead e o contexto que a IA usa na inteligencia
+            comercial. Documento ja cadastrado atualiza o lead, sem duplicar.
+          </div>
+        </div>
+
+        <!-- Analise -->
+        <div id="imp-analise" style="display:none">
+          <div class="imp-carregando">
+            <div class="imp-spinner"></div>
+            <p id="imp-analise-msg">Lendo o arquivo...</p>
+          </div>
+        </div>
+
+        <!-- Previa -->
+        <div id="imp-previa" style="display:none">
+          <p class="imp-arquivo-nome">Arquivo: <strong id="imp-previa-arquivo"></strong></p>
+
+          <div class="imp-resumo">
+            <div class="imp-numero">
+              <span id="imp-previa-total">0</span><small>linhas lidas</small>
+            </div>
+            <div class="imp-numero imp-novo">
+              <span id="imp-previa-novos">0</span><small>novos</small>
+            </div>
+            <div class="imp-numero imp-atualiza">
+              <span id="imp-previa-atualizados">0</span><small>atualizados</small>
+            </div>
+          </div>
+
+          <div id="imp-previa-atualizacoes" class="imp-aviso" style="display:none"></div>
+          <div id="imp-previa-ignoradas" class="imp-nota" style="display:none"></div>
+
+          <div class="imp-acoes">
+            <button id="btn-imp-cancelar" class="imp-btn imp-btn-secundario">Cancelar</button>
+            <button id="btn-imp-confirmar" class="imp-btn imp-btn-primario">Confirmar importacao</button>
+          </div>
+        </div>
+
+        <!-- Erro -->
+        <div id="imp-erro" style="display:none">
+          <h4 id="imp-erro-titulo" class="imp-erro-titulo"></h4>
+          <p id="imp-erro-msg" class="imp-texto"></p>
+          <ul id="imp-erro-detalhes" class="imp-detalhes" style="display:none"></ul>
+          <div class="imp-acoes">
+            <button id="btn-imp-voltar" class="imp-btn imp-btn-secundario">Escolher outro arquivo</button>
+          </div>
+        </div>
+
+        <!-- Sucesso -->
+        <div id="imp-sucesso" style="display:none">
+          <div class="imp-sucesso-marca">
+            <svg viewBox="0 0 24 24" width="42" height="42" fill="none"
+                 stroke="currentColor" stroke-width="2">
+              <path d="M20 6L9 17l-5-5"></path>
+            </svg>
+          </div>
+          <h4 class="imp-sucesso-titulo">Importacao concluida</h4>
+          <p id="imp-sucesso-msg" class="imp-texto"></p>
+          <div class="imp-acoes">
+            <button id="btn-imp-concluir" class="imp-btn imp-btn-primario">Fechar</button>
+          </div>
         </div>
 
       </div>

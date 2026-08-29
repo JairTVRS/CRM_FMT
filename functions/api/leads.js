@@ -14,33 +14,8 @@
  * rastro, e um lead excluído por engano precisa ter volta.
  */
 
-import { limparCnpj, cnpjValido } from './_lib/cnpj.js';
-
-/**
- * O documento é a identidade do lead: alimenta o contexto da IA e
- * impede duplicidade. Aceita CPF (11) ou CNPJ (14), e ambos passam
- * pelo dígito verificador — checar só o tamanho deixaria passar
- * quase todo erro de digitação.
- */
-function cpfValido(valor) {
-  const c = String(valor || '').replace(/\D/g, '');
-  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
-
-  const dv = (ate) => {
-    let soma = 0;
-    for (let i = 0; i < ate; i++) soma += Number(c[i]) * (ate + 1 - i);
-    const r = (soma * 10) % 11;
-    return r === 10 ? 0 : r;
-  };
-  return dv(9) === Number(c[9]) && dv(10) === Number(c[10]);
-}
-
-export function documentoValido(valor) {
-  const d = String(valor || '').replace(/\D/g, '');
-  if (d.length === 11) return cpfValido(d);
-  if (d.length === 14) return cnpjValido(d);
-  return false;
-}
+import { limparCnpj } from './_lib/cnpj.js';
+import { documentoValido } from './_lib/documento.js';
 
 /** Converte "R$ 25.424,00", "25424.00" ou 25424 em centavos. */
 function paraCentavos(valor) {
