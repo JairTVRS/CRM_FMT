@@ -61,6 +61,37 @@ const Leads = (() => {
     return `https://wa.me/55${d}`;
   }
 
+  /**
+   * Centavos para o texto do campo.
+   *
+   * O caminho de volta não precisa de função: a API já aceita
+   * "R$ 25.424,00" e converte — o mesmo conversor que a importação usa.
+   */
+  const centavosParaTexto = (c) =>
+    (c == null || c === '')
+      ? ''
+      : (Number(c) / 100).toLocaleString('pt-BR', {
+          minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+
+  /** O banco guarda ISO; o input[type=date] quer exatamente AAAA-MM-DD. */
+  const soData = (v) => (v ? String(v).slice(0, 10) : '');
+
+  /**
+   * Dias até a data, em fuso local.
+   *
+   * `new Date('2026-01-15')` seria lido como UTC e, a oeste de Greenwich,
+   * cairia no dia 14 — o prazo apareceria vencido um dia antes.
+   */
+  function diasPara(dataIso) {
+    if (!dataIso) return null;
+    const [a, m, d] = String(dataIso).split('-').map(Number);
+    if (!a || !m || !d) return null;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return Math.round((new Date(a, m - 1, d) - hoje) / 86400000);
+  }
+
   /* ----------------------------------------------------------
      Carregamento
      ---------------------------------------------------------- */
@@ -221,6 +252,17 @@ const Leads = (() => {
       cep: v('lead-input-cep'),
       cidade: v('lead-input-cidade'),
       endereco: v('lead-input-endereco'),
+      // --- Funil (aba nova do Lote D) ---
+      etapa_id: v('lead-input-etapa'),
+      atendente: v('lead-input-atendente'),
+      data_cadastro: v('lead-input-data-cadastro'),
+      data_ultimo_contato: v('lead-input-ultimo-contato'),
+      data_proximo_contato: v('lead-input-proximo-contato'),
+      data_fechamento: v('lead-input-fechamento'),
+      valor_proposta: v('lead-input-valor-proposta'),
+      valor_diagnostico: v('lead-input-valor-diagnostico'),
+      tags: [...tagsSelecionadas],
+
       site: linkTexto('link-site'),
       instagram: linkTexto('link-insta'),
       ramo: v('select-ramo'),
@@ -260,6 +302,138 @@ const Leads = (() => {
 
     const resumo = el('ai-resumo-texto');
     if (resumo && lead.resumo_ia) resumo.innerHTML = lead.resumo_ia;
+
+    preencherFunil(lead);
+  }
+
+  /**
+   * A parte da ficha que depende dos cadastros (etapas, advisors, tags).
+   *
+   * Fica separada porque pode precisar rodar duas vezes: se a ficha for
+   * aberta antes de as listas chegarem do servidor, os selects nascem
+   * vazios e a etapa e o advisor do lead se perderiam. O evento
+   * `crm:cadastros` reexecuta isto com o mesmo lead.
+   */
+  function preencherFunil(lead) {
+    if (!lead) return;
+    leadNaFicha = lead;
+
+    const p = (id, valor) => { const n = el(id); if (n) n.value = valor ?? ''; };
+
+    montarEtapas(lead.etapa_id);
+    montarAdvisors();
+
+    p('lead-input-atendente', lead.atendente);
+    p('lead-input-data-cadastro', soData(lead.data_cadastro));
+    p('lead-input-ultimo-contato', soData(lead.data_ultimo_contato));
+    p('lead-input-proximo-contato', soData(lead.data_proximo_contato));
+    p('lead-input-fechamento', soData(lead.data_fechamento));
+    p('lead-input-valor-proposta', centavosParaTexto(lead.valor_proposta));
+    p('lead-input-valor-diagnostico', centavosParaTexto(lead.valor_diagnostico));
+
+    const advisor = Cadastros.advisors().find((a) => a.id === lead.advisor_id);
+    p('lead-input-advisor', advisor?.nome);
+
+    // `tags` vem como texto JSON do banco: "[1,4,7]"
+    let ids = [];
+    try { ids = Array.isArray(lead.tags) ? lead.tags : JSON.parse(lead.tags || '[]'); }
+    catch (e) { ids = []; }
+    tagsSelecionadas = new Set(ids.map(Number));
+
+    montarTags();
+    atualizarDiasContato();
+  }
+
+  /* ----------------------------------------------------------
+     Aba do funil — etapas, advisors e tags
+
+     Os campos existiam no banco e na API desde o Lote A. O manual
+     daquele lote deixou explícito que entrariam na tela junto com o
+     quadro, para não haver duas rodadas de mudança na mesma ficha.
+     ---------------------------------------------------------- */
+
+  let tagsSelecionadas = new Set();
+
+  /* O lead aberto na ficha. Guardado para reconstruir a aba do funil se
+     os cadastros chegarem depois de a ficha já estar na tela. */
+  let leadNaFicha = null;
+
+  function montarEtapas(selecionada) {
+    const select = el('lead-input-etapa');
+    if (!select) return;
+
+    const etapas = Cadastros.etapas();
+    select.innerHTML = etapas.length
+      ? etapas.map((e) => `<option value="${e.id}">${esc(e.nome)}</option>`).join('')
+      : '<option value="">—</option>';
+
+    // Sem etapa informada, a primeira coluna — a mesma regra da API
+    select.value = selecionada || etapas[0]?.id || '';
+  }
+
+  function montarAdvisors() {
+    const lista = el('lista-advisors');
+    if (!lista) return;
+    lista.innerHTML = Cadastros.advisors()
+      .map((a) => `<option value="${esc(a.nome)}"></option>`).join('');
+  }
+
+  function montarTags() {
+    const caixa = el('lead-tags');
+    if (!caixa) return;
+
+    const tags = Cadastros.tags();
+    if (tags.length === 0) {
+      caixa.innerHTML = '<span class="tags-vazio">Nenhuma tag cadastrada ainda.</span>';
+      return;
+    }
+
+    caixa.innerHTML = tags.map((t) => `
+      <button type="button" class="tag-chip${tagsSelecionadas.has(t.id) ? ' ligada' : ''}"
+              data-tag="${t.id}" style="--cor-tag: ${esc(t.cor || '#6e6e6e')}">
+        ${esc(t.nome)}
+      </button>`).join('');
+  }
+
+  /**
+   * "Dias para próximo contato" não é armazenado: guardado, nasceria
+   * desatualizado no dia seguinte. Calculado na exibição, está sempre
+   * certo — a mesma decisão do Lote A.
+   */
+  function atualizarDiasContato() {
+    const alvo = el('dias-proximo-contato');
+    if (!alvo) return;
+
+    const dias = diasPara(el('lead-input-proximo-contato')?.value);
+    if (dias === null) { alvo.textContent = ''; alvo.className = 'dias-contato'; return; }
+
+    if (dias < 0) {
+      alvo.textContent = `${Math.abs(dias)} dia(s) em atraso`;
+      alvo.className = 'dias-contato atrasado';
+    } else if (dias === 0) {
+      alvo.textContent = 'é hoje';
+      alvo.className = 'dias-contato hoje';
+    } else {
+      alvo.textContent = `em ${dias} dia(s)`;
+      alvo.className = 'dias-contato futuro';
+    }
+  }
+
+  /**
+   * Resolve o advisor digitado em um id, criando o cadastro se o nome
+   * for novo — a mecânica do Lote A: digita o nome, vira opção para
+   * todos. É assíncrono, por isso fica fora do lerFormulario.
+   */
+  async function resolverAdvisor() {
+    const nome = el('lead-input-advisor')?.value?.trim();
+    if (!nome) return null;
+
+    const existente = Cadastros.advisorPorNome(nome);
+    if (existente) return existente.id;
+
+    const criado = await Cadastros.criarAdvisor(nome);
+    if (criado) montarAdvisors();
+    return criado?.id ?? null;
   }
 
   /* ----------------------------------------------------------
@@ -279,6 +453,9 @@ const Leads = (() => {
     if (botao) { botao.disabled = true; botao.textContent = 'Salvando…'; }
 
     try {
+      // Advisor digitado que ainda não existe é cadastrado agora, antes
+      // de gravar o lead — senão o vínculo se perderia.
+      dados.advisor_id = await resolverAdvisor();
       const url = idEmEdicao ? `/api/leads?id=${idEmEdicao}` : '/api/leads';
       const r = await fetch(url, {
         method: idEmEdicao ? 'PUT' : 'POST',
@@ -334,7 +511,30 @@ const Leads = (() => {
      API do módulo
      ---------------------------------------------------------- */
 
-  function novo() { idEmEdicao = null; }
+  /**
+   * Prepara a ficha para um cadastro novo.
+   *
+   * Roda DEPOIS do limparFormularioModal — que zera o formulário por
+   * varredura —, senão os padrões abaixo seriam apagados em seguida.
+   */
+  function novo() {
+    idEmEdicao = null;
+    tagsSelecionadas = new Set();
+    leadNaFicha = null;   // cadastro novo não tem lead para remontar
+
+    montarEtapas(null);
+    montarAdvisors();
+    montarTags();
+
+    const hoje = new Date();
+    const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+
+    const p = (id, valor) => { const n = el(id); if (n) n.value = valor ?? ''; };
+    p('lead-input-data-cadastro', iso);
+    p('lead-input-atendente', Auth?.usuario?.email);
+
+    atualizarDiasContato();
+  }
   function editar(id) { idEmEdicao = Number(id); }
   function emEdicao() { return idEmEdicao; }
 
@@ -435,6 +635,44 @@ const Leads = (() => {
 
     el('filter-ramo')?.addEventListener('change', (ev) => filtrar({ ramo: ev.target.value }));
     el('filter-segmento')?.addEventListener('change', (ev) => filtrar({ segmento: ev.target.value }));
+    // --- Aba do funil ---
+    el('lead-input-proximo-contato')?.addEventListener('change', atualizarDiasContato);
+
+    el('lead-tags')?.addEventListener('click', (ev) => {
+      const chip = ev.target.closest('[data-tag]');
+      if (!chip) return;
+      const id = Number(chip.dataset.tag);
+      if (tagsSelecionadas.has(id)) tagsSelecionadas.delete(id);
+      else tagsSelecionadas.add(id);
+      chip.classList.toggle('ligada');
+    });
+
+    const criarTag = async () => {
+      const campo = el('tag-nova-nome');
+      const nome = campo?.value.trim();
+      if (!nome) { campo?.focus(); return; }
+
+      const tag = await Cadastros.criarTag(nome);
+      if (!tag) { alert('Não foi possível criar a tag.'); return; }
+
+      campo.value = '';
+      tagsSelecionadas.add(tag.id);   // quem acabou de criar quer usar
+      montarTags();
+    };
+
+    el('btn-tag-criar')?.addEventListener('click', criarTag);
+    el('tag-nova-nome')?.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); criarTag(); }
+    });
+
+    // As listas chegam depois da autenticação. Se a ficha já estiver
+    // aberta, remonta a aba com o mesmo lead — sem isto, a etapa e o
+    // advisor de quem abriu rápido demais ficariam em branco.
+    document.addEventListener('crm:cadastros', () => {
+      if (leadNaFicha) preencherFunil(leadNaFicha);
+      else { montarEtapas(null); montarAdvisors(); montarTags(); }
+    });
+
     el('filter-canal')?.addEventListener('change', (ev) => filtrar({ canal: ev.target.value }));
     el('filter-classificacao')?.addEventListener('change', (ev) => filtrar({ classificacao: ev.target.value }));
 

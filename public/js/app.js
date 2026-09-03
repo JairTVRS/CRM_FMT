@@ -90,18 +90,34 @@ function initModalEvents() {
   // Abrir modal para novo lead
   if (btnIncluir && modal) {
     btnIncluir.addEventListener('click', () => {
-      editingRow = null; // Reseta referência para criar novo
-      Leads.novo();      // proximo salvamento cria em vez de atualizar
-      limparFormularioModal();
+      editingRow = null;        // Reseta referência para criar novo
+      limparFormularioModal();  // zera por varredura...
+      Leads.novo();             // ...e só então aplica os padrões do funil
       document.getElementById('modal-lead-title').textContent = 'Novo Lead';
       modal.classList.remove('hidden');
     });
   }
 
-  // Fechar modal
+  // Fechar a ficha
   const closeModal = () => modal && modal.classList.add('hidden');
   if (btnClose) btnClose.addEventListener('click', closeModal);
   if (btnCancel) btnCancel.addEventListener('click', closeModal);
+
+  // A gaveta cobre só parte da tela: clicar no quadro atrás dela é um
+  // gesto natural de "fechei". Clique DENTRO do cartão não fecha.
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !modal || modal.classList.contains('hidden')) return;
+    // Não rouba o Esc de outra janela aberta por cima
+    const etapas = document.getElementById('modal-etapas');
+    if (etapas && !etapas.classList.contains('hidden')) return;
+    closeModal();
+  });
 
   // Salvar formulário do modal (Criar ou Editar)
   if (btnSave) {

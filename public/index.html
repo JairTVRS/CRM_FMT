@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/assets/css/dossie.css">
   <link rel="stylesheet" href="/assets/css/importar.css">
   <link rel="stylesheet" href="/assets/css/quadro.css">
+  <link rel="stylesheet" href="/assets/css/gaveta.css">
 </head>
 <body>
 
@@ -260,17 +261,20 @@
     </main>
   </div>
 
-  <!-- MODAL DE CADASTRO E ENRIQUECIMENTO DE LEAD -->
-  <div id="modal-lead" class="modal-overlay hidden">
+  <!-- FICHA DO LEAD — gaveta lateral (Lote D)
+       Continua sendo o mesmo #modal-lead, com os mesmos ids dentro: o
+       dossiê e o enriquecimento não sabem que a casca mudou. -->
+  <div id="modal-lead" class="modal-overlay gaveta hidden">
     <div class="modal-card">
       <header class="modal-header">
         <h2 id="modal-lead-title">Novo Lead</h2>
         <button id="btn-modal-close" class="btn-close" aria-label="Fechar">&times;</button>
       </header>
 
-      <!-- Navegação por Abas Principais do Modal -->
+      <!-- Navegação por Abas Principais da Ficha -->
       <nav class="modal-tabs">
         <button class="tab-btn active" data-tab="tab-dados">Dados Gerais</button>
+        <button class="tab-btn" data-tab="tab-funil">Funil</button>
         <button class="tab-btn" data-tab="tab-contato">Contato & Endereço</button>
         <button class="tab-btn" data-tab="tab-ia">Inteligência Artificial</button>
       </nav>
@@ -330,7 +334,77 @@
           </div>
         </div>
 
-        <!-- ABA 2: CONTATO & ENDEREÇO -->
+        <!-- ABA 2: FUNIL COMERCIAL
+             Estes campos existem no banco e na API desde o Lote A, mas
+             nunca tinham chegado à tela. -->
+        <div id="tab-funil" class="tab-content hidden">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="lead-input-etapa">Etapa do funil</label>
+              <select id="lead-input-etapa" class="form-control"></select>
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-advisor">Advisor</label>
+              <input type="text" id="lead-input-advisor" class="form-control"
+                     list="lista-advisors" placeholder="Digite para buscar ou criar"
+                     maxlength="60" autocomplete="off">
+              <datalist id="lista-advisors"></datalist>
+              <small class="campo-ajuda">Nome novo é cadastrado ao salvar.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-atendente">Quem atendeu</label>
+              <input type="text" id="lead-input-atendente" class="form-control"
+                     placeholder="Preenchido com quem cadastrou" maxlength="160">
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-data-cadastro">Data de cadastro</label>
+              <input type="date" id="lead-input-data-cadastro" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-ultimo-contato">Último contato</label>
+              <input type="date" id="lead-input-ultimo-contato" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-proximo-contato">Próximo contato</label>
+              <input type="date" id="lead-input-proximo-contato" class="form-control">
+              <span id="dias-proximo-contato" class="dias-contato"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-valor-proposta">Valor da proposta (contrato ano)</label>
+              <input type="text" id="lead-input-valor-proposta" class="form-control"
+                     placeholder="R$ 0,00" inputmode="decimal">
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-valor-diagnostico">Valor do diagnóstico</label>
+              <input type="text" id="lead-input-valor-diagnostico" class="form-control"
+                     placeholder="R$ 0,00" inputmode="decimal">
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-fechamento">Data de fechamento</label>
+              <input type="date" id="lead-input-fechamento" class="form-control">
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Tags</label>
+              <div id="lead-tags" class="tags-caixa"></div>
+              <div class="tag-nova">
+                <input type="text" id="tag-nova-nome" class="form-control"
+                       placeholder="Nova tag" maxlength="60">
+                <button type="button" id="btn-tag-criar" class="btn btn-sm btn-secondary">Criar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA 3: CONTATO & ENDEREÇO -->
         <div id="tab-contato" class="tab-content hidden">
           <div class="form-grid">
             <div class="form-group">
@@ -360,7 +434,7 @@
           </div>
         </div>
 
-        <!-- ABA 3: PESQUISA & ENRIQUECIMENTO VIA IA -->
+        <!-- ABA 4: PESQUISA & ENRIQUECIMENTO VIA IA -->
         <div id="tab-ia" class="tab-content hidden">
           <div class="ia-actions-bar">
             <button class="btn btn-accent" onclick="gerarInteligencia()">Gerar Inteligência</button>
@@ -493,6 +567,7 @@
 
   <script src="js/configuracoes.js"></script>
   <!-- leads.js e dono dos filtros; quadro.js le deles -->
+  <script src="js/cadastros.js"></script>
   <script src="js/leads.js"></script>
   <script src="js/quadro.js"></script>
   <script src="js/app.js"></script>
