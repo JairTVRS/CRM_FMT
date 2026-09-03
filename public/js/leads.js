@@ -304,6 +304,7 @@ const Leads = (() => {
     if (resumo && lead.resumo_ia) resumo.innerHTML = lead.resumo_ia;
 
     preencherFunil(lead);
+    if (typeof Proposta !== 'undefined') Proposta.abrir(lead);
   }
 
   /**
@@ -534,6 +535,9 @@ const Leads = (() => {
     p('lead-input-atendente', Auth?.usuario?.email);
 
     atualizarDiasContato();
+
+    // Lead sem id ainda não pode gerar proposta; a aba nasce nos padrões.
+    if (typeof Proposta !== 'undefined') Proposta.limpar();
   }
   function editar(id) { idEmEdicao = Number(id); }
   function emEdicao() { return idEmEdicao; }

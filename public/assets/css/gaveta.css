@@ -129,6 +129,92 @@
 .tag-nova input { flex: 1; }
 
 /* --------------------------------------------------------------------------
+   Aba da proposta
+   -------------------------------------------------------------------------- */
+.prop-aviso {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background-color: var(--input-bg);
+  border-left: 3px solid var(--accent-color);
+  padding: 0.6rem 0.75rem;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 1.25rem;
+}
+
+.prop-secao {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.prop-escopo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.prop-escopo label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.prop-escopo input { margin-top: 0.15rem; flex-shrink: 0; }
+
+.prop-acoes {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.prop-status { font-size: 0.78rem; }
+.prop-status.ok   { color: var(--success-color); }
+.prop-status.erro { color: var(--danger-color); }
+
+.prop-versoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.prop-versao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.prop-meta {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+  margin-top: 0.1rem;
+}
+
+.prop-vazio {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+@media (max-width: 640px) {
+  .prop-escopo { grid-template-columns: 1fr; }
+}
+
+/* --------------------------------------------------------------------------
    Rodapé fixo da gaveta
 
    O botão de salvar não pode rolar para fora: a aba do funil é longa, e

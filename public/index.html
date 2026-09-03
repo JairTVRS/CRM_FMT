@@ -276,6 +276,7 @@
         <button class="tab-btn active" data-tab="tab-dados">Dados Gerais</button>
         <button class="tab-btn" data-tab="tab-funil">Funil</button>
         <button class="tab-btn" data-tab="tab-contato">Contato & Endereço</button>
+        <button class="tab-btn" data-tab="tab-proposta">Proposta</button>
         <button class="tab-btn" data-tab="tab-ia">Inteligência Artificial</button>
       </nav>
 
@@ -434,7 +435,122 @@
           </div>
         </div>
 
-        <!-- ABA 4: PESQUISA & ENRIQUECIMENTO VIA IA -->
+        <!-- ABA 4: PROPOSTA COMERCIAL
+             Os valores comerciais são preenchidos aqui, na geração, e não
+             guardados como política do sistema: variam por negociação. -->
+        <div id="tab-proposta" class="tab-content hidden">
+          <p class="prop-aviso">
+            Gera a proposta com a identidade visual da Formatar, pronta para
+            salvar em PDF. Gerar de novo <strong>não sobrescreve</strong> —
+            cria a versão seguinte e mantém a anterior consultável.
+          </p>
+
+          <h3 class="prop-secao">Contato da proposta</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="prop-contato-nome">Nome</label>
+              <input type="text" id="prop-contato-nome" class="form-control" maxlength="120">
+            </div>
+            <div class="form-group">
+              <label for="prop-contato-cargo">Cargo / área</label>
+              <input type="text" id="prop-contato-cargo" class="form-control" maxlength="120">
+            </div>
+            <div class="form-group">
+              <label for="prop-contato-telefone">Telefone</label>
+              <input type="text" id="prop-contato-telefone" class="form-control" maxlength="40">
+            </div>
+            <div class="form-group">
+              <label for="prop-contato-email">E-mail</label>
+              <input type="text" id="prop-contato-email" class="form-control" maxlength="160">
+            </div>
+
+            <div class="form-group col-span-2">
+              <label for="prop-objeto">Objeto</label>
+              <textarea id="prop-objeto" class="form-control" rows="3" maxlength="1200"></textarea>
+            </div>
+          </div>
+
+          <h3 class="prop-secao">Escopo contratado</h3>
+          <div id="prop-escopo" class="prop-escopo">
+            <label><input type="checkbox" value="diagnostico"> Diagnóstico de Gestão</label>
+            <label><input type="checkbox" value="comercial"> Gestão Comercial (ABS)</label>
+            <label><input type="checkbox" value="financeira"> Gestão Financeira (ACF)</label>
+            <label><input type="checkbox" value="pessoas"> Gestão de Pessoas (PSM)</label>
+            <label><input type="checkbox" value="operacoes"> Gestão de Operações (IMO)</label>
+            <label><input type="checkbox" value="familiares"> Profissionalização de Empresas Familiares (FBP)</label>
+            <label><input type="checkbox" value="estrategico"> Planejamento e Gestão Estratégica</label>
+          </div>
+
+          <h3 class="prop-secao">Diagnóstico</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="prop-diag-valor">Valor</label>
+              <input type="text" id="prop-diag-valor" class="form-control" placeholder="R$ 0,00" inputmode="decimal">
+            </div>
+            <div class="form-group">
+              <label for="prop-diag-prazo">Prazo</label>
+              <input type="text" id="prop-diag-prazo" class="form-control" maxlength="200">
+            </div>
+            <div class="form-group col-span-2">
+              <label for="prop-diag-condicoes">Condições de pagamento</label>
+              <input type="text" id="prop-diag-condicoes" class="form-control" maxlength="300">
+            </div>
+          </div>
+
+          <h3 class="prop-secao">Consultoria</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="prop-cons-valor">Valor mensal</label>
+              <input type="text" id="prop-cons-valor" class="form-control" placeholder="R$ 0,00" inputmode="decimal">
+            </div>
+            <div class="form-group">
+              <label for="prop-cons-meses">Período (meses)</label>
+              <input type="text" id="prop-cons-meses" class="form-control" maxlength="10" inputmode="numeric">
+            </div>
+            <div class="form-group col-span-2">
+              <label for="prop-cons-inicio">Início</label>
+              <input type="text" id="prop-cons-inicio" class="form-control" maxlength="200">
+            </div>
+            <div class="form-group col-span-2">
+              <label for="prop-cons-condicoes">Condições de pagamento</label>
+              <input type="text" id="prop-cons-condicoes" class="form-control" maxlength="300">
+            </div>
+            <div class="form-group col-span-2">
+              <label for="prop-rescisao">Pedido de rescisão</label>
+              <input type="text" id="prop-rescisao" class="form-control" maxlength="300">
+            </div>
+          </div>
+
+          <h3 class="prop-secao">Fechamento</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="prop-km">Quilômetro rodado</label>
+              <input type="text" id="prop-km" class="form-control" placeholder="R$ 0,00" inputmode="decimal">
+            </div>
+            <div class="form-group">
+              <label for="prop-validade">Válida até</label>
+              <input type="date" id="prop-validade" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="prop-resp-nome">Assina pela Formatar</label>
+              <input type="text" id="prop-resp-nome" class="form-control" maxlength="120">
+            </div>
+            <div class="form-group">
+              <label for="prop-resp-cargo">Cargo</label>
+              <input type="text" id="prop-resp-cargo" class="form-control" maxlength="120">
+            </div>
+          </div>
+
+          <div class="prop-acoes">
+            <button type="button" id="btn-gerar-proposta" class="btn btn-accent">Gerar proposta</button>
+            <span id="prop-status" class="prop-status"></span>
+          </div>
+
+          <h3 class="prop-secao">Versões geradas</h3>
+          <div id="prop-versoes" class="prop-versoes"></div>
+        </div>
+
+        <!-- ABA 5: PESQUISA & ENRIQUECIMENTO VIA IA -->
         <div id="tab-ia" class="tab-content hidden">
           <div class="ia-actions-bar">
             <button class="btn btn-accent" onclick="gerarInteligencia()">Gerar Inteligência</button>
@@ -571,6 +687,7 @@
   <script src="js/leads.js"></script>
   <script src="js/quadro.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/proposta.js"></script>
   <script src="js/dossie.js"></script>
   <script src="js/importar.js"></script>
 

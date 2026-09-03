@@ -16,24 +16,35 @@
   --text-muted: #9d9d9d;
   --text-subtle: #6e6e6e;
   --border-color: #333333;
-  --accent-color: #f97316;
-  --primary-color: #2563eb;
+
+  /* CORES DA MARCA — Manual de Identidade Formatar.
+     Substituem o laranja genérico (#f97316) e o azul (#2563eb) que
+     vinham do template original. Era a pendência 1.2 do PLANO_DE_ACAO.
+
+     Ação principal e destaque falam a mesma cor de propósito: a marca
+     tem um laranja só, e dois tons competindo enfraqueceriam os dois. */
+  --accent-color: #F2421A;
+  --primary-color: #F2421A;
+
   --success-color: #16a34a;
   --danger-color: #dc2626;
   --header-table-bg: #141414;   /* cabeçalho de tabela, mais recuado */
   --input-bg: #161616;          /* campos afundados em relação ao card */
 }
 
-/* MODO CLARO OVERRIDE — também neutralizado, para os dois temas
-   pertencerem à mesma família de cinzas. */
+/* MODO CLARO OVERRIDE — o fundo passa a ser o creme da marca (#F4F1EA)
+   em vez do cinza neutro, e o cinza de apoio (#8C887F) assume os textos
+   discretos. Os cinzas do tema escuro continuam neutros de propósito,
+   pela mesma razão da v2.8.2: componente de cor no fundo escuro faz o
+   laranja vibrar demais em tela grande. */
 html.light-theme, body.light-theme {
-  --bg-color: #f4f4f4 !important;
+  --bg-color: #F4F1EA !important;
   --card-bg: #ffffff !important;
-  --text-color: #1a1a1a !important;
-  --text-muted: #5c5c5c !important;
-  --text-subtle: #8a8a8a !important;
-  --border-color: #d4d4d4 !important;
-  --header-table-bg: #ebebeb !important;
+  --text-color: #0D0D0D !important;
+  --text-muted: #5c5851 !important;
+  --text-subtle: #8C887F !important;
+  --border-color: #d9d4c9 !important;
+  --header-table-bg: #EDE9E0 !important;
   --input-bg: #ffffff !important;
 }
 

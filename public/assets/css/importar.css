@@ -99,7 +99,7 @@
 }
 
 .imp-dropzone:hover {
-  border-color: var(--accent-color, #f97316);
+  border-color: var(--accent-color, #F2421A);
   color: var(--text-color, #e8e8e8);
 }
 
@@ -120,7 +120,7 @@
   line-height: 1.6;
   color: var(--text-muted, #9d9d9d);
   background: rgba(255, 255, 255, .03);
-  border-left: 3px solid var(--accent-color, #f97316);
+  border-left: 3px solid var(--accent-color, #F2421A);
 }
 
 .imp-nota code {
@@ -162,7 +162,7 @@
   height: 36px;
   border-radius: 50%;
   border: 3px solid var(--border-color, #333);
-  border-top-color: var(--accent-color, #f97316);
+  border-top-color: var(--accent-color, #F2421A);
   animation: imp-girar .8s linear infinite;
 }
 
@@ -216,7 +216,7 @@
 }
 
 .imp-novo span { color: var(--success-color, #16a34a); }
-.imp-atualiza span { color: var(--accent-color, #f97316); }
+.imp-atualiza span { color: var(--accent-color, #F2421A); }
 
 /* --- Erro --- */
 
@@ -288,7 +288,7 @@
 
 .imp-btn-primario {
   color: #fff;
-  background: var(--accent-color, #f97316);
+  background: var(--accent-color, #F2421A);
 }
 
 .imp-btn-secundario {
