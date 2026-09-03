@@ -20,10 +20,19 @@ const Leads = (() => {
     busca: '',
     ramo: '',
     segmento: '',
+    canal: '',
+    classificacao: '',
     total: 0,
     totalPaginas: 1,
     carregando: false
   };
+
+  /* Tabela ou quadro. O leads.js é dono dos filtros, então também é dele
+     a decisão de qual visão recarregar quando um filtro muda — as duas
+     precisam mostrar sempre o mesmo conjunto. */
+  const CHAVE_MODO = 'crm_modo_leads';
+  const ESTREITO = window.matchMedia('(max-width: 900px)');
+  let modo = localStorage.getItem(CHAVE_MODO) === 'quadro' ? 'quadro' : 'tabela';
 
   let leadsNaTela = [];
   let idEmEdicao = null;
@@ -62,7 +71,7 @@ const Leads = (() => {
 
     const corpo = el('table-leads-body');
     if (corpo) {
-      corpo.innerHTML = `<tr><td colspan="7" class="leads-vazio">Carregando…</td></tr>`;
+      corpo.innerHTML = `<tr><td colspan="8" class="leads-vazio">Carregando…</td></tr>`;
     }
 
     const params = new URLSearchParams({
@@ -72,6 +81,8 @@ const Leads = (() => {
     if (estado.busca) params.set('busca', estado.busca);
     if (estado.ramo) params.set('ramo', estado.ramo);
     if (estado.segmento) params.set('segmento', estado.segmento);
+    if (estado.canal) params.set('canal', estado.canal);
+    if (estado.classificacao) params.set('classificacao', estado.classificacao);
 
     try {
       const r = await fetch(`/api/leads?${params}`);
@@ -87,7 +98,7 @@ const Leads = (() => {
 
     } catch (e) {
       if (corpo) {
-        corpo.innerHTML = `<tr><td colspan="7" class="leads-vazio">
+        corpo.innerHTML = `<tr><td colspan="8" class="leads-vazio">
           Não foi possível carregar os leads. Recarregue a página.</td></tr>`;
       }
     } finally {
@@ -104,8 +115,9 @@ const Leads = (() => {
     if (!corpo) return;
 
     if (leadsNaTela.length === 0) {
-      const filtrando = estado.busca || estado.ramo || estado.segmento;
-      corpo.innerHTML = `<tr><td colspan="7" class="leads-vazio">${
+      const filtrando = estado.busca || estado.ramo || estado.segmento
+                     || estado.canal || estado.classificacao;
+      corpo.innerHTML = `<tr><td colspan="8" class="leads-vazio">${
         filtrando
           ? 'Nenhum lead encontrado com esses filtros.'
           : 'Nenhum lead cadastrado ainda. Clique em “+ Incluir Lead” para começar.'
@@ -130,12 +142,18 @@ const Leads = (() => {
     const wa = linkWhatsApp(lead.telefone);
     const cnpj = String(lead.documento || '').replace(/\D/g, '');
 
+    // `origem` é o nome antigo da coluna; leads gravados antes do Lote A
+    // ainda a usam, e a leitura precisa cobrir os dois.
+    const canal = lead.canal || lead.origem;
+
     return `
     <tr data-id="${lead.id}">
       <td><strong>${esc(lead.nome)}</strong></td>
       <td>${esc(formatarDocumento(lead.documento))}</td>
       <td>${esc(lead.telefone || '—')}</td>
-      <td>${lead.origem ? `<span class="badge">${esc(lead.origem)}</span>` : '—'}</td>
+      <td>${canal ? `<span class="badge">${esc(canal)}</span>` : '—'}</td>
+      <td class="text-center">${lead.classificacao
+        ? `<span class="badge-classificacao">${lead.classificacao}</span>` : '—'}</td>
       <td>${esc(lead.ramo || '—')}</td>
       <td>${esc(lead.segmento || '—')}</td>
       <td style="text-align: left;">
@@ -192,7 +210,11 @@ const Leads = (() => {
       nome: v('lead-input-nome'),
       documento: v('lead-input-doc'),
       telefone: v('lead-input-phone'),
-      origem: v('lead-input-origem'),
+      // O campo virou "canal" no Lote A. A tela continuava mandando
+      // "origem", que a API não lê — o valor escolhido na ficha era
+      // descartado em silêncio e a coluna aparecia vazia.
+      canal: v('lead-input-canal'),
+      classificacao: v('lead-input-classificacao'),
       observacoes: v('lead-input-obs'),
       email: v('lead-input-email'),
       contato_nome: v('lead-input-contato-nome'),
@@ -213,7 +235,9 @@ const Leads = (() => {
     p('lead-input-nome', lead.nome);
     p('lead-input-doc', formatarDocumento(lead.documento));
     p('lead-input-phone', lead.telefone);
-    p('lead-input-origem', lead.origem);
+    // Leads anteriores ao Lote A guardaram o valor em `origem`
+    p('lead-input-canal', lead.canal ?? lead.origem);
+    p('lead-input-classificacao', lead.classificacao);
     p('lead-input-obs', lead.observacoes);
     p('lead-input-email', lead.email);
     p('lead-input-contato-nome', lead.contato_nome);
@@ -273,7 +297,7 @@ const Leads = (() => {
         return false;
       }
 
-      await carregar();
+      await recarregarVisao();
       return true;
 
     } catch (e) {
@@ -296,7 +320,7 @@ const Leads = (() => {
       }
       // Se era o último da página, volta uma
       if (leadsNaTela.length === 1 && estado.pagina > 1) estado.pagina--;
-      await carregar();
+      await recarregarVisao();
     } catch (e) {
       alert('Falha de conexão ao excluir.');
     }
@@ -321,12 +345,75 @@ const Leads = (() => {
     carregar();
   }
 
-  function filtrar({ busca, ramo, segmento }) {
+  function filtrar({ busca, ramo, segmento, canal, classificacao }) {
     if (busca !== undefined) estado.busca = busca;
     if (ramo !== undefined) estado.ramo = ramo;
     if (segmento !== undefined) estado.segmento = segmento;
+    if (canal !== undefined) estado.canal = canal;
+    if (classificacao !== undefined) estado.classificacao = classificacao;
     estado.pagina = 1;      // filtro novo sempre volta ao início
-    carregar();
+    recarregarVisao();
+  }
+
+  /** Os filtros em vigor. O quadro lê daqui para não ter cópia própria. */
+  function filtros() {
+    return {
+      busca: estado.busca,
+      ramo: estado.ramo,
+      segmento: estado.segmento,
+      canal: estado.canal,
+      classificacao: estado.classificacao
+    };
+  }
+
+  /**
+   * Preenche o filtro de canais com o que existe na base.
+   *
+   * Só depois da autenticação: antes disso o fetch interceptado devolve
+   * 401 sintético e o filtro nasceria vazio — o mesmo tropeço que a
+   * v2.8.3 corrigiu na tabela.
+   */
+  async function carregarCanais() {
+    const select = el('filter-canal');
+    if (!select) return;
+
+    try {
+      const r = await fetch('/api/leads?canais=1');
+      if (!r.ok) return;
+      const { canais } = await r.json();
+
+      const escolhido = estado.canal;
+      select.innerHTML = '<option value="">Todos os Canais</option>'
+        + (canais || []).map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      select.value = escolhido;
+    } catch (e) {
+      // Sem opções o filtro fica só com "Todos" — degrada sem quebrar.
+    }
+  }
+
+  /* ----------------------------------------------------------
+     Tabela ou quadro
+     ---------------------------------------------------------- */
+
+  function recarregarVisao() {
+    if (modo === 'quadro' && typeof Quadro !== 'undefined') Quadro.carregar();
+    else carregar();
+  }
+
+  function aplicarModo(novo, { recarregar = true } = {}) {
+    // Um quadro de seis colunas não é usável em tela estreita, com ou
+    // sem toque. Abaixo do limiar a tabela é a única visão.
+    modo = (novo === 'quadro' && !ESTREITO.matches) ? 'quadro' : 'tabela';
+    localStorage.setItem(CHAVE_MODO, novo);
+
+    el('view-tabela')?.classList.toggle('hidden', modo !== 'tabela');
+    el('view-quadro')?.classList.toggle('hidden', modo !== 'quadro');
+
+    document.querySelectorAll('[data-modo]').forEach((b) => {
+      b.classList.toggle('active', b.dataset.modo === modo);
+    });
+
+    if (recarregar) recarregarVisao();
   }
 
   /* ----------------------------------------------------------
@@ -348,19 +435,37 @@ const Leads = (() => {
 
     el('filter-ramo')?.addEventListener('change', (ev) => filtrar({ ramo: ev.target.value }));
     el('filter-segmento')?.addEventListener('change', (ev) => filtrar({ segmento: ev.target.value }));
+    el('filter-canal')?.addEventListener('change', (ev) => filtrar({ canal: ev.target.value }));
+    el('filter-classificacao')?.addEventListener('change', (ev) => filtrar({ classificacao: ev.target.value }));
 
     el('btn-pag-anterior')?.addEventListener('click', () => irParaPagina(estado.pagina - 1));
     el('btn-pag-proxima')?.addEventListener('click', () => irParaPagina(estado.pagina + 1));
+
+    document.querySelectorAll('[data-modo]').forEach((botao) => {
+      botao.addEventListener('click', () => aplicarModo(botao.dataset.modo));
+    });
+
+    // Estreitou a janela com o quadro aberto: cai para a tabela sozinho,
+    // senão a tela ficaria em branco (o CSS esconde o quadro).
+    ESTREITO.addEventListener('change', () => {
+      if (ESTREITO.matches && modo === 'quadro') aplicarModo('tabela');
+    });
+
+    aplicarModo(modo, { recarregar: false });
   }
 
   document.addEventListener('DOMContentLoaded', iniciar);
 
-  // A tabela so carrega depois que o auth.js confirma a sessao.
-  document.addEventListener('crm:autenticado', () => carregar(), { once: true });
+  // Os dados so carregam depois que o auth.js confirma a sessao.
+  document.addEventListener('crm:autenticado', () => {
+    carregarCanais();
+    recarregarVisao();
+  }, { once: true });
 
   return {
     carregar, salvar, excluir, porId,
     novo, editar, emEdicao,
-    preencherFormulario, irParaPagina, filtrar
+    preencherFormulario, irParaPagina, filtrar, filtros,
+    recarregarVisao
   };
 })();

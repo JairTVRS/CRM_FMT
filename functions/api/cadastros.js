@@ -30,6 +30,17 @@ const texto = (v, limite) => {
 /** Aceita só cor hexadecimal — o valor vai direto para o CSS. */
 const cor = (v) => (/^#[0-9a-fA-F]{6}$/.test(String(v || '')) ? String(v) : null);
 
+/**
+ * As etapas são particionadas por pipeline desde a migração 005.
+ * 'comercial' é o funil de captação; a jornada do cliente (Lote H) será
+ * outro pipeline na mesma tabela, servida pelo mesmo quadro.
+ */
+const PIPELINES = ['comercial', 'jornada'];
+const pipelineDe = (searchParams) => {
+  const p = searchParams.get('pipeline');
+  return PIPELINES.includes(p) ? p : 'comercial';
+};
+
 function validarTipo(searchParams, cabecalhos) {
   const tipo = searchParams.get('tipo');
   if (!TIPOS.includes(tipo)) {
@@ -56,7 +67,10 @@ export async function onRequestGet(context) {
       const [advisors, tags, etapas] = await Promise.all([
         db.prepare('SELECT id, nome FROM advisors WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
         db.prepare('SELECT id, nome, cor FROM tags WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
-        db.prepare('SELECT id, nome, cor, ordem, encerra FROM etapas WHERE ativo = 1 ORDER BY ordem').all()
+        db.prepare(
+          `SELECT id, nome, cor, ordem, encerra, pipeline FROM etapas
+           WHERE ativo = 1 AND pipeline = ? ORDER BY ordem`
+        ).bind(pipelineDe(searchParams)).all()
       ]);
       return json({
         advisors: advisors.results || [],
@@ -72,13 +86,23 @@ export async function onRequestGet(context) {
   if (erro) return erro;
 
   try {
-    const colunas = tipo === 'etapas' ? 'id, nome, cor, ordem, encerra'
-                  : tipo === 'tags'   ? 'id, nome, cor'
-                  : 'id, nome';
-    const ordem = tipo === 'etapas' ? 'ordem' : 'nome COLLATE NOCASE';
+    // Etapas são as únicas particionadas por pipeline; advisors e tags
+    // são listas globais.
+    if (tipo === 'etapas') {
+      const { results } = await db
+        .prepare(
+          `SELECT id, nome, cor, ordem, encerra, pipeline FROM etapas
+           WHERE ativo = 1 AND pipeline = ? ORDER BY ordem`
+        )
+        .bind(pipelineDe(searchParams))
+        .all();
+      return json({ etapas: results || [] }, 200, cabecalhos);
+    }
+
+    const colunas = tipo === 'tags' ? 'id, nome, cor' : 'id, nome';
 
     const { results } = await db
-      .prepare(`SELECT ${colunas} FROM ${tipo} WHERE ativo = 1 ORDER BY ${ordem}`)
+      .prepare(`SELECT ${colunas} FROM ${tipo} WHERE ativo = 1 ORDER BY nome COLLATE NOCASE`)
       .all();
 
     return json({ [tipo]: results || [] }, 200, cabecalhos);
@@ -115,17 +139,21 @@ export async function onRequestPost(context) {
     let registro;
 
     if (tipo === 'etapas') {
-      // Nova etapa entra no fim do funil, antes das terminais
+      // Nova etapa entra no fim do próprio pipeline. A ordem é contada
+      // dentro do pipeline: o funil comercial e a jornada do cliente têm
+      // sequências independentes.
+      const pipeline = pipelineDe(searchParams);
       const ultima = await db
-        .prepare('SELECT COALESCE(MAX(ordem), 0) AS n FROM etapas WHERE ativo = 1')
+        .prepare('SELECT COALESCE(MAX(ordem), 0) AS n FROM etapas WHERE ativo = 1 AND pipeline = ?')
+        .bind(pipeline)
         .first();
 
       registro = await db
         .prepare(
-          `INSERT INTO etapas (nome, cor, ordem, encerra, ativo)
-           VALUES (?, ?, ?, ?, 1) RETURNING id, nome, cor, ordem, encerra`
+          `INSERT INTO etapas (nome, cor, ordem, encerra, pipeline, ativo)
+           VALUES (?, ?, ?, ?, ?, 1) RETURNING id, nome, cor, ordem, encerra, pipeline`
         )
-        .bind(nome, cor(corpo.cor) || '#6e6e6e', Number(ultima?.n || 0) + 1, corpo.encerra ? 1 : 0)
+        .bind(nome, cor(corpo.cor) || '#6e6e6e', Number(ultima?.n || 0) + 1, corpo.encerra ? 1 : 0, pipeline)
         .first();
 
     } else if (tipo === 'tags') {
@@ -200,8 +228,11 @@ export async function onRequestPut(context) {
 
   const nome = texto(corpo.nome, 60);
   const novaCor = cor(corpo.cor);
+  // `undefined` distingue "não mandou o campo" de "mandou false".
+  // Sem isso, desmarcar uma etapa terminal seria impossível.
+  const mudaEncerra = tipo === 'etapas' && corpo.encerra !== undefined;
 
-  if (!nome && !novaCor) {
+  if (!nome && !novaCor && !mudaEncerra) {
     return json({ error: 'Nada a alterar.' }, 400, cabecalhos);
   }
 
@@ -210,6 +241,7 @@ export async function onRequestPut(context) {
     const valores = [];
     if (nome) { campos.push('nome = ?'); valores.push(nome); }
     if (novaCor && tipo !== 'advisors') { campos.push('cor = ?'); valores.push(novaCor); }
+    if (mudaEncerra) { campos.push('encerra = ?'); valores.push(corpo.encerra ? 1 : 0); }
 
     const registro = await db
       .prepare(`UPDATE ${tipo} SET ${campos.join(', ')} WHERE id = ? AND ativo = 1 RETURNING *`)
@@ -276,9 +308,15 @@ export async function onRequestDelete(context) {
       return json({ error: mensagem, code: 'EM_USO', quantidade: emUso }, 409, cabecalhos);
     }
 
-    // O funil não pode ficar sem nenhuma etapa
+    // Nenhum pipeline pode ficar sem etapa. A contagem é dentro do
+    // pipeline da própria etapa: esvaziar o funil comercial não fica
+    // liberado só porque a jornada do cliente tem colunas.
     if (tipo === 'etapas') {
-      const total = await db.prepare('SELECT COUNT(*) AS n FROM etapas WHERE ativo = 1').first();
+      const alvo = await db.prepare('SELECT pipeline FROM etapas WHERE id = ?').bind(id).first();
+      const total = await db
+        .prepare('SELECT COUNT(*) AS n FROM etapas WHERE ativo = 1 AND pipeline = ?')
+        .bind(alvo?.pipeline || 'comercial')
+        .first();
       if (Number(total?.n || 0) <= 1) {
         return json({ error: 'O funil precisa de ao menos uma etapa.', code: 'ULTIMA_ETAPA' }, 409, cabecalhos);
       }

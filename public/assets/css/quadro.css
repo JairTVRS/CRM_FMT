@@ -1,0 +1,401 @@
+/* ==========================================================================
+   QUADRO (kanban) — Lote C
+
+   O quadro é genérico por pipeline desde o primeiro dia. A jornada do
+   cliente do CX é outro pipeline nas mesmas etapas e reaproveita este
+   mesmo componente, sem reescrita.
+
+   Tudo usa os tokens de main.css, então os dois temas vêm de graça.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Alternância tabela / quadro
+   -------------------------------------------------------------------------- */
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.view-toggle button {
+  background: var(--card-bg);
+  color: var(--text-muted);
+  border: none;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.view-toggle button + button { border-left: 1px solid var(--border-color); }
+.view-toggle button:hover { color: var(--text-color); }
+
+.view-toggle button.active {
+  background: var(--accent-color);
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Faixa de colunas
+   -------------------------------------------------------------------------- */
+.quadro {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  /* A rolagem horizontal é do quadro, nunca do corpo da página */
+  scrollbar-width: thin;
+}
+
+.quadro-vazio,
+.quadro-erro {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.coluna {
+  flex: 0 0 278px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-top: 3px solid var(--cor-etapa, var(--border-color));
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 17rem);
+  min-height: 8rem;
+}
+
+.coluna-cabecalho {
+  padding: 0.7rem 0.8rem 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.coluna-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.coluna-nome {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coluna-contador {
+  background-color: var(--input-bg);
+  color: var(--text-muted);
+  border-radius: 10px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.coluna-soma {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.coluna-lista {
+  padding: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 3.5rem;
+}
+
+/* Alvo de soltura destacado enquanto se arrasta */
+.coluna.alvo {
+  border-color: var(--accent-color);
+  border-top-color: var(--accent-color);
+}
+
+.coluna.alvo .coluna-lista {
+  background-color: color-mix(in srgb, var(--accent-color) 8%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   Colunas terminais — recolhidas por padrão
+
+   Finalizado e Perdido acumulam para sempre. Abertas, dominariam o quadro
+   com leads que já não pedem ação.
+   -------------------------------------------------------------------------- */
+.coluna.recolhida {
+  flex: 0 0 3.25rem;
+  min-height: 11rem;
+}
+
+.coluna.recolhida .coluna-lista,
+.coluna.recolhida .coluna-soma,
+.coluna.recolhida .coluna-rodape { display: none; }
+
+.coluna.recolhida .coluna-cabecalho {
+  border-bottom: none;
+  height: 100%;
+  align-items: center;
+  padding: 0.7rem 0.3rem;
+}
+
+.coluna.recolhida .coluna-titulo {
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.coluna.recolhida .coluna-nome {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  overflow: visible;
+}
+
+.btn-recolher {
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  padding: 0.1rem 0.2rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.btn-recolher:hover { color: var(--text-color); }
+
+/* --------------------------------------------------------------------------
+   Cartão
+   -------------------------------------------------------------------------- */
+.cartao {
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.55rem 0.6rem;
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.cartao:hover { border-color: var(--text-subtle); }
+
+/* A alça existe por causa do toque: arrastar pelo corpo do cartão
+   competiria com a rolagem vertical da coluna. `touch-action: none`
+   entrega os eventos de ponteiro para o script em vez de a rolagem
+   engolir o gesto. */
+.cartao-alca {
+  flex-shrink: 0;
+  width: 1rem;
+  align-self: stretch;
+  cursor: grab;
+  touch-action: none;
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cartao-alca:hover { color: var(--text-color); }
+.cartao-alca:active { cursor: grabbing; }
+
+.cartao-corpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cartao-nome {
+  font-size: 0.83rem;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.cartao-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.cartao-valor {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+}
+
+.cartao-prazo {
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.7rem;
+}
+
+.cartao-prazo.atrasado { background-color: rgba(220, 38, 38, 0.16); color: #f87171; }
+.cartao-prazo.hoje     { background-color: rgba(234, 179, 8, 0.16);  color: #eab308; }
+
+.badge-classificacao {
+  flex-shrink: 0;
+  background-color: var(--border-color);
+  color: var(--text-color);
+  border-radius: 4px;
+  padding: 0.05rem 0.32rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   Estados do arraste
+   -------------------------------------------------------------------------- */
+
+/* O clone que segue o dedo/cursor. `pointer-events: none` é essencial:
+   sem isso o elemento sob o ponteiro seria sempre o próprio clone, e
+   não haveria como descobrir a coluna de destino. */
+.cartao-flutuante {
+  position: fixed;
+  z-index: 1200;
+  pointer-events: none;
+  opacity: 0.95;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  transform: rotate(1.5deg);
+  cursor: grabbing;
+}
+
+/* O original some enquanto arrasta: o marcador é que ocupa o lugar dele.
+   Mantê-lo visível daria dois espaços para um cartão só, e a lista
+   pularia a cada movimento do ponteiro. */
+.cartao.arrastando { display: none; }
+
+.marcador-solta {
+  border: 1px dashed var(--accent-color);
+  border-radius: 6px;
+  background-color: color-mix(in srgb, var(--accent-color) 10%, transparent);
+  min-height: 2.6rem;
+  flex-shrink: 0;
+}
+
+/* Enquanto arrasta, nada de selecionar texto por acidente */
+body.arrastando-cartao {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* --------------------------------------------------------------------------
+   Rodapé da coluna — "carregar mais"
+   -------------------------------------------------------------------------- */
+.coluna-rodape {
+  padding: 0 0.55rem 0.55rem;
+}
+
+.btn-carregar-mais {
+  width: 100%;
+  background: none;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 0.4rem;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.btn-carregar-mais:hover {
+  border-color: var(--text-subtle);
+  color: var(--text-color);
+}
+
+.coluna-vazia {
+  color: var(--text-subtle);
+  font-size: 0.76rem;
+  text-align: center;
+  padding: 0.9rem 0.3rem;
+}
+
+/* --------------------------------------------------------------------------
+   Gerenciar etapas
+   -------------------------------------------------------------------------- */
+.etapas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.etapa-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+}
+
+.etapa-linha input[type="color"] {
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.etapa-linha .etapa-nome { flex: 1; min-width: 0; }
+
+.etapa-terminal {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.etapa-acoes { display: flex; gap: 0.2rem; flex-shrink: 0; }
+
+.etapa-nova {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.etapas-aviso {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Telas estreitas
+
+   Um quadro de seis colunas não é usável em celular, com ou sem toque.
+   O JS força a tabela abaixo deste ponto; a regra abaixo é a rede de
+   segurança para o instante entre o redimensionamento e o script.
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  #view-quadro { display: none !important; }
+  .view-toggle { display: none; }
+}

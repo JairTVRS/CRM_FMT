@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/assets/css/auth.css">
   <link rel="stylesheet" href="/assets/css/dossie.css">
   <link rel="stylesheet" href="/assets/css/importar.css">
+  <link rel="stylesheet" href="/assets/css/quadro.css">
 </head>
 <body>
 
@@ -122,9 +123,30 @@
               <option value="SERVIÇOS">SERVIÇOS</option>
               <option value="VAREJO">VAREJO</option>
             </select>
+            <!-- As opções vêm do banco: a importação aceita qualquer
+                 texto no canal, e uma lista fixa esconderia leads. -->
+            <select id="filter-canal" class="form-control">
+              <option value="">Todos os Canais</option>
+            </select>
+            <select id="filter-classificacao" class="form-control" title="Complexidade do projeto">
+              <option value="">Toda Classificação</option>
+              <option value="1">Classificação 1</option>
+              <option value="2">Classificação 2</option>
+              <option value="3">Classificação 3</option>
+              <option value="4">Classificação 4</option>
+              <option value="5">Classificação 5</option>
+              <option value="6">Classificação 6</option>
+            </select>
+          </div>
+
+          <div class="view-toggle">
+            <button type="button" data-modo="tabela" title="Ver como tabela">Tabela</button>
+            <button type="button" data-modo="quadro" title="Ver como quadro">Quadro</button>
           </div>
         </div>
 
+        <!-- VISÃO 1: TABELA -->
+        <div id="view-tabela">
         <div class="table-container">
           <table class="data-table">
             <thead>
@@ -132,38 +154,37 @@
                 <th>Nome / Razão Social</th>
                 <th>Documento (CNPJ/CPF)</th>
                 <th>Telefone</th>
-                <th>Origem</th>
+                <th>Canal</th>
+                <th class="text-center">Classif.</th>
                 <th>Ramo</th>
                 <th>Segmento</th>
                 <th class="text-center">Ações</th>
               </tr>
             </thead>
             <tbody id="table-leads-body">
-              <tr data-lead='{"nome":"Empresa Exemplo LTDA","doc":"12.345.678/0001-90","phone":"(11) 99999-9999","origem":"Indicação","ramo":"TECNOLOGIA","segmento":"SERVIÇOS"}'>
-                <td><strong>Empresa Exemplo LTDA</strong></td>
-                <td>12.345.678/0001-90</td>
-                <td>(11) 99999-9999</td>
-                <td><span class="badge-origem">Indicação</span></td>
-                <td>TECNOLOGIA</td>
-                <td>SERVIÇOS</td>
-                <td class="actions-cell text-center">
-                  <button class="btn-action btn-ai" title="Analisar com IA">A</button>
-                  <button class="btn-action btn-edit" title="Editar Lead">✏️</button>
-                  <button class="btn-action btn-delete" title="Excluir Lead">🗑️</button>
-                </td>
-              </tr>
+              <tr><td colspan="8" class="leads-vazio">Carregando…</td></tr>
             </tbody>
           </table>
         </div>
-        
+
         <footer class="table-footer">
-          <div id="total-registros" class="table-footer-info">Total de Registros: 1</div>
+          <div id="total-registros" class="table-footer-info">Total de Registros: 0</div>
           <div class="pagination-controls">
             <button id="btn-pag-anterior" class="btn btn-sm btn-secondary" disabled>Anterior</button>
             <span id="info-pagina" class="page-indicator">Página 1 de 1</span>
             <button id="btn-pag-proxima" class="btn btn-sm btn-secondary" disabled>Próxima</button>
           </div>
         </footer>
+        </div>
+
+        <!-- VISÃO 2: QUADRO (kanban do funil comercial) -->
+        <div id="view-quadro" class="hidden">
+          <div class="table-footer" style="margin-top:0; margin-bottom:0.75rem;">
+            <span>Arraste pela alça do cartão para mover entre as etapas.</span>
+            <button id="btn-gerenciar-etapas" class="btn btn-sm btn-secondary">Gerenciar etapas</button>
+          </div>
+          <div id="quadro-colunas" class="quadro"></div>
+        </div>
       </section>
 
       <!-- TELA 2: CONFIGURAÇÕES DO SISTEMA -->
@@ -273,18 +294,35 @@
               <label for="lead-input-phone">Telefone / WhatsApp</label>
               <input type="text" id="lead-input-phone" class="form-control" placeholder="(00) 00000-0000">
             </div>
-<div class="form-group col-span-2">
-  <label for="lead-input-origem">Origem do Lead</label>
-  <select id="lead-input-origem" class="form-control">
-    <option value="">Selecione a Origem...</option>
-    <option value="Prospecção Ativa">Prospecção Ativa</option>
-    <option value="Indicação">Indicação</option>
-    <option value="Site">Site</option>
-    <option value="Redes Sociais">Redes Sociais</option>
-    <option value="Evento">Evento</option>
-    <option value="Outros">Outros</option>
-  </select>
-</div>
+            <div class="form-group">
+              <label for="lead-input-canal">Canal</label>
+              <select id="lead-input-canal" class="form-control">
+                <option value="">Selecione o Canal...</option>
+                <option value="Prospecção Ativa">Prospecção Ativa</option>
+                <option value="Indicação">Indicação</option>
+                <option value="Site">Site</option>
+                <option value="Redes Sociais">Redes Sociais</option>
+                <option value="Evento">Evento</option>
+                <option value="Inbound">Inbound</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="lead-input-classificacao">Classificação</label>
+              <select id="lead-input-classificacao" class="form-control">
+                <option value="">Não classificado</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+              <small style="color: var(--text-subtle); font-size: 0.72rem;">
+                Complexidade do projeto, de 1 a 6. Acompanha o lead quando ele virar cliente.
+              </small>
+            </div>
             <div class="form-group col-span-2">
               <label for="lead-input-obs">Observações Internas</label>
               <textarea id="lead-input-obs" class="form-control" rows="3" placeholder="Notas adicionais sobre o contato..."></textarea>
@@ -416,6 +454,33 @@
     </div>
   </div>
 
+  <!-- MODAL DE GERENCIAMENTO DAS ETAPAS DO FUNIL -->
+  <div id="modal-etapas" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 640px;">
+      <header class="modal-header">
+        <h2>Etapas do funil</h2>
+        <button id="btn-etapas-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+
+      <div class="modal-body">
+        <p class="etapas-aviso">
+          Cada etapa é uma coluna do quadro. As marcadas como <strong>terminal</strong>
+          nascem recolhidas — são as que só acumulam, como Finalizado e Perdido.
+          Etapa com lead dentro não pode ser excluída.
+        </p>
+
+        <div id="etapas-lista" class="etapas-lista"></div>
+
+        <div class="etapa-nova">
+          <input type="color" id="etapa-nova-cor" value="#6e6e6e" title="Cor da nova etapa">
+          <input type="text" id="etapa-nova-nome" class="form-control"
+                 placeholder="Nome da nova etapa" maxlength="60">
+          <button id="btn-etapa-criar" class="btn btn-primary btn-sm">Adicionar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Componente Toast de Notificação -->
   <div id="toast-container" class="toast-container"></div>
 
@@ -427,7 +492,9 @@
   <script src="js/auth.js"></script>
 
   <script src="js/configuracoes.js"></script>
+  <!-- leads.js e dono dos filtros; quadro.js le deles -->
   <script src="js/leads.js"></script>
+  <script src="js/quadro.js"></script>
   <script src="js/app.js"></script>
   <script src="js/dossie.js"></script>
   <script src="js/importar.js"></script>

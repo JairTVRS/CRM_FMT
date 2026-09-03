@@ -1,2 +1,14 @@
 ﻿Data Cadastro;Quem atendeu?;Nome do cliente;CNPJ da Empresa;Segmento;Cidade;Telefone de Contato;Canal;Advisor;Status2;Data Ultimo Contato;Data próximo contato;Data Fechamento;Valor Proposta (Contrato Ano);Valor Diagnóstico;Link Site da Empresa;Link Instagram da Empresa;Observações
-15/01/26;Daby;ACATTO INDÚSTRIA DE CALÇADOS;07.091.149/0001-72;VAREJO;Araújos;(37) 9876-2802;Inbound;João;Qualificação;10/05/2026;15/05/2026;;R$ 25.424,00;R$ 5.683,00;https://www.exemplo.com.br;https://instagram.com/exemplo;Entrei em contato, aguardando retorno
+15/01/2026;Daby;ACATTO INDÚSTRIA DE CALÇADOS;7091149000172;VAREJO;Araújos;(37) 9876-2802;Inbound;;Perdido;10/05/2026;23/05/2026;;R$ 25.424,00;R$ 5.683,00;https://www.exemplo.com.br;https://instagram.com/exemplo;Entrei em contato, aguardando retorno
+02/02/2026;Daby;ALFAIATARIA;29140410000110;SERVIÇO;;(22) 99286-7827;eventos;;Perdido;10/05/2026;19/05/2026;;R$ 97.777,00;R$ 3.373,00;;https://www.instagram.com/alfaiatariamodaclassica/;Não tem site próprio
+05/02/2026;Daby;CLINICA BRASIL;45687692000126;SERVIÇO;Divinópolis;(37) 98800-7814;tráfego pago;;Perdido;10/05/2026;29/05/2026;;R$ 61.366,00;R$ 6.635,00;;https://www.instagram.com/dra.marcelabrasil/;
+20/02/2026;Daby;EFE SERVICE;23001873000114;SERVIÇO;Contagem;(31) 8435-4734;Inbound;;Perdido;10/05/2026;16/05/2026;;R$ 31.292,00;R$ 7.468,00;https://efeservice.com.br/;https://www.instagram.com/efeservicemanutencao/;
+02/09/2026;Daby;EMPRESA TIÃO CALÇADOS;42830208000188;INDÚSTRIA;Formiga;(37) 99841-4701;outbound;Carlos;;10/05/2026;20/05/2026;;R$ 47.798,00;R$ 5.090,00;https://www.tiaocalcados.com.br/;https://www.instagram.com/tiaocalcados/;
+17/02/2026;Daby;FUTURE PRO;55474384000176;INDÚSTRIA;;(37) 9966-1539;eventos;;Perdido;10/05/2026;22/05/2026;;R$ 101.699,00;R$ 3.600,00;;;
+06/02/2026;Daby;LOJAS BECO;21538025000113;VAREJO;Itaúna;(31) 9924-5381;tráfego pago;;Perdido;10/05/2026;29/05/2026;;R$ 16.293,00;R$ 5.141,00;;;
+07/01/2026;Daby;MERCADÃO DA CARNE;53425959000135;VAREJO;Divinópolis;(31) 7149-3303;Inbound;;Perdido;10/05/2026;30/05/2026;;R$ 100.401,00;R$ 5.197,00;;;
+25/02/2026;Daby;RAFIL;71075261000119;VAREJO;Divinópolis;(37) 3212-7772;outbound;Carlos;Perdido;10/05/2026;28/05/2026;;R$ 77.654,00;R$ 6.793,00;;;
+01/03/2026;Daby;SANTOS E FREITAS DISTRIBUIDORA;47024649000106;VAREJO;Araújos;(37) 9805-6551;outbound;João;Perdido;10/05/2026;28/05/2026;;R$ 25.438,00;R$ 3.466,00;;;
+01/03/2026;Daby;SMARTNX;27447387000185;VAREJO;;(32) 8817-8906;Inbound;;Qualificação;10/05/2026;15/05/2026;;R$ 68.843,00;R$ 3.060,00;;;
+01/03/2026;Daby;SUA CASA DECORAÇÃO;17586544000180;VAREJO;;(37) 9943-7467;eventos;;Captação;10/05/2026;26/05/2026;;R$ 68.225,00;R$ 7.006,00;;;
+01/03/2026;Daby;SUPERMERCADO IGUASUPER;3553855000138;VAREJO;;(37) 9156-1389;redes;;Perdido;10/05/2026;19/05/2026;;R$ 101.979,00;R$ 3.630,00;;;
