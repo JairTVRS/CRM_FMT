@@ -16,6 +16,7 @@
 
 import { limparCnpj } from './_lib/cnpj.js';
 import { documentoValido } from './_lib/documento.js';
+import { montarQuadro, comandosDeMover } from './_lib/quadro.js';
 
 /** Converte "R$ 25.424,00", "25424.00" ou 25424 em centavos. */
 function paraCentavos(valor) {
@@ -216,75 +217,15 @@ function montarFiltro(searchParams) {
 }
 
 /**
- * Monta o quadro inteiro em duas consultas, não uma por coluna.
+ * O montador do quadro mora em _lib/quadro.js desde o Lote H, quando a
+ * jornada do cliente virou o segundo consumidor da mesma mecânica.
  *
- * Os cartões saem por ROW_NUMBER() particionado pela etapa: assim o teto
- * por coluna é aplicado no banco, e uma coluna com centenas de leads não
- * trafega inteira só para o navegador jogar fora o excedente. Os totais
- * vêm à parte porque precisam contar TUDO, não só o que é exibido.
- *
- * Lead sem etapa cai na primeira coluna. Não deveria existir — a 004
- * preencheu todos e a exclusão de etapa em uso é bloqueada —, mas um
- * cartão invisível seria pior que um cartão no lugar errado.
+ * O pipeline é fixo em 'comercial' e NÃO vem mais da query string. Ler
+ * o pipeline do parâmetro deixava /api/leads?pipeline=jornada devolver
+ * as nove colunas do CX cheias de zero — colunas de uma trilha com os
+ * registros da outra. Cada endpoint responde pela sua trilha.
  */
-async function montarQuadro(db, searchParams) {
-  const pipeline = texto(searchParams.get('pipeline'), 30) || 'comercial';
-  const porColuna = Math.min(200, Math.max(1, Number(searchParams.get('porColuna') || 50)));
-  const { onde, valores } = montarFiltro(searchParams);
-
-  const [etapas, totais, cartoes] = await Promise.all([
-    db.prepare(
-      `SELECT id, nome, cor, ordem, encerra FROM etapas
-       WHERE ativo = 1 AND pipeline = ? ORDER BY ordem`
-    ).bind(pipeline).all(),
-
-    db.prepare(
-      `SELECT etapa_id, COUNT(*) AS n, COALESCE(SUM(valor_proposta), 0) AS soma
-       FROM leads ${onde} GROUP BY etapa_id`
-    ).bind(...valores).all(),
-
-    db.prepare(
-      `SELECT * FROM (
-         SELECT *, ROW_NUMBER() OVER (
-           PARTITION BY etapa_id ORDER BY posicao, id DESC
-         ) AS rn
-         FROM leads ${onde}
-       ) WHERE rn <= ?`
-    ).bind(...valores, porColuna).all()
-  ]);
-
-  const listaEtapas = etapas.results || [];
-  const primeira = listaEtapas[0]?.id ?? null;
-  const daEtapa = (v) => (v == null ? primeira : v);
-
-  const resumo = new Map();
-  for (const t of totais.results || []) {
-    const chave = daEtapa(t.etapa_id);
-    const atual = resumo.get(chave) || { total: 0, soma: 0 };
-    resumo.set(chave, { total: atual.total + Number(t.n || 0), soma: atual.soma + Number(t.soma || 0) });
-  }
-
-  const porEtapa = new Map();
-  for (const lead of cartoes.results || []) {
-    const chave = daEtapa(lead.etapa_id);
-    if (!porEtapa.has(chave)) porEtapa.set(chave, []);
-    porEtapa.get(chave).push(lead);
-  }
-
-  return {
-    pipeline,
-    porColuna,
-    colunas: listaEtapas.map((etapa) => {
-      const r = resumo.get(etapa.id) || { total: 0, soma: 0 };
-      return {
-        etapa,
-        total: r.total,
-        soma: r.soma,          // centavos; a tela é que formata
-        leads: porEtapa.get(etapa.id) || []
-      };
-    })
-  };
-}
+const PIPELINE_LEADS = 'comercial';
 
 function erroDeBanco(e) {
   const msg = String(e?.message || '');
@@ -337,7 +278,16 @@ export async function onRequestGet(context) {
 
     // --- Quadro: todas as colunas de uma vez ---
     if (searchParams.get('quadro')) {
-      return json(await montarQuadro(db, searchParams), 200, cabecalhos);
+      const { onde, valores } = montarFiltro(searchParams);
+      const quadro = await montarQuadro(db, {
+        tabela: 'leads',
+        pipeline: PIPELINE_LEADS,
+        onde,
+        valores,
+        somaColuna: 'valor_proposta',
+        porColuna: searchParams.get('porColuna')
+      });
+      return json(quadro, 200, cabecalhos);
     }
 
     // --- Listagem paginada ---
@@ -406,10 +356,15 @@ export async function onRequestPost(context) {
 
   const agora = new Date().toISOString();
 
-  // Sem etapa informada, entra na primeira coluna do funil
+  // Sem etapa informada, entra na primeira coluna do funil COMERCIAL.
+  //
+  // O filtro por pipeline não é zelo: a jornada do cliente também tem
+  // uma etapa de ordem 1, e sem ele o desempate entre as duas ficava por
+  // conta do banco — um lead novo podia nascer numa coluna do CX.
   if (!lead.etapa_id) {
     const primeira = await db
-      .prepare('SELECT id FROM etapas WHERE ativo = 1 ORDER BY ordem LIMIT 1')
+      .prepare('SELECT id FROM etapas WHERE ativo = 1 AND pipeline = ? ORDER BY ordem LIMIT 1')
+      .bind(PIPELINE_LEADS)
       .first();
     lead.etapa_id = primeira?.id || null;
   }
@@ -485,30 +440,14 @@ export async function onRequestPut(context) {
 
     try {
       const agora = new Date().toISOString();
-      const comandos = [
-        db.prepare(
-          `UPDATE leads SET etapa_id = ?, atualizado_por = ?, atualizado_em = ?
-           WHERE id = ? AND ativo = 1`
-        ).bind(etapaId, usuario.email, agora, idMovido),
-
-        // Os cartões que a tela não carregou vão para o fim da coluna.
-        //
-        // Sem isto, a reordenação só valeria dentro do teto por coluna: os
-        // visíveis receberiam 0..n-1 e os demais continuariam em 0,
-        // embaralhando-se com eles na próxima leitura. "O que não coube na
-        // tela vem depois do que você arrumou" é previsível; interleaving
-        // silencioso não é.
-        db.prepare(
-          `UPDATE leads SET posicao = 100000
-           WHERE etapa_id = ? AND ativo = 1
-             AND id NOT IN (SELECT value FROM json_each(?))`
-        ).bind(etapaId, JSON.stringify(ordem)),
-
-        ...ordem.map((idLead, i) =>
-          db.prepare('UPDATE leads SET posicao = ? WHERE id = ? AND ativo = 1').bind(i, idLead)
-        )
-      ];
-      await db.batch(comandos);
+      await db.batch(comandosDeMover(db, {
+        tabela: 'leads',
+        id: idMovido,
+        etapaId,
+        ordem,
+        usuario: usuario.email,
+        agora
+      }));
 
       console.log(`[leads] movido ${idMovido} para etapa ${etapaId} por ${usuario.email}`);
       return json({ ok: true }, 200, cabecalhos);

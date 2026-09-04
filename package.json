@@ -1,9 +1,13 @@
 {
   "name": "crm-leads-evolution",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "wrangler pages dev --port 3000",
+    "dev:hub": "node dev/hub-stub.mjs",
+    "db:local": "wrangler d1 execute crm-formatar --local -y",
+    "db:remoto": "wrangler d1 execute crm-formatar --remote",
     "versao": "npm version --no-git-tag-version"
   },
   "dependencies": {

@@ -89,13 +89,25 @@ As variáveis só passam a valer **depois de um novo deploy**. Faça um `git pus
 
 ### 3.4 Desenvolvimento local
 
-Preencha o `.env` (já ignorado pelo Git) com as mesmas variáveis e rode:
+> **Desatualizado desde a migração para o Cloudflare.** Este manual mandava
+> preencher o `.env` e rodar `npm start`. O `server.js` **não serve as rotas
+> das Functions** — quem serve é o Wrangler, e ele lê `.dev.vars`, não `.env`.
+> O procedimento correto está na **seção 7 do
+> `Manual-Jornada-Lote-H-CRM-FMT-v1.0.md`**.
 
-```bash
-npm start
-```
+Em resumo: as variáveis do painel da Cloudflare valem para o **site
+publicado**. Rodando local, o código roda na sua máquina e a Cloudflare
+não participa — por isso o `.dev.vars`, que é o equivalente local daquele
+painel.
 
-Se faltar alguma, o servidor avisa no console ao subir.
+**O `HUB_API_KEY` não pode ser copiado do painel.** Ele é cadastrado como
+*Secret (encrypted)*, e segredo na Cloudflare é de mão única: grava e
+nunca devolve. Para o ambiente local, gere uma Secret Key nova no hub com
+permissão `hub:users:read` (passo 3.2) — de preferência uma só para
+desenvolvimento, que possa ser revogada sem tocar na de produção.
+
+O `GOOGLE_CLIENT_ID` é do tipo *Texto* e não é segredo: aparece no painel
+e também na resposta pública de `GET /api/config`.
 
 ---
 

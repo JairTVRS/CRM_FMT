@@ -1,0 +1,116 @@
+/* ==========================================================================
+   cx.css — o que a trilha de CX acrescenta.
+
+   Deliberadamente curto. O quadro da jornada usa quadro.css inteiro sem
+   uma linha nova, e os chips da ficha reaproveitam .tag-chip do
+   gaveta.css. O que sobra aqui são as poucas peças que não existiam:
+   rótulos somente-leitura, a pílula da etapa na tabela e o chip de
+   núcleo em modo leitura.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Chip de núcleo em modo LEITURA — na tabela e no cartão do quadro.
+
+   Não é o .tag-chip: aquele é um botão que liga e desliga no clique.
+   Este não recebe clique nenhum, e dar aparência de botão a algo inerte
+   é promessa que a tela não cumpre.
+   -------------------------------------------------------------------------- */
+.chip-nucleo {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+/* Vários núcleos num cartão estreito precisam quebrar linha */
+.cartao-linha .chip-nucleo { margin-right: 0.2rem; }
+
+/* --------------------------------------------------------------------------
+   Pílula da etapa na tabela — a mesma cor da coluna do quadro, para que
+   as duas visões falem a mesma língua.
+   -------------------------------------------------------------------------- */
+.pilula-etapa {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.74rem;
+  white-space: nowrap;
+  color: var(--text-color);
+  border: 1px solid var(--cor-etapa, var(--border-color));
+  background-color: color-mix(in srgb, var(--cor-etapa, #6e6e6e) 16%, transparent);
+}
+
+/* Nome fantasia sob a razão social */
+.celula-secundaria {
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+  margin-top: 0.1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Ficha do cliente
+   -------------------------------------------------------------------------- */
+
+/* Campo que informa em vez de receber — hoje só o vínculo com o ERP.
+   Tem a altura de um input para não desalinhar a grade do formulário. */
+.campo-informativo {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background-color: var(--input-bg);
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+}
+
+.ajuda-campo {
+  margin: 0 0 0.4rem;
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+}
+
+/* Avisa que o cartão ainda não passou pela conferência do ERP (Lote F) */
+.cartao-aviso {
+  margin-top: 0.35rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+/* --------------------------------------------------------------------------
+   Filtros e cadastros
+   -------------------------------------------------------------------------- */
+.filtro-inativos {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.secao-cadastro {
+  margin: 1.2rem 0 0.5rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
+
+.secao-cadastro:first-of-type { margin-top: 0.4rem; }
+
+/* --------------------------------------------------------------------------
+   Mesma regra do funil: um quadro de nove colunas não é usável em tela
+   estreita. O JS força a tabela abaixo do limiar; isto é a rede de
+   segurança para o instante entre o redimensionamento e o script.
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  #view-clientes-quadro { display: none !important; }
+}

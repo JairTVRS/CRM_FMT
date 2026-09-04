@@ -600,7 +600,10 @@ const Leads = (() => {
      ---------------------------------------------------------- */
 
   function recarregarVisao() {
-    if (modo === 'quadro' && typeof Quadro !== 'undefined') Quadro.carregar();
+    // QuadroLeads é a instância do funil comercial, montada no fim do
+    // quadro.js. O módulo virou fábrica no Lote H para servir também a
+    // jornada do cliente.
+    if (modo === 'quadro' && typeof QuadroLeads !== 'undefined') QuadroLeads.carregar();
     else carregar();
   }
 

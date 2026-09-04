@@ -22,6 +22,12 @@ package-lock.json.bak
 .dev.vars
 dist/
 
+# Config local do Wrangler: existe so para `pages dev` e para o
+# `d1 execute --local` acharem o binding DB. Se este arquivo entrasse no
+# repositorio, o Cloudflare Pages passaria a configurar o build por ele
+# em vez do painel — mudaria producao sem necessidade.
+wrangler.toml
+
 # Bases locais em arquivo (persistencia do server.js)
 leads.json
 /ramos.json

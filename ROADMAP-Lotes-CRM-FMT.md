@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 03/09/2026
-**Versão no ar:** 2.13.0
+**Atualizado em:** 04/09/2026
+**Versão no ar:** 2.14.0
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -29,19 +29,29 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 
 ### A seguir
 
+**A ordem mudou em 04/09/2026.** O Lote H foi puxado para a frente porque
+era o único adiante que não dependia de material externo, e o F seguia
+travado. As versões abaixo são as próximas na fila, não as do plano
+original.
+
 | Lote | Versão | Entrega | Depende de |
 |---|---|---|---|
-| **F** | 2.14 | **Cliente e conversão** — "Finalizado" abre a conversão, busca do CNPJ no ERP com trava, vínculo de ID, classificação herdada, aba Inativos | chave do hub com escopo ampliado |
-| **G** | 2.15 | **Contrato e boas-vindas** — reaproveitam a casca do Lote E; cadastro das empresas contratadas; qualificação do representante preenchida na geração | template do contrato |
-| **H** | 2.16 | **Jornada do cliente** — 9 etapas no quadro do Lote C, núcleos e papéis | — |
-| **I** | 2.17 | **Reuniões e atas** — sinais diretos do `/meetings`, parser do manual v2.3 para o plano de ação | — |
+| **F** | 2.15 | **Cliente e conversão** — "Finalizado" abre a conversão, busca do CNPJ no ERP com trava, vínculo de ID, classificação herdada | chave do hub com escopo ampliado |
+| **G** | 2.16 | **Contrato e boas-vindas** — reaproveitam a casca do Lote E; cadastro das empresas contratadas; qualificação do representante preenchida na geração | template do contrato |
+| **I** | 2.17 | **Reuniões e atas** — sinais diretos do `/meetings`, parser do manual v2.3 para o plano de ação; traz a **carteira** (cliente + núcleo) | — |
 | **J** | 2.18 | **Webhooks e notas** — recepção assinada, protocolo de 6 passos nas notas de Erro | endpoint de notas + webhooks |
 | **K** | 2.19 | **KPIs Empresariais** — série contínua com marco zero | endpoint de indicadores |
-| **L** | 2.20 | **Dossiê de Experiência e stakeholders** — cadastro da CX | — |
+| **L** | 2.20 | **Dossiê de Experiência e stakeholders** — consumidor de verdade dos papéis criados no Lote H | — |
 | **M** | 2.21 | **Saúde de CX** — Saúde e Aderência do ERP mais a camada de percepção | F, I, J, K |
 | **N** | 2.22 | **Check-in, NPS/CSAT e Voz do Cliente** | F |
 | **O** | 2.23 | **Relatório de Valor Gerado** | G, K |
 | **P** | 2.24 | **Dashboard de CX**, pauta da CX Review e Expansão | tudo |
+
+**O que o Lote H já adiantou do F:** a tabela `clientes` existe com
+`erp_id` e `lead_id` nascendo nulos, a ficha está pronta e a aba de
+inativos foi entregue junto. O F acrescenta por cima — busca no ERP,
+trava, preenchimento dos vínculos e a tela de conversão a partir do lead
+— sem refazer nada.
 
 ---
 
@@ -55,7 +65,8 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **Endpoint de indicadores** (em desenvolvimento) | K |
 | **Template do contrato em Word** | G |
 
-**Nada disso bloqueia o Lote H**, que só depende do que já existe.
+**O Lote H foi entregue em 04/09/2026** justamente porque não dependia de
+nada disso. O próximo lote sem bloqueio é o **L**.
 
 ---
 
@@ -90,6 +101,10 @@ vale a pior das carteiras — nunca a média, que esconderia o vermelho.
 **Dois dossiês distintos:** o Executivo é pré-venda e existe; o de
 Experiência é pós-venda e vem no Lote L.
 
+**Cliente sem `erp_id` é cadastro manual não conferido, não é cliente
+fora do ERP.** São coisas diferentes, e o cartão do quadro diz "sem ERP"
+para que uma não passe pela outra enquanto a trava do Lote F não existe.
+
 ---
 
 ## Dívidas técnicas registradas
@@ -112,3 +127,13 @@ decisão de quem responde pelo jurídico.
 **O `_lib/storage.js` do dossiê e o versionamento da proposta são
 irmãos, não compartilhados.** Com um consumidor cada, extrair seria
 abstração prematura. Quando o contrato chegar no Lote G, vale unificar.
+
+**Perfis de acesso ficaram mais caros com o Lote H.** A trilha de CX
+guarda dado de cliente ativo — contato, observações e, no Lote L, juízo
+sobre pessoas nomeadas. Continua aceitável porque só uma pessoa usa o CX,
+mas a dívida cresceu.
+
+**A ficha do cliente é um modal próprio, não a gaveta do lead.** As duas
+têm pouco em comum além de nome e documento; um formulário com metade dos
+campos ocultos por trilha seria mais difícil de manter que dois
+formulários honestos. Se a sobreposição crescer, reavaliar.

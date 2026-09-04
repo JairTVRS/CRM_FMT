@@ -21,6 +21,27 @@ const ORIGENS_PERMITIDAS = [
 ];
 
 const HUB_USERS_URL = "https://hub.formatar.com.br/v1/users";
+
+/**
+ * De onde perguntar se o usuário está ativo.
+ *
+ * Sempre o hub de verdade, exceto quando `HUB_USERS_URL` estiver no
+ * ambiente — o que só acontece no desenvolvimento local, via `.dev.vars`
+ * (arquivo que não vai para o Git). Em produção a variável não existe e
+ * o padrão vale, então o comportamento publicado é idêntico ao de antes.
+ *
+ * A razão da costura: a chave do hub é cadastrada como Secret na
+ * Cloudflare e segredo lá é de mão única — não há como recuperá-la para
+ * usar na máquina do desenvolvedor, e o hub não emite chave por
+ * autoatendimento. Sem isto, nenhuma rota protegida sobe local.
+ *
+ * O QUE ISTO **NÃO** AFROUXA: o token do Google continua validado
+ * integralmente — assinatura RS256 contra o JWKS, `aud`, `iss`, `exp` e
+ * e-mail verificado. Só o "este e-mail está ativo no ERP?" muda de
+ * endereço. Quem conseguisse escrever variável de ambiente em produção
+ * já controlaria o deploy inteiro de qualquer forma.
+ */
+const enderecoDoHub = (env) => env.HUB_USERS_URL || HUB_USERS_URL;
 const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
 const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 
@@ -145,12 +166,12 @@ async function validarTokenGoogle(token, clientId) {
  * Verifica no hub se o e-mail existe e está ativo.
  * A API do hub é server-to-server: só pode ser chamada daqui, nunca do navegador.
  */
-async function buscarUsuarioNoHub(email, apiKey) {
+async function buscarUsuarioNoHub(email, apiKey, base = HUB_USERS_URL) {
   const agora = Date.now();
   const emCache = usuarioCache.get(email);
   if (emCache && emCache.expiraEm > agora) return emCache.usuario;
 
-  const url = `${HUB_USERS_URL}?fields=id,name,email,isActive&search=${encodeURIComponent(email)}`;
+  const url = `${base}?fields=id,name,email,isActive&search=${encodeURIComponent(email)}`;
 
   const resposta = await fetch(url, {
     headers: {
@@ -227,7 +248,7 @@ export async function onRequest(context) {
   // 6. Usuário cadastrado e ativo no hub?
   let usuario;
   try {
-    usuario = await buscarUsuarioNoHub(payload.email, env.HUB_API_KEY);
+    usuario = await buscarUsuarioNoHub(payload.email, env.HUB_API_KEY, enderecoDoHub(env));
   } catch (e) {
     if (e.message === "HUB_CREDENCIAL") {
       return erro("Servidor sem credencial válida no hub.", 500, cabecalhos, "HUB_CREDENCIAL");

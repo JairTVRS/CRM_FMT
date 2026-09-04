@@ -4,12 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRM Formatar — Gestão, Governança & Conexões</title>
+
+  <!-- Favicon. Existiu desde a v2.5.11 e foi perdido em a56010d
+       (25/08/2026), quando o <head> inteiro foi substituído — o ícone
+       saiu junto, sem intenção. Restaurado aqui.
+       Caminho ABSOLUTO, e não "./": com "./" o ícone quebraria em
+       qualquer rota que não fosse a raiz. -->
+  <link rel="icon" type="image/png" href="/Icone-Aba.png">
+  <link rel="shortcut icon" type="image/png" href="/Icone-Aba.png">
+  <link rel="apple-touch-icon" href="/Icone-Aba.png">
+
   <link rel="stylesheet" href="/assets/css/main.css">
   <link rel="stylesheet" href="/assets/css/auth.css">
   <link rel="stylesheet" href="/assets/css/dossie.css">
   <link rel="stylesheet" href="/assets/css/importar.css">
   <link rel="stylesheet" href="/assets/css/quadro.css">
   <link rel="stylesheet" href="/assets/css/gaveta.css">
+  <link rel="stylesheet" href="/assets/css/cx.css">
 </head>
 <body>
 
@@ -43,6 +54,14 @@
             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
           Leads
+        </a>
+        <!-- A segunda trilha: relacionamento com cliente ativo. Pipeline
+             próprio, quadro próprio, mesma casa. -->
+        <a href="#" class="menu-item" data-target="view-clientes">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          Jornada
         </a>
       </nav>
 
@@ -188,7 +207,92 @@
         </div>
       </section>
 
-      <!-- TELA 2: CONFIGURAÇÕES DO SISTEMA -->
+      <!-- TELA 2: JORNADA DO CLIENTE (trilha de CX) -->
+      <section id="view-clientes" class="content-body hidden">
+        <header class="content-header">
+          <div class="header-titles">
+            <h1>Jornada do Cliente</h1>
+            <p class="subtitle">Relacionamento com cliente ativo: etapas da jornada, núcleos de atendimento e ficha do cliente.</p>
+          </div>
+          <div class="acoes-cabecalho">
+            <button id="btn-gerenciar-cx" class="btn btn-secondary">Núcleos e papéis</button>
+            <button id="btn-incluir-cliente" class="btn btn-primary">+ Incluir Cliente</button>
+          </div>
+        </header>
+
+        <div class="table-controls">
+          <div class="search-box">
+            <input type="text" id="input-search-cliente" class="form-control"
+                   placeholder="Buscar por razão social, nome fantasia ou CNPJ...">
+          </div>
+          <div class="filter-box">
+            <!-- As opções vêm do cadastro de núcleos, não de lista fixa -->
+            <select id="filter-nucleo" class="form-control">
+              <option value="">Todos os Núcleos</option>
+            </select>
+            <select id="filter-classificacao-cliente" class="form-control" title="Complexidade do projeto">
+              <option value="">Toda Classificação</option>
+              <option value="1">Classificação 1</option>
+              <option value="2">Classificação 2</option>
+              <option value="3">Classificação 3</option>
+              <option value="4">Classificação 4</option>
+              <option value="5">Classificação 5</option>
+              <option value="6">Classificação 6</option>
+            </select>
+            <label class="filtro-inativos" title="Cliente inativado sai do quadro, mas segue consultável">
+              <input type="checkbox" id="chk-clientes-inativos">
+              Ver inativos
+            </label>
+          </div>
+
+          <div class="view-toggle">
+            <button type="button" data-modo-cliente="tabela" title="Ver como tabela">Tabela</button>
+            <button type="button" data-modo-cliente="quadro" title="Ver como quadro">Quadro</button>
+          </div>
+        </div>
+
+        <!-- VISÃO 1: TABELA -->
+        <div id="view-clientes-tabela">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Razão Social</th>
+                  <th>CNPJ</th>
+                  <th>Cidade</th>
+                  <th>Núcleos</th>
+                  <th class="text-center">Classif.</th>
+                  <th>Etapa da jornada</th>
+                  <th class="text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="table-clientes-body">
+                <tr><td colspan="7" class="leads-vazio">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <footer class="table-footer">
+            <div id="total-clientes" class="table-footer-info">Total de Registros: 0</div>
+            <div class="pagination-controls">
+              <button id="btn-cli-anterior" class="btn btn-sm btn-secondary" disabled>Anterior</button>
+              <span id="info-pagina-clientes" class="page-indicator">Página 1 de 1</span>
+              <button id="btn-cli-proxima" class="btn btn-sm btn-secondary" disabled>Próxima</button>
+            </div>
+          </footer>
+        </div>
+
+        <!-- VISÃO 2: QUADRO (as etapas da jornada) -->
+        <div id="view-clientes-quadro" class="hidden">
+          <div class="table-footer" style="margin-top:0; margin-bottom:0.75rem;">
+            <span>Arraste pela alça do cartão para mover entre as etapas da jornada.</span>
+            <button id="btn-gerenciar-etapas-jornada" class="btn btn-sm btn-secondary">Gerenciar etapas</button>
+          </div>
+          <div id="jornada-colunas" class="quadro"></div>
+        </div>
+      </section>
+
+      <!-- TELA 3: CONFIGURAÇÕES DO SISTEMA -->
       <section id="view-configuracoes" class="content-body hidden">
         <header class="content-header">
           <div class="header-titles">
@@ -648,15 +752,18 @@
   <div id="modal-etapas" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 640px;">
       <header class="modal-header">
-        <h2>Etapas do funil</h2>
+        <!-- O título diz qual trilha está sendo editada: o modal é um só
+             para o funil comercial e para a jornada, e o quadro que abriu
+             é quem informa o pipeline. -->
+        <h2 id="modal-etapas-titulo">Etapas do funil comercial</h2>
         <button id="btn-etapas-fechar" class="btn-close" aria-label="Fechar">&times;</button>
       </header>
 
       <div class="modal-body">
         <p class="etapas-aviso">
           Cada etapa é uma coluna do quadro. As marcadas como <strong>terminal</strong>
-          nascem recolhidas — são as que só acumulam, como Finalizado e Perdido.
-          Etapa com lead dentro não pode ser excluída.
+          nascem recolhidas — são as que só acumulam, como Finalizado, Perdido
+          e Encerrado. Etapa com registro dentro não pode ser excluída.
         </p>
 
         <div id="etapas-lista" class="etapas-lista"></div>
@@ -666,6 +773,149 @@
           <input type="text" id="etapa-nova-nome" class="form-control"
                  placeholder="Nome da nova etapa" maxlength="60">
           <button id="btn-etapa-criar" class="btn btn-primary btn-sm">Adicionar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       FICHA DO CLIENTE (trilha de CX)
+
+       Modal próprio, e não a gaveta do lead com campos escondidos: as
+       duas fichas têm pouco em comum além do nome e do documento, e um
+       formulário com metade dos campos ocultos por trilha seria mais
+       difícil de manter que dois formulários honestos.
+       ==================================================================== -->
+  <div id="modal-cliente" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 720px;">
+      <header class="modal-header">
+        <h2 id="modal-cliente-title">Novo Cliente</h2>
+        <button id="btn-cliente-close" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label for="cliente-input-nome">Razão Social *</label>
+            <input type="text" id="cliente-input-nome" class="form-control" maxlength="200">
+          </div>
+          <div class="form-group col-span-2">
+            <label for="cliente-input-fantasia">Nome Fantasia</label>
+            <input type="text" id="cliente-input-fantasia" class="form-control" maxlength="200">
+          </div>
+
+          <div class="form-group">
+            <label for="cliente-input-cnpj">CNPJ *</label>
+            <input type="text" id="cliente-input-cnpj" class="form-control" maxlength="18"
+                   placeholder="00.000.000/0000-00">
+          </div>
+          <div class="form-group">
+            <label for="cliente-input-cidade">Cidade</label>
+            <input type="text" id="cliente-input-cidade" class="form-control" maxlength="120">
+          </div>
+
+          <div class="form-group">
+            <label for="cliente-input-contato">Contato principal</label>
+            <input type="text" id="cliente-input-contato" class="form-control" maxlength="120">
+          </div>
+          <div class="form-group">
+            <label for="cliente-input-telefone">Telefone</label>
+            <input type="text" id="cliente-input-telefone" class="form-control" maxlength="30">
+          </div>
+
+          <div class="form-group col-span-2">
+            <label for="cliente-input-email">E-mail</label>
+            <input type="email" id="cliente-input-email" class="form-control" maxlength="160">
+          </div>
+
+          <div class="form-group">
+            <label for="cliente-input-etapa">Etapa da jornada</label>
+            <select id="cliente-input-etapa" class="form-control"></select>
+          </div>
+          <div class="form-group">
+            <!-- Mesma escala 1–6 do lead, porque é a escala do ERP. Na
+                 conversão do Lote F ela é herdada, não redigitada. -->
+            <label for="cliente-input-classificacao">Classificação (1–6)</label>
+            <select id="cliente-input-classificacao" class="form-control">
+              <option value="">—</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cliente-input-inicio">Início da jornada</label>
+            <input type="date" id="cliente-input-inicio" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Vínculo com o ERP</label>
+            <p id="cliente-erp" class="campo-informativo">Ainda não vinculado ao ERP — cadastro manual.</p>
+          </div>
+
+          <div class="form-group col-span-2">
+            <label>Núcleos atendidos</label>
+            <p class="ajuda-campo">
+              O núcleo é o tipo de reunião. Cliente + núcleo é o que forma a
+              <strong>carteira</strong>, que chega com as reuniões do hub.
+            </p>
+            <div id="cliente-nucleos" class="tags-caixa"></div>
+          </div>
+
+          <div class="form-group col-span-2">
+            <label for="cliente-input-observacoes">Observações</label>
+            <textarea id="cliente-input-observacoes" class="form-control" rows="3" maxlength="4000"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button id="btn-cliente-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-cliente-save" class="btn btn-primary">Salvar</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       NÚCLEOS E PAPÉIS
+
+       Cadastro simplificado, a mesma mecânica de advisors e tags. Os
+       papéis nascem vazios de propósito — quem os consome de verdade é o
+       mapa de stakeholders do Dossiê de Experiência (Lote L).
+       ==================================================================== -->
+  <div id="modal-cx" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 620px;">
+      <header class="modal-header">
+        <h2>Núcleos e papéis</h2>
+        <button id="btn-cx-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+
+      <div class="modal-body">
+        <p class="etapas-aviso">
+          <strong>Núcleo</strong> é o tipo de reunião — o nível entre o Time
+          (agrupamento interno) e a Carteira (cliente + núcleo).
+          <strong>Papel</strong> é a função da pessoa do lado do cliente.
+          Núcleo em uso por algum cliente não pode ser excluído.
+        </p>
+
+        <h3 class="secao-cadastro">Núcleos de atendimento</h3>
+        <div id="cx-nucleos-lista" class="etapas-lista"></div>
+        <div class="etapa-nova">
+          <input type="color" id="cx-nucleo-cor" value="#6e6e6e" title="Cor do núcleo">
+          <input type="text" id="cx-nucleo-nome" class="form-control"
+                 placeholder="Nome do novo núcleo" maxlength="60">
+          <button id="btn-cx-nucleo-criar" class="btn btn-primary btn-sm">Adicionar</button>
+        </div>
+
+        <h3 class="secao-cadastro">Papéis</h3>
+        <div id="cx-papeis-lista" class="etapas-lista"></div>
+        <div class="etapa-nova">
+          <input type="text" id="cx-papel-nome" class="form-control"
+                 placeholder="Nome do novo papel" maxlength="60">
+          <button id="btn-cx-papel-criar" class="btn btn-primary btn-sm">Adicionar</button>
         </div>
       </div>
     </div>
@@ -682,10 +932,14 @@
   <script src="js/auth.js"></script>
 
   <script src="js/configuracoes.js"></script>
-  <!-- leads.js e dono dos filtros; quadro.js le deles -->
+  <!-- leads.js e clientes.js sao donos dos filtros de cada trilha;
+       quadro.js e a fabrica dos dois quadros e monta o do funil no fim
+       do proprio arquivo, entao vem depois do leads.js e antes do
+       clientes.js, que monta o quadro da jornada no fim do dele. -->
   <script src="js/cadastros.js"></script>
   <script src="js/leads.js"></script>
   <script src="js/quadro.js"></script>
+  <script src="js/clientes.js"></script>
   <script src="js/app.js"></script>
   <script src="js/proposta.js"></script>
   <script src="js/dossie.js"></script>

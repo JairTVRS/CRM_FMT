@@ -1,7 +1,7 @@
 /**
- * /api/cadastros — advisors, tags e etapas do funil.
+ * /api/cadastros — advisors, tags, etapas, núcleos e papéis.
  *
- * Os três seguem a mesma mecânica de cadastro simplificado: o usuário
+ * Todos seguem a mesma mecânica de cadastro simplificado: o usuário
  * digita um nome, ele vira opção para todos. Sem tela de administração
  * separada, sem perfil de admin — a equipe é pequena e o atrito de um
  * fluxo formal custaria mais que o risco.
@@ -9,13 +9,24 @@
  * A proteção contra estrago é a exclusão condicional: nada que esteja
  * em uso pode ser removido.
  *
- * GET    ?tipo=advisors|tags|etapas   lista
+ * Núcleos e papéis são o vocabulário da trilha de CX (Lote H). Núcleo é
+ * o Tipo de Reunião — o nível do meio entre Time (agrupamento interno) e
+ * Carteira (cliente + núcleo). Papel é a função da pessoa do cliente, e
+ * quem vai consumi-lo de verdade é o mapa de stakeholders do Lote L.
+ *
+ * GET    ?tipo=advisors|tags|etapas|nucleos|papeis   lista
  * POST   ?tipo=...                    cria
  * PUT    ?tipo=...&id=N               renomeia / altera cor / reordena
  * DELETE ?tipo=...&id=N               remove (bloqueado se estiver em uso)
  */
 
-const TIPOS = ['advisors', 'tags', 'etapas'];
+const TIPOS = ['advisors', 'tags', 'etapas', 'nucleos', 'papeis'];
+
+/**
+ * Quem tem coluna `cor`. Advisors e papéis são só nome — mandar `cor`
+ * para eles montaria um UPDATE com coluna inexistente.
+ */
+const COM_COR = new Set(['tags', 'etapas', 'nucleos']);
 
 function json(objeto, status, cabecalhos) {
   return new Response(JSON.stringify(objeto), { status, headers: cabecalhos });
@@ -64,18 +75,24 @@ export async function onRequestGet(context) {
   // ao abrir, e evita três requisições em sequência.
   if (searchParams.get('tipo') === 'todos') {
     try {
-      const [advisors, tags, etapas] = await Promise.all([
+      // As etapas saem filtradas pelo pipeline pedido; as demais listas
+      // são globais e valem para as duas trilhas.
+      const [advisors, tags, etapas, nucleos, papeis] = await Promise.all([
         db.prepare('SELECT id, nome FROM advisors WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
         db.prepare('SELECT id, nome, cor FROM tags WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
         db.prepare(
           `SELECT id, nome, cor, ordem, encerra, pipeline FROM etapas
            WHERE ativo = 1 AND pipeline = ? ORDER BY ordem`
-        ).bind(pipelineDe(searchParams)).all()
+        ).bind(pipelineDe(searchParams)).all(),
+        db.prepare('SELECT id, nome, cor FROM nucleos WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
+        db.prepare('SELECT id, nome FROM papeis WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all()
       ]);
       return json({
         advisors: advisors.results || [],
         tags: tags.results || [],
-        etapas: etapas.results || []
+        etapas: etapas.results || [],
+        nucleos: nucleos.results || [],
+        papeis: papeis.results || []
       }, 200, cabecalhos);
     } catch (e) {
       return json({ error: 'Falha ao carregar os cadastros.', details: e.message }, 500, cabecalhos);
@@ -99,7 +116,7 @@ export async function onRequestGet(context) {
       return json({ etapas: results || [] }, 200, cabecalhos);
     }
 
-    const colunas = tipo === 'tags' ? 'id, nome, cor' : 'id, nome';
+    const colunas = COM_COR.has(tipo) ? 'id, nome, cor' : 'id, nome';
 
     const { results } = await db
       .prepare(`SELECT ${colunas} FROM ${tipo} WHERE ativo = 1 ORDER BY nome COLLATE NOCASE`)
@@ -156,19 +173,21 @@ export async function onRequestPost(context) {
         .bind(nome, cor(corpo.cor) || '#6e6e6e', Number(ultima?.n || 0) + 1, corpo.encerra ? 1 : 0, pipeline)
         .first();
 
-    } else if (tipo === 'tags') {
+    } else if (COM_COR.has(tipo)) {
+      // tags e núcleos: mesma forma, mesma tabela em tudo que importa aqui
       registro = await db
         .prepare(
-          `INSERT INTO tags (nome, cor, criado_por, criado_em, ativo)
+          `INSERT INTO ${tipo} (nome, cor, criado_por, criado_em, ativo)
            VALUES (?, ?, ?, ?, 1) RETURNING id, nome, cor`
         )
         .bind(nome, cor(corpo.cor) || '#6e6e6e', usuario.email, agora)
         .first();
 
     } else {
+      // advisors e papéis: só nome
       registro = await db
         .prepare(
-          `INSERT INTO advisors (nome, criado_por, criado_em, ativo)
+          `INSERT INTO ${tipo} (nome, criado_por, criado_em, ativo)
            VALUES (?, ?, ?, 1) RETURNING id, nome`
         )
         .bind(nome, usuario.email, agora)
@@ -232,17 +251,20 @@ export async function onRequestPut(context) {
   // Sem isso, desmarcar uma etapa terminal seria impossível.
   const mudaEncerra = tipo === 'etapas' && corpo.encerra !== undefined;
 
-  if (!nome && !novaCor && !mudaEncerra) {
+  const campos = [];
+  const valores = [];
+  if (nome) { campos.push('nome = ?'); valores.push(nome); }
+  if (novaCor && COM_COR.has(tipo)) { campos.push('cor = ?'); valores.push(novaCor); }
+  if (mudaEncerra) { campos.push('encerra = ?'); valores.push(corpo.encerra ? 1 : 0); }
+
+  // A conferência é sobre o que SOBROU depois do filtro por tipo, não
+  // sobre o que veio no corpo. Uma cor mandada para advisors ou papéis
+  // é descartada acima, e o SET sairia vazio — SQL inválido.
+  if (campos.length === 0) {
     return json({ error: 'Nada a alterar.' }, 400, cabecalhos);
   }
 
   try {
-    const campos = [];
-    const valores = [];
-    if (nome) { campos.push('nome = ?'); valores.push(nome); }
-    if (novaCor && tipo !== 'advisors') { campos.push('cor = ?'); valores.push(novaCor); }
-    if (mudaEncerra) { campos.push('encerra = ?'); valores.push(corpo.encerra ? 1 : 0); }
-
     const registro = await db
       .prepare(`UPDATE ${tipo} SET ${campos.join(', ')} WHERE id = ? AND ativo = 1 RETURNING *`)
       .bind(...valores, id)
@@ -296,12 +318,37 @@ export async function onRequestDelete(context) {
       emUso = Number(r?.n || 0);
       mensagem = `Esta tag está aplicada a ${emUso} lead(s). Remova a tag deles antes de excluir.`;
 
-    } else {
+    } else if (tipo === 'nucleos') {
       const r = await db
-        .prepare('SELECT COUNT(*) AS n FROM leads WHERE etapa_id = ? AND ativo = 1')
+        .prepare(`SELECT COUNT(*) AS n FROM clientes, json_each(clientes.nucleos)
+                  WHERE json_each.value = ? AND clientes.ativo = 1`)
         .bind(id).first();
       emUso = Number(r?.n || 0);
-      mensagem = `Esta etapa contém ${emUso} lead(s). Mova-os para outra coluna antes de excluir.`;
+      mensagem = `Este núcleo é atendido em ${emUso} cliente(s). Remova-o deles antes de excluir.`;
+
+    } else if (tipo === 'papeis') {
+      // Nada consome papéis ainda: o mapa de stakeholders é o Lote L.
+      // Quando ele chegar, a contagem entra aqui — e é justamente por
+      // isso que o ramo existe em vez de cair no `else`.
+      emUso = 0;
+
+    } else {
+      // Etapas. A contagem tem que olhar as DUAS trilhas: uma etapa da
+      // jornada segura clientes, não leads, e contar só leads devolveria
+      // "vazia" para uma coluna cheia — apagá-la deixaria os cartões
+      // órfãos, sem coluna para onde voltar.
+      const [comLeads, comClientes] = await Promise.all([
+        db.prepare('SELECT COUNT(*) AS n FROM leads WHERE etapa_id = ? AND ativo = 1').bind(id).first(),
+        db.prepare('SELECT COUNT(*) AS n FROM clientes WHERE etapa_id = ? AND ativo = 1').bind(id).first()
+      ]);
+      const leads = Number(comLeads?.n || 0);
+      const clientes = Number(comClientes?.n || 0);
+      emUso = leads + clientes;
+
+      const quem = clientes > 0 && leads === 0
+        ? `${clientes} cliente(s)`
+        : (leads > 0 && clientes === 0 ? `${leads} lead(s)` : `${leads} lead(s) e ${clientes} cliente(s)`);
+      mensagem = `Esta etapa contém ${quem}. Mova-os para outra coluna antes de excluir.`;
     }
 
     if (emUso > 0) {

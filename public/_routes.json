@@ -5,6 +5,8 @@
     "/assets/*",
     "/js/*",
     "/logo-branca.png",
-    "/logo-preta.png"
+    "/logo-preta.png",
+    "/Icone-Aba.png",
+    "/favicon.ico"
   ]
 }

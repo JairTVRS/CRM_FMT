@@ -150,8 +150,14 @@ function validar(linhas) {
    ========================================================================== */
 
 async function resolverApoio(db, linhas, usuario) {
+  // Só as etapas do funil COMERCIAL. A planilha traz o nome da etapa em
+  // texto, e sem o filtro por pipeline um "Encerrado" da jornada do
+  // cliente entraria no mapa — a importação de leads jogaria registros
+  // na trilha de CX. A etapa padrão tem o mesmo risco: a jornada também
+  // começa em ordem 1.
   const { results: etapas } = await db
-    .prepare('SELECT id, nome FROM etapas WHERE ativo = 1 ORDER BY ordem').all();
+    .prepare(`SELECT id, nome FROM etapas
+              WHERE ativo = 1 AND pipeline = 'comercial' ORDER BY ordem`).all();
   const { results: advisors } = await db
     .prepare('SELECT id, nome FROM advisors WHERE ativo = 1').all();
 

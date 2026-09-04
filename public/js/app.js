@@ -71,6 +71,13 @@ function initNavigation() {
       if (targetId === 'view-configuracoes' && typeof window.initConfiguracoes === 'function') {
         window.initConfiguracoes();
       }
+
+      // A jornada do cliente só busca dados quando o usuário entra nela.
+      // Diferente dos leads, que é a tela inicial: puxar as duas trilhas
+      // no login gastaria consultas ao D1 por uma aba talvez nunca aberta.
+      if (targetId === 'view-clientes' && typeof Clientes !== 'undefined') {
+        Clientes.aoEntrarNaTela();
+      }
     });
   });
 }
