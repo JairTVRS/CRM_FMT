@@ -114,6 +114,28 @@ const Proposta = (() => {
     if (versoes) versoes.innerHTML = '<span class="prop-vazio">Nenhuma proposta gerada ainda.</span>';
   }
 
+  /**
+   * Mostra a falha COM a causa.
+   *
+   * A API já mandava o motivo real em `details` — foi assim que a
+   * ausência da tabela `propostas` em produção apareceu. O front lia só
+   * `error` e jogava `details` fora, então a tela dizia "Falha ao gerar a
+   * proposta" e ponto: quem estava usando não tinha como saber se era
+   * banco, permissão, campo inválido ou rede. Diagnosticar exigia abrir
+   * o DevTools.
+   *
+   * Numa ferramenta interna com um punhado de usuários, esconder a causa
+   * técnica não protege ninguém — só transfere o trabalho de descobrir
+   * para quem tem menos meios de fazê-lo.
+   */
+  function mostrarErro(status, resposta, padrao) {
+    if (!status) return;
+    const principal = resposta?.error || padrao;
+    const causa = resposta?.details ? ` (${resposta.details})` : '';
+    status.textContent = principal + causa;
+    status.className = 'prop-status erro';
+  }
+
   function preencherComDados(d) {
     p('prop-contato-nome', d.contato?.nome);
     p('prop-contato-cargo', d.contato?.cargo);
@@ -186,16 +208,22 @@ const Proposta = (() => {
     const url = `/api/proposta?lead_id=${leadId}&html=true${versao ? `&versao=${versao}` : ''}`;
 
     fetch(url)
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error('falha'))))
+      .then(async (r) => {
+        if (r.ok) return r.text();
+        // Mesma razão do `mostrarErro`: a causa vem na resposta e não
+        // pode ser descartada. Aqui o corpo do erro é JSON, não HTML.
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.details || d.error || `HTTP ${r.status}`);
+      })
       .then((html) => {
         if (!aba) { alert('Permita janelas pop-up para abrir a proposta.'); return; }
         aba.document.open();
         aba.document.write(html);
         aba.document.close();
       })
-      .catch(() => {
+      .catch((e) => {
         aba?.close();
-        alert('Não foi possível abrir a proposta.');
+        alert(`Não foi possível abrir a proposta.\n\n${e.message}`);
       });
   }
 
@@ -255,7 +283,7 @@ const Proposta = (() => {
       const d = await r.json();
 
       if (!r.ok) {
-        if (status) { status.textContent = d.error || 'Não foi possível gerar.'; status.className = 'prop-status erro'; }
+        mostrarErro(status, d, 'Não foi possível gerar.');
         return;
       }
 
@@ -267,7 +295,10 @@ const Proposta = (() => {
       abrirVersao(d.versao);
 
     } catch (e) {
-      if (status) { status.textContent = 'Falha de conexão ao gerar.'; status.className = 'prop-status erro'; }
+      // Aqui a requisição nem completou, então não há `details` do
+      // servidor — mas a mensagem do próprio erro ainda diz mais que
+      // "falha de conexão" sozinho.
+      mostrarErro(status, { error: 'Falha de conexão ao gerar.', details: e.message }, null);
     } finally {
       if (botao) { botao.disabled = false; botao.textContent = 'Gerar proposta'; }
     }
