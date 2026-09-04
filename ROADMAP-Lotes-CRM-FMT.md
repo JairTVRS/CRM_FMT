@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 04/09/2026
-**Versão no ar:** 2.14.0
+**Versão no ar:** 2.14.1
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -104,6 +104,27 @@ Experiência é pós-venda e vem no Lote L.
 **Cliente sem `erp_id` é cadastro manual não conferido, não é cliente
 fora do ERP.** São coisas diferentes, e o cartão do quadro diz "sem ERP"
 para que uma não passe pela outra enquanto a trava do Lote F não existe.
+
+---
+
+## Incidente: a migração 006 ficou para trás
+
+Descoberto em 04/09/2026, ao ler o esquema remoto antes de aplicar a
+007: a tabela `propostas` **não existia em produção**, embora o Lote E
+tenha subido na v2.13.0 no dia anterior. A geração de proposta estava
+quebrada no ar desde então. Corrigido na v2.14.1.
+
+**A convenção passa a ter duas metades**, não uma: migração antes do
+deploy **e conferência depois de aplicar**. Um
+`SELECT name FROM sqlite_master` custa segundos e teria pego isso.
+
+**A lição maior é outra.** O erro na tela dizia só "Falha ao gerar a
+proposta". A causa real — `no such table: propostas` — vinha na
+resposta da API, no campo `details`, e o front a descartava. O bug de
+banco durou um dia; o bug de diagnóstico é que o tornou invisível.
+Mensagem de erro que engole a causa não protege ninguém numa
+ferramenta interna: só transfere o trabalho de descobrir para quem tem
+menos meios de fazê-lo.
 
 ---
 
