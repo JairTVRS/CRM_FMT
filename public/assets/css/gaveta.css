@@ -62,6 +62,19 @@
 .dias-contato.hoje     { color: #eab308; }
 .dias-contato.futuro   { color: var(--text-muted); }
 
+/* Resultado da busca de CEP no ViaCEP, embaixo do campo. Ocupa espaço
+   só quando tem o que dizer — vazio, não empurra a grade. */
+.cep-aviso {
+  font-size: 0.75rem;
+  margin-top: 0.3rem;
+  display: inline-block;
+  color: var(--text-muted);
+}
+
+.cep-aviso:empty { display: none; }
+.cep-aviso.cep-ok   { color: var(--success-color); }
+.cep-aviso.cep-erro { color: #f87171; }
+
 .campo-ajuda {
   font-size: 0.72rem;
   color: var(--text-subtle);

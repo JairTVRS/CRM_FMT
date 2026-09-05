@@ -2,6 +2,7 @@
 
 **Atualizado em:** 05/09/2026
 **Versão no ar:** 2.15.0 (migração 008 aplicada e conferida no D1 remoto)
+**Pronta para subir:** 2.16.0 — ajustes de tela, sem migração
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -28,6 +29,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **E** | **2.13.0** | **Gerador de documentos** e proposta comercial; paleta oficial da marca |
 | **H** | **2.14.0** | **Jornada do cliente**, clientes, núcleos e papéis (2.14.1 corrigiu a proposta) |
 | **L** | **2.15.0** | **Mapa de stakeholders e Dossiê de Experiência** — consumidor de verdade dos papéis criados no H |
+| — | **2.16.0** | **Ajustes de tela** — calendário abre pelo campo, busca de CEP no ViaCEP, e a análise falsa da IA removida |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -117,6 +119,29 @@ vale a pior das carteiras — nunca a média, que esconderia o vermelho.
 
 **Dois dossiês distintos:** o Executivo é pré-venda e existe; o de
 Experiência é pós-venda e vem no Lote L.
+
+**O hub é dono da lista de clientes ativos; o CRM anota por cima.**
+Decidido em 05/09/2026, ao verificar a Jornada em navegador. A Jornada
+passa a listar os clientes ativos do hub **ao vivo**, e a linha de
+`clientes` no CRM guarda só a camada de jornada — etapa, núcleos,
+stakeholders, observações. Cliente que existe no hub e ainda não tem
+linha no CRM aparece como **"sem jornada definida"**, e não some da tela.
+
+É a leitura coerente com a decisão que já estava aqui — o CRM não replica
+o ERP, lê ao vivo — e **muda o que o Lote F precisa ser**: ele deixa de
+ser "converter lead em cliente e cadastrar" para ser "ligar o lead
+convertido a um cliente que o hub já conhece". A tabela `clientes`
+continua existindo, mas deixa de ser a fonte de quem é cliente.
+
+Consequência prática: **a Jornada fica vazia até a chave do hub com
+escopo ampliado chegar.** Cadastro manual segue possível, e é o que
+permite exercitar a trilha enquanto isso.
+
+**No endereço, o CEP manda.** Decidido em 05/09/2026. Quando a consulta
+de CNPJ (Receita) e a de CEP (ViaCEP) discordarem, vence o CEP: é a
+intenção mais recente e mais específica de quem está digitando. A Receita
+segue preenchendo o que a base de CEP não tem — o número do imóvel, que é
+justamente o que só a pessoa sabe.
 
 **Cliente sem `erp_id` é cadastro manual não conferido, não é cliente
 fora do ERP.** São coisas diferentes, e o cartão do quadro diz "sem ERP"

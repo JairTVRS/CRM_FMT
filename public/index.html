@@ -522,9 +522,14 @@
               <input type="text" id="lead-input-contato-nome" class="form-control" placeholder="Ex: João Silva">
             </div>
 
+            <!-- Preencher o CEP consulta o ViaCEP e completa Cidade/UF e
+                 logradouro. Endereço à mão só é necessário quando não há
+                 CEP, ou quando o CEP não é encontrado. -->
             <div class="form-group">
               <label for="lead-input-cep">CEP</label>
-              <input type="text" id="lead-input-cep" class="form-control" placeholder="00000-000">
+              <input type="text" id="lead-input-cep" class="form-control"
+                     placeholder="00000-000" maxlength="9" inputmode="numeric">
+              <span id="cep-aviso" class="cep-aviso"></span>
             </div>
 
             <div class="form-group">

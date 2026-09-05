@@ -283,9 +283,15 @@ const Leads = (() => {
     p('lead-input-obs', lead.observacoes);
     p('lead-input-email', lead.email);
     p('lead-input-contato-nome', lead.contato_nome);
-    p('lead-input-cep', lead.cep);
+    p('lead-input-cep', formatarCep(lead.cep));
     p('lead-input-cidade', lead.cidade);
     p('lead-input-endereco', lead.endereco);
+
+    // Outro lead, outra busca: sem isto, abrir uma ficha cujo CEP é o
+    // mesmo da anterior faria a consulta ser pulada pela guarda.
+    cepEmBusca = null;
+    const avisoCep = el('cep-aviso');
+    if (avisoCep) { avisoCep.textContent = ''; avisoCep.className = 'cep-aviso'; }
     p('select-ramo', lead.ramo);
     p('select-segmento', lead.segmento);
 
@@ -624,6 +630,111 @@ const Leads = (() => {
   }
 
   /* ----------------------------------------------------------
+     CEP — busca no ViaCEP
+
+     Chamado direto do navegador, e não por uma Function nossa. O
+     `auth.js` intercepta o `fetch` e injeta o token só em URLs que
+     contenham `/api/` — a do ViaCEP não contém, então passa limpa e o
+     token não vaza. O serviço é público, tem CORS liberado e não pede
+     chave; um endpoint próprio só acrescentaria um salto.
+
+     **O CEP manda no endereço** (decisão de 05/09/2026). Quando o CNPJ
+     e o CEP discordam, vence o CEP: ele é a intenção mais recente e
+     mais específica de quem está digitando. A Receita segue preenchendo
+     o que o ViaCEP não devolve — o número, que não existe na base de
+     CEP.
+     ---------------------------------------------------------- */
+
+  const soDigitosCep = (v) => String(v || '').replace(/\D/g, '');
+
+  const formatarCep = (v) => {
+    const d = soDigitosCep(v);
+    return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : (v || '');
+  };
+
+  /**
+   * Junta o que o ViaCEP devolveu com o que já estava no campo.
+   *
+   * O ViaCEP não tem número — a base é de logradouro, não de imóvel. Se
+   * o usuário já digitou "Rua X, 123 - Centro", sobrescrever cru
+   * apagaria o 123, que é justamente a parte que só ele sabe.
+   */
+  function mesclarEndereco(anterior, dados) {
+    const logradouro = (dados.logradouro || '').trim();
+    const bairro = (dados.bairro || '').trim();
+    if (!logradouro && !bairro) return anterior || '';
+
+    // O primeiro número solto do valor anterior é o número da casa.
+    // CEP e cidade moram em outros campos, então não há o que confundir.
+    const numero = (String(anterior || '').match(/\b(\d{1,6})\b/) || [])[1] || null;
+
+    const rua = [logradouro, numero].filter(Boolean).join(', ');
+    return [rua, bairro].filter(Boolean).join(' - ');
+  }
+
+  let cepEmBusca = null;
+
+  async function buscarCep(bruto) {
+    const cep = soDigitosCep(bruto);
+    const campo = el('lead-input-cep');
+    const aviso = el('cep-aviso');
+
+    const dizer = (texto, classe) => {
+      if (!aviso) return;
+      aviso.textContent = texto || '';
+      aviso.className = `cep-aviso${classe ? ` ${classe}` : ''}`;
+    };
+
+    if (cep.length === 0) { dizer(''); return; }
+
+    if (cep.length !== 8) {
+      dizer('CEP incompleto — precisa de 8 dígitos.', 'cep-erro');
+      return;
+    }
+
+    // Já consultado e nada mudou: não repete a chamada a cada saída do
+    // campo.
+    if (cepEmBusca === cep) return;
+    cepEmBusca = cep;
+
+    if (campo) campo.value = formatarCep(cep);
+    dizer('Buscando…');
+
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      if (!r.ok) throw new Error(`ViaCEP respondeu ${r.status}.`);
+
+      const d = await r.json();
+
+      // O ViaCEP devolve 200 com `{ erro: true }` para CEP inexistente.
+      // Tratar isso como sucesso preencheria a ficha com nada.
+      if (d.erro) {
+        cepEmBusca = null;
+        dizer('CEP não encontrado. Preencha o endereço à mão.', 'cep-erro');
+        return;
+      }
+
+      const cidade = el('lead-input-cidade');
+      const endereco = el('lead-input-endereco');
+
+      if (cidade && d.localidade) {
+        cidade.value = d.uf ? `${d.localidade} / ${d.uf}` : d.localidade;
+      }
+      if (endereco) {
+        endereco.value = mesclarEndereco(endereco.value, d);
+      }
+
+      dizer(`${d.localidade || ''}${d.uf ? ` / ${d.uf}` : ''} — endereço preenchido.`, 'cep-ok');
+
+    } catch (e) {
+      cepEmBusca = null;
+      // A causa vai para a tela. Engolir o motivo foi o que fez o bug da
+      // proposta durar um dia inteiro.
+      dizer(`Não foi possível consultar o CEP: ${e.message}`, 'cep-erro');
+    }
+  }
+
+  /* ----------------------------------------------------------
      Ligação com a interface
      ---------------------------------------------------------- */
 
@@ -633,6 +744,13 @@ const Leads = (() => {
    * requisicao a /api sai sem token.
    */
   function iniciar() {
+    // CEP: busca ao sair do campo e assim que os 8 dígitos aparecem —
+    // colar um CEP não deveria exigir sair do campo para funcionar.
+    el('lead-input-cep')?.addEventListener('blur', (ev) => buscarCep(ev.target.value));
+    el('lead-input-cep')?.addEventListener('input', (ev) => {
+      if (soDigitosCep(ev.target.value).length === 8) buscarCep(ev.target.value);
+    });
+
     el('input-search-lead')?.addEventListener('input', (ev) => {
       clearTimeout(debounce);
       const valor = ev.target.value.trim();

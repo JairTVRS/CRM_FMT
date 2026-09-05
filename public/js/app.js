@@ -15,7 +15,38 @@ document.addEventListener('DOMContentLoaded', () => {
   initModalEvents();
   initSubTabs();
   initTableActions();
+  initSeletorDeData();
 });
+
+/* ==========================================================================
+   Campos de data
+
+   Todos os campos de data já são `input type="date"`, então o calendário
+   nativo sempre existiu — mas o navegador só o abre pelo ícone à direita.
+   Clicar no meio do campo põe o cursor para digitar, e quem espera o
+   calendário conclui que não tem.
+
+   Ouvinte delegado no documento, e não campo a campo: os campos de data
+   vivem dentro de modais (ficha do lead, ficha do cliente) e alguns são
+   desenhados depois do carregamento. Amarrar um a um exigiria religar a
+   cada modal novo.
+
+   Digitar continua funcionando: com o calendário aberto, as teclas ainda
+   vão para o campo.
+   ========================================================================== */
+
+function initSeletorDeData() {
+  document.addEventListener('click', (ev) => {
+    const campo = ev.target;
+    if (!(campo instanceof HTMLInputElement) || campo.type !== 'date') return;
+    if (campo.disabled || campo.readOnly) return;
+
+    // `showPicker` não existe em todo navegador, e lança quando é
+    // chamado sem gesto do usuário ou com o calendário já aberto — que é
+    // o caso de quem clicou justamente no ícone.
+    try { campo.showPicker?.(); } catch (e) { /* o ícone continua valendo */ }
+  });
+}
 
 /* ==========================================================================
    Navegação e Alternância de Temas
@@ -327,8 +358,15 @@ async function executarBuscaIA() {
       })
     });
 
+    // A causa real vem no corpo, nos campos `error` e `details`. Ler só
+    // o status devolveria "Erro na API (500)", que não diz a ninguém o
+    // que houve — foi assim que o `no such table: propostas` ficou um dia
+    // invisível na v2.13.0.
     if (!response.ok) {
-      throw new Error(`Erro na API (${response.status})`);
+      const corpo = await response.json().catch(() => ({}));
+      throw new Error(
+        corpo.details || corpo.error || `A API respondeu ${response.status}.`
+      );
     }
 
     const data = await response.json();
@@ -354,16 +392,31 @@ async function executarBuscaIA() {
     resumoBox.innerHTML = data.resumoHtml || `<p>${data.resumo || 'Análise concluída com sucesso.'}</p>`;
 
   } catch (err) {
-    console.warn('Backend indisponível no momento. Exibindo resposta simulada:', err);
-    
-    setTimeout(() => {
-      resumoBox.innerHTML = `
-        <p><strong>Visão Geral:</strong> Empresa atuante no mercado com presença digital identificada (Processado via ${providerAtivo.toUpperCase()}).</p>
-        <p><strong>Mercado & Atuação:</strong> Forte alinhamento para projetos de governança corporativa e automação de processos.</p>
-        <p><strong>Recomendação Comercial:</strong> Apresentar cases de sucesso focados em ganho de eficiência operacional.</p>
-      `;
-    }, 1000);
+    // Aqui havia uma "resposta simulada": quando a chamada falhava, a
+    // tela exibia uma análise inventada, com aparência de real e sem
+    // nenhuma marca de que era falsa — só um aviso no console, que
+    // ninguém lê. Num CRM isso vai parar numa reunião como se fosse
+    // pesquisa de verdade.
+    //
+    // Falha agora diz que falhou, e diz por quê.
+    console.error('Falha ao enriquecer o lead:', err);
+
+    resumoBox.innerHTML = `
+      <p style="color: var(--danger-color); margin-top: 0">
+        <strong>Não foi possível consultar a IA.</strong>
+      </p>
+      <p style="color: var(--text-muted)">${escaparTexto(err.message)}</p>
+      <p style="color: var(--text-subtle); font-size: 0.85em">
+        Nada foi preenchido. Verifique o provedor em Configurações e tente
+        de novo, ou preencha os campos à mão.
+      </p>`;
   }
+}
+
+/** O texto do erro vai para innerHTML; pode conter &, < ou >. */
+function escaparTexto(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // Expõe globalmente para uso inline do HTML
