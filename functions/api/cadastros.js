@@ -319,18 +319,39 @@ export async function onRequestDelete(context) {
       mensagem = `Esta tag está aplicada a ${emUso} lead(s). Remova a tag deles antes de excluir.`;
 
     } else if (tipo === 'nucleos') {
-      const r = await db
-        .prepare(`SELECT COUNT(*) AS n FROM clientes, json_each(clientes.nucleos)
-                  WHERE json_each.value = ? AND clientes.ativo = 1`)
-        .bind(id).first();
-      emUso = Number(r?.n || 0);
-      mensagem = `Este núcleo é atendido em ${emUso} cliente(s). Remova-o deles antes de excluir.`;
+      // Duas amarras desde o Lote L: o cliente que é atendido no núcleo
+      // e a pessoa que participa das reuniões dele. Contar só clientes
+      // deixaria escapar o caso em que o núcleo saiu da ficha mas as
+      // pessoas continuam vinculadas — e o mapa de stakeholders passaria
+      // a citar um núcleo que o banco não sabe mais nomear.
+      const [emClientes, emPessoas] = await Promise.all([
+        db.prepare(`SELECT COUNT(*) AS n FROM clientes, json_each(clientes.nucleos)
+                    WHERE json_each.value = ? AND clientes.ativo = 1`).bind(id).first(),
+        db.prepare(`SELECT COUNT(*) AS n FROM stakeholders, json_each(stakeholders.nucleos)
+                    WHERE json_each.value = ? AND stakeholders.ativo = 1`).bind(id).first()
+      ]);
+
+      const clientes = Number(emClientes?.n || 0);
+      const pessoas = Number(emPessoas?.n || 0);
+      emUso = clientes + pessoas;
+
+      const quem = [
+        clientes ? `${clientes} cliente(s)` : null,
+        pessoas ? `${pessoas} pessoa(s) do mapa de stakeholders` : null
+      ].filter(Boolean).join(' e ');
+
+      mensagem = `Este núcleo está vinculado a ${quem}. Remova-o deles antes de excluir.`;
 
     } else if (tipo === 'papeis') {
-      // Nada consome papéis ainda: o mapa de stakeholders é o Lote L.
-      // Quando ele chegar, a contagem entra aqui — e é justamente por
-      // isso que o ramo existe em vez de cair no `else`.
-      emUso = 0;
+      // O ramo existia vazio desde a 007, esperando o consumidor. Ele
+      // chegou no Lote L: papel usado no mapa de stakeholders não pode
+      // sumir, ou as pessoas ficariam com a função em branco na ficha e
+      // nos dossiês já gerados.
+      const r = await db
+        .prepare('SELECT COUNT(*) AS n FROM stakeholders WHERE papel_id = ? AND ativo = 1')
+        .bind(id).first();
+      emUso = Number(r?.n || 0);
+      mensagem = `Este papel está atribuído a ${emUso} pessoa(s) no mapa de stakeholders. Troque o papel delas antes de excluir.`;
 
     } else {
       // Etapas. A contagem tem que olhar as DUAS trilhas: uma etapa da

@@ -14,6 +14,8 @@
  * que uma falha porque o modelo esqueceu um campo.
  */
 
+import { limparHtml, texto, url, lista } from './saneamento.js';
+
 export const CONFIANCAS = ['alta', 'media', 'baixa'];
 export const QUADRANTES = ['forcas', 'atencao', 'oportunidades', 'riscos'];
 
@@ -55,56 +57,11 @@ export const FORMATO_ANALISE = `{
 
 /* ==========================================================================
    UTILIDADES DE SANEAMENTO
+
+   `limparHtml`, `texto`, `url` e `lista` moraram aqui até o Lote L. Foram
+   para `_lib/saneamento.js` quando o Dossiê de Experiência virou o segundo
+   consumidor — o comportamento é o mesmo, o import está no topo.
    ========================================================================== */
-
-const TAGS_PERMITIDAS = /<\/?(p|strong|em|b|i|ul|ol|li|br)\s*\/?>/gi;
-
-/**
- * O modelo devolve HTML. Removemos qualquer tag fora da lista branca —
- * o conteúdo vai para dentro de um iframe, mas defesa em profundidade
- * custa pouco e evita surpresa.
- */
-function limparHtml(valor, limite = 4000) {
-  if (typeof valor !== 'string') return null;
-
-  let t = valor
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/ on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/javascript:/gi, '');
-
-  // Remove tags não permitidas, preservando o texto interno
-  t = t.replace(/<[^>]+>/g, (tag) => {
-    TAGS_PERMITIDAS.lastIndex = 0;
-    return TAGS_PERMITIDAS.test(tag) ? tag : '';
-  });
-
-  t = t.trim();
-  if (!t) return null;
-  return t.length > limite ? `${t.slice(0, limite)}…` : t;
-}
-
-function texto(valor, limite = 400) {
-  if (typeof valor !== 'string') return null;
-  const t = valor.replace(/<[^>]+>/g, '').trim();
-  if (!t) return null;
-  return t.length > limite ? `${t.slice(0, limite)}…` : t;
-}
-
-function url(valor) {
-  if (typeof valor !== 'string') return null;
-  try {
-    const u = new URL(valor.trim());
-    return /^https?:$/.test(u.protocol) ? u.toString() : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function lista(valor, mapear, maximo) {
-  if (!Array.isArray(valor)) return [];
-  return valor.map(mapear).filter(Boolean).slice(0, maximo);
-}
 
 function itemRadar(item) {
   if (!item || typeof item !== 'object') return null;

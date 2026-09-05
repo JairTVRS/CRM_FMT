@@ -226,11 +226,19 @@ const Clientes = (() => {
       </button>`).join('');
   }
 
+  /**
+   * Limpa só a aba Ficha, não o modal inteiro.
+   *
+   * Desde o Lote L há mais dois formulários dentro deste mesmo modal — o
+   * da pessoa e o do dossiê. Varrer `#modal-cliente` apagaria o que o
+   * usuário está digitando na aba do lado, e no caixote do patrocinador
+   * nem funcionaria: `value = ''` não desmarca uma caixa de seleção.
+   */
   function limparFicha() {
-    const modal = el('modal-cliente');
-    if (!modal) return;
-    modal.querySelectorAll('input, textarea').forEach((campo) => { campo.value = ''; });
-    modal.querySelectorAll('select').forEach((campo) => { campo.selectedIndex = 0; });
+    const aba = el('cli-tab-ficha');
+    if (!aba) return;
+    aba.querySelectorAll('input, textarea').forEach((campo) => { campo.value = ''; });
+    aba.querySelectorAll('select').forEach((campo) => { campo.selectedIndex = 0; });
     nucleosSelecionados = new Set();
     montarNucleos();
   }
@@ -265,6 +273,34 @@ const Clientes = (() => {
     }
   }
 
+  /* ----------------------------------------------------------
+     Abas da ficha
+
+     Classes próprias (`cli-tab-*`) e um comutador próprio, em vez das
+     `.tab-btn` do modal de lead: o app.js liga um ouvinte global naquelas
+     classes que esconde TODA `.tab-content` da página. Reaproveitá-las
+     faria um clique aqui apagar as abas da ficha do lead.
+     ---------------------------------------------------------- */
+
+  function mostrarAba(alvo) {
+    const modal = el('modal-cliente');
+    if (!modal) return;
+
+    modal.querySelectorAll('.cli-tab-content').forEach((painel) => {
+      painel.classList.toggle('hidden', painel.id !== alvo);
+    });
+
+    modal.querySelectorAll('.cli-tab-btn').forEach((botao) => {
+      botao.classList.toggle('active', botao.dataset.cliTab === alvo);
+    });
+
+    // Stakeholders e dossiê carregam sob demanda: quem abre a ficha para
+    // corrigir um telefone não deve pagar duas consultas ao D1 por isso.
+    document.dispatchEvent(new CustomEvent('crm:cliente-aba', {
+      detail: { aba: alvo, clienteId: idEmEdicao }
+    }));
+  }
+
   function abrirFicha(cliente) {
     const modal = el('modal-cliente');
     if (!modal) return;
@@ -284,6 +320,15 @@ const Clientes = (() => {
     }
 
     modal.classList.remove('hidden');
+
+    // Sempre volta para a Ficha: abrir um cliente na aba em que o
+    // anterior foi deixado mostraria as pessoas de outra conta enquanto
+    // a lista nova não chega.
+    mostrarAba('cli-tab-ficha');
+
+    document.dispatchEvent(new CustomEvent('crm:cliente-ficha', {
+      detail: { id: idEmEdicao, nome: cliente?.nome || null }
+    }));
   }
 
   const fecharFicha = () => el('modal-cliente')?.classList.add('hidden');
@@ -610,6 +655,10 @@ const Clientes = (() => {
       aplicarModo(modo);          // inativos força a tabela
     });
 
+    document.querySelectorAll('.cli-tab-btn').forEach((botao) => {
+      botao.addEventListener('click', () => mostrarAba(botao.dataset.cliTab));
+    });
+
     el('btn-incluir-cliente')?.addEventListener('click', () => abrirFicha(null));
     el('btn-cliente-close')?.addEventListener('click', fecharFicha);
     el('btn-cliente-cancel')?.addEventListener('click', fecharFicha);
@@ -684,7 +733,31 @@ const Clientes = (() => {
 
   return {
     carregar, recarregarVisao, aoEntrarNaTela, abrirFicha,
-    parametros, listaDeNucleos, nomeDoNucleo, etapaPorId
+    parametros, listaDeNucleos, nomeDoNucleo, etapaPorId,
+
+    /* Para o stakeholders.js e o dossie-cx.js, que pendem desta ficha. */
+
+    /** null enquanto o cliente não foi salvo — não há a que pendurar pessoa. */
+    emEdicao: () => idEmEdicao,
+
+    /**
+     * Os núcleos marcados NA TELA, não os que o banco tem.
+     *
+     * A pessoa é vinculada aos núcleos em que o cliente é atendido, e a
+     * lista honesta é a que o usuário está vendo — inclusive uma marcação
+     * que ele acabou de fazer e ainda não salvou.
+     */
+    nucleosDaFicha: () => [...nucleosSelecionados]
+      .map((id) => (typeof Cadastros !== 'undefined' ? Cadastros.nucleoPorId(id) : null))
+      .filter(Boolean),
+
+    /** O que a aba do dossiê mostra como "o que entra nesta versão". */
+    resumoDaFicha: () => ({
+      nome: el('cliente-input-nome')?.value.trim() || null,
+      etapa: etapaPorId(el('cliente-input-etapa')?.value)?.nome || null,
+      inicio: el('cliente-input-inicio')?.value || null,
+      classificacao: el('cliente-input-classificacao')?.value || null
+    })
   };
 })();
 

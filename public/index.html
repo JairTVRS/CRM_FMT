@@ -793,7 +793,19 @@
         <button id="btn-cliente-close" class="btn-close" aria-label="Fechar">&times;</button>
       </header>
 
+      <!-- As abas daqui têm classes próprias (cli-tab-*) e NÃO as .tab-btn do
+           modal de lead. O app.js liga um ouvinte global em .tab-btn que
+           esconde toda .tab-content da página; reaproveitar as classes faria
+           um clique aqui apagar as abas da ficha do lead, que só reapareceriam
+           no próximo clique lá dentro. -->
+      <nav class="modal-tabs">
+        <button class="cli-tab-btn active" data-cli-tab="cli-tab-ficha">Ficha</button>
+        <button class="cli-tab-btn" data-cli-tab="cli-tab-pessoas">Stakeholders</button>
+        <button class="cli-tab-btn" data-cli-tab="cli-tab-dossie">Dossiê de Experiência</button>
+      </nav>
+
       <div class="modal-body">
+        <div id="cli-tab-ficha" class="cli-tab-content">
         <div class="form-grid">
           <div class="form-group col-span-2">
             <label for="cliente-input-nome">Razão Social *</label>
@@ -870,6 +882,142 @@
             <textarea id="cliente-input-observacoes" class="form-control" rows="3" maxlength="4000"></textarea>
           </div>
         </div>
+        </div><!-- /cli-tab-ficha -->
+
+        <!-- ================================================================
+             ABA 2: STAKEHOLDERS — as pessoas do lado do cliente
+             ================================================================ -->
+        <div id="cli-tab-pessoas" class="cli-tab-content hidden">
+          <p class="ajuda-campo">
+            Quem decide, quem influencia e quem participa de cada núcleo.
+            <strong>Influência</strong> e <strong>postura</strong> são a leitura
+            da CX — enquanto ninguém as avaliar, ficam como "não avaliada", que
+            é diferente de neutra.
+          </p>
+
+          <!-- Pessoa pende de um cliente que já existe. Antes do primeiro
+               salvamento não há a que pendurar, e a aba diz isso em vez de
+               oferecer um formulário que falharia ao gravar. -->
+          <p id="pessoas-sem-cliente" class="campo-informativo hidden">
+            Salve o cliente primeiro. As pessoas são mapeadas dentro de uma
+            ficha que já existe.
+          </p>
+
+          <div id="pessoas-lista" class="pessoas-lista"></div>
+
+          <div id="pessoas-acoes">
+            <button id="btn-pessoa-nova" class="btn btn-secondary btn-sm">+ Adicionar pessoa</button>
+          </div>
+
+          <!-- Formulário de uma pessoa. Um só, reaproveitado pela inclusão e
+               pela edição: dois formulários com os mesmos dez campos
+               divergiriam na primeira manutenção. -->
+          <div id="pessoa-form" class="pessoa-form hidden">
+            <div class="form-grid">
+              <div class="form-group col-span-2">
+                <label for="pessoa-input-nome">Nome *</label>
+                <input type="text" id="pessoa-input-nome" class="form-control" maxlength="120">
+              </div>
+
+              <div class="form-group">
+                <label for="pessoa-input-papel">Papel</label>
+                <div class="campo-com-botao">
+                  <select id="pessoa-input-papel" class="form-control"></select>
+                  <button id="btn-papel-novo" class="btn btn-secondary btn-sm"
+                          title="Criar um papel novo">+</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="pessoa-input-cargo">Cargo declarado</label>
+                <input type="text" id="pessoa-input-cargo" class="form-control" maxlength="120">
+              </div>
+
+              <div class="form-group">
+                <label for="pessoa-input-email">E-mail</label>
+                <input type="email" id="pessoa-input-email" class="form-control" maxlength="160">
+              </div>
+              <div class="form-group">
+                <label for="pessoa-input-telefone">Telefone</label>
+                <input type="text" id="pessoa-input-telefone" class="form-control" maxlength="30">
+              </div>
+
+              <div class="form-group">
+                <label for="pessoa-input-influencia">Influência na decisão</label>
+                <select id="pessoa-input-influencia" class="form-control">
+                  <option value="desconhecida">Não avaliada</option>
+                  <option value="alta">Alta</option>
+                  <option value="media">Média</option>
+                  <option value="baixa">Baixa</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="pessoa-input-postura">Postura com a Formatar</label>
+                <select id="pessoa-input-postura" class="form-control">
+                  <option value="desconhecida">Não avaliada</option>
+                  <option value="promotor">Promotor</option>
+                  <option value="neutro">Neutro</option>
+                  <option value="resistente">Resistente</option>
+                </select>
+              </div>
+
+              <div class="form-group col-span-2">
+                <label class="filtro-inativos" for="pessoa-input-patrocinador">
+                  <input type="checkbox" id="pessoa-input-patrocinador">
+                  Patrocinador da conta — quem responde por ela do lado do cliente
+                </label>
+              </div>
+
+              <div class="form-group col-span-2">
+                <label>Participa dos núcleos</label>
+                <div id="pessoa-nucleos" class="tags-caixa"></div>
+              </div>
+
+              <div class="form-group col-span-2">
+                <label for="pessoa-input-observacoes">Observações</label>
+                <textarea id="pessoa-input-observacoes" class="form-control" rows="2"
+                          maxlength="2000"></textarea>
+              </div>
+            </div>
+
+            <div class="pessoa-form-acoes">
+              <button id="btn-pessoa-cancelar" class="btn btn-secondary btn-sm">Cancelar</button>
+              <button id="btn-pessoa-salvar" class="btn btn-primary btn-sm">Salvar pessoa</button>
+            </div>
+          </div>
+        </div><!-- /cli-tab-pessoas -->
+
+        <!-- ================================================================
+             ABA 3: DOSSIÊ DE EXPERIÊNCIA
+             ================================================================ -->
+        <div id="cli-tab-dossie" class="cli-tab-content hidden">
+          <p class="ajuda-campo">
+            Documento de pós-venda, o oposto do Dossiê Executivo: fala da conta
+            como ela é hoje. A parte factual sai do CRM; a leitura é escrita por
+            IA a partir dela. <strong>É documento interno</strong> — contém
+            juízo da Formatar sobre pessoas nomeadas do cliente.
+          </p>
+
+          <p id="dossie-cx-sem-cliente" class="campo-informativo hidden">
+            Salve o cliente primeiro. O dossiê é gerado sobre uma ficha existente.
+          </p>
+
+          <div id="dossie-cx-painel">
+            <h3 class="secao-cadastro">O que entra nesta versão</h3>
+            <ul id="dossie-cx-resumo" class="dossie-cx-resumo"></ul>
+
+            <h3 class="secao-cadastro">Versões geradas</h3>
+            <div id="dossie-cx-versoes" class="dossie-cx-versoes"></div>
+
+            <div class="pessoa-form-acoes">
+              <button id="btn-dossie-cx-abrir" class="btn btn-secondary btn-sm hidden">
+                Abrir a última versão
+              </button>
+              <button id="btn-dossie-cx-gerar" class="btn btn-primary btn-sm">
+                Gerar dossiê
+              </button>
+            </div>
+          </div>
+        </div><!-- /cli-tab-dossie -->
       </div>
 
       <footer class="modal-footer">
@@ -943,6 +1091,10 @@
   <script src="js/app.js"></script>
   <script src="js/proposta.js"></script>
   <script src="js/dossie.js"></script>
+  <!-- Depois do clientes.js: os dois pendem da ficha do cliente e são
+       acionados por ela. -->
+  <script src="js/stakeholders.js"></script>
+  <script src="js/dossie-cx.js"></script>
   <script src="js/importar.js"></script>
 
   <!-- ===== Modal do Dossiê Executivo (js/dossie.js) ===== -->
@@ -1029,6 +1181,71 @@
           <p id="dossie-erro-msg"></p>
           <span id="dossie-erro-codigo" class="dossie-erro-codigo"></span>
           <button id="btn-dossie-tentar" class="dossie-btn dossie-btn-secundario">Voltar</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===== Visualizador do Dossiê de Experiência (js/dossie-cx.js) =====
+
+       Modal próprio, com IDs próprios, mas reaproveitando INTEIRAMENTE o
+       dossie.css: as classes do visualizador executivo não têm nada de
+       específico dele, e uma segunda folha de estilo idêntica seria só
+       dívida. O que não se reaproveita é a tela inicial — aqui ela é a
+       própria aba da ficha, que já lista o que entra no documento. -->
+  <div id="dossie-cx-modal" class="dossie-modal">
+    <div id="dossie-cx-fundo" class="dossie-fundo"></div>
+
+    <div class="dossie-caixa">
+      <div class="dossie-topo">
+        <h3 id="dossie-cx-titulo">Dossiê de Experiência</h3>
+        <span id="dossie-cx-selo" class="dossie-selo-versao"></span>
+        <button id="btn-dossie-cx-fechar" class="dossie-fechar" title="Fechar">&times;</button>
+      </div>
+
+      <div class="dossie-corpo">
+
+        <!-- Progresso -->
+        <div id="dossie-cx-progresso" class="dossie-progresso" style="display:none">
+          <div class="dossie-anel">
+            <svg viewBox="0 0 80 80" width="80" height="80">
+              <circle class="anel-trilha" cx="40" cy="40" r="34"></circle>
+              <circle id="dossie-cx-anel" class="anel-preenchimento"
+                      cx="40" cy="40" r="34"></circle>
+            </svg>
+            <span id="dossie-cx-tempo" class="dossie-tempo">0s</span>
+          </div>
+          <div id="dossie-cx-etapa" class="dossie-etapa">Iniciando...</div>
+          <div class="dossie-etapa-nota">Lendo a conta e produzindo a leitura da relação.</div>
+        </div>
+
+        <!-- Visualização -->
+        <div id="dossie-cx-visualizacao" class="dossie-visualizacao" style="display:none">
+          <div class="dossie-barra">
+            <select id="dossie-cx-historico" style="display:none"></select>
+            <span class="espaco"></span>
+            <button id="btn-dossie-cx-nova" class="dossie-btn dossie-btn-secundario">Gerar nova versão</button>
+            <button id="btn-dossie-cx-baixar" class="dossie-btn dossie-btn-secundario">Baixar HTML</button>
+            <button id="btn-dossie-cx-imprimir" class="dossie-btn dossie-btn-primario">Imprimir / PDF</button>
+          </div>
+
+          <ul id="dossie-cx-avisos" class="dossie-avisos" style="display:none"></ul>
+
+          <!-- Mesmo sandbox do visualizador executivo, e pela mesma razão:
+               sem allow-same-origin, o conteúdo escrito por IA roda os
+               scripts das abas e imprime, mas não alcança o CRM. -->
+          <iframe id="dossie-cx-frame" class="dossie-frame"
+                  sandbox="allow-scripts allow-modals allow-popups"></iframe>
+        </div>
+
+        <!-- Erro -->
+        <div id="dossie-cx-erro" class="dossie-erro" style="display:none">
+          <h4 id="dossie-cx-erro-titulo"></h4>
+          <p id="dossie-cx-erro-msg"></p>
+          <span id="dossie-cx-erro-codigo" class="dossie-erro-codigo"></span>
+          <button id="btn-dossie-cx-voltar" class="dossie-btn dossie-btn-secundario">Fechar</button>
         </div>
 
       </div>

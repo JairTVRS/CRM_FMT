@@ -107,6 +107,198 @@
 .secao-cadastro:first-of-type { margin-top: 0.4rem; }
 
 /* --------------------------------------------------------------------------
+   ABAS DA FICHA DO CLIENTE (Lote L)
+
+   Cópia visual das `.tab-btn` do modal de lead, com nome próprio. Não é
+   duplicação por descuido: o app.js liga um ouvinte global naquelas
+   classes que esconde TODA `.tab-content` da página, e reaproveitá-las
+   faria um clique aqui apagar as abas da ficha do lead. O comutador
+   destas vive no clientes.js.
+   -------------------------------------------------------------------------- */
+.cli-tab-btn {
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.cli-tab-btn.active {
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   MAPA DE STAKEHOLDERS
+   -------------------------------------------------------------------------- */
+.pessoas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.pessoa-cartao {
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.7rem 0.8rem;
+}
+
+.pessoa-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pessoa-topo .espaco { flex: 1; }
+
+.pessoa-nome {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+/* O patrocinador é quem responde pela conta do lado do cliente. Ganha
+   destaque porque é a primeira coisa que se procura no mapa. */
+.pessoa-selo {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
+}
+
+.pessoa-linha {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.pessoa-contato a { color: var(--text-muted); }
+
+.pessoa-obs {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed var(--border-color);
+  font-size: 0.76rem;
+  color: var(--text-subtle);
+  white-space: pre-wrap;
+}
+
+.pessoa-marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+.pessoa-marca {
+  font-size: 0.7rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+/* Influência e postura registradas ganham cor; "não avaliada" fica
+   apagada e tracejada. É falta de informação, não uma posição
+   intermediária — pintá-la como as outras faria parecer que alguém
+   emitiu o juízo, que é exatamente o erro que este mapa não pode
+   cometer, porque fala de gente com nome. */
+.marca-influencia-alta      { color: var(--text-color); border-color: var(--accent-color); }
+.marca-influencia-media     { color: var(--text-muted); border-color: var(--text-subtle); }
+.marca-influencia-baixa     { color: var(--text-subtle); }
+.marca-postura-promotor     { color: var(--success-color); border-color: var(--success-color); }
+.marca-postura-neutro       { color: var(--text-muted); border-color: var(--text-subtle); }
+.marca-postura-resistente   { color: var(--danger-color); border-color: var(--danger-color); }
+
+.marca-influencia-desconhecida,
+.marca-postura-desconhecida {
+  color: var(--text-subtle);
+  border-style: dashed;
+}
+
+/* Formulário da pessoa — um só, para inclusão e edição */
+.pessoa-form {
+  margin-top: 0.6rem;
+  padding: 0.8rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.pessoa-form-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+/* Campo com um "+" colado — criar papel sem sair da ficha */
+.campo-com-botao {
+  display: flex;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.campo-com-botao .form-control { flex: 1; min-width: 0; }
+.campo-com-botao .btn { flex-shrink: 0; padding-left: 0.7rem; padding-right: 0.7rem; }
+
+/* --------------------------------------------------------------------------
+   ABA DO DOSSIÊ DE EXPERIÊNCIA
+   -------------------------------------------------------------------------- */
+.dossie-cx-resumo {
+  margin: 0 0 0.6rem;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* As lacunas que o documento vai apontar aparecem ANTES da geração: dá a
+   chance de preencher em vez de descobrir no PDF. */
+.dossie-cx-resumo .resumo-alerta { color: var(--accent-color); }
+
+.dossie-cx-resumo .resumo-nota {
+  list-style: none;
+  margin: 0.5rem 0 0 -1.1rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+  border-left: 2px solid var(--border-color);
+}
+
+.dossie-cx-versoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dossie-cx-versao {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-color);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.dossie-cx-versao:hover { border-color: var(--accent-color); }
+.dossie-cx-versao span { color: var(--text-subtle); font-size: 0.74rem; }
+
+/* --------------------------------------------------------------------------
    Mesma regra do funil: um quadro de nove colunas não é usável em tela
    estreita. O JS força a tabela abaixo do limiar; isto é a rede de
    segurança para o instante entre o redimensionamento e o script.

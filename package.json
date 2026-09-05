@@ -1,6 +1,6 @@
 {
   "name": "crm-leads-evolution",
-  "version": "2.14.1",
+  "version": "2.15.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
