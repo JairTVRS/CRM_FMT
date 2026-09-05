@@ -1,9 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 05/09/2026
-**Versão no ar:** 2.14.1
-**Versão pronta, ainda não publicada:** 2.15.0 (Lote L — falta aplicar a
-migração 008 e fazer o deploy)
+**Versão no ar:** 2.15.0 (migração 008 aplicada e conferida no D1 remoto)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
