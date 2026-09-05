@@ -30,6 +30,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **H** | **2.14.0** | **Jornada do cliente**, clientes, núcleos e papéis (2.14.1 corrigiu a proposta) |
 | **L** | **2.15.0** | **Mapa de stakeholders e Dossiê de Experiência** — consumidor de verdade dos papéis criados no H |
 | — | **2.16.0** | **Ajustes de tela** — calendário abre pelo campo, busca de CEP no ViaCEP, e a análise falsa da IA removida |
+| — | **2.17.0** | **Versionamento num módulo só** — os três geradores passam a compartilhar `_lib/versionamento.js`; a proposta ganha registro de falha (migração 009) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -187,16 +188,16 @@ acrescenta "acerto proporcional aos serviços já implantados". No Lote G
 os dois passam a sair do mesmo formulário — mas qual texto vale é
 decisão de quem responde pelo jurídico.
 
-**O versionamento de documento agora tem TRÊS implementações irmãs** — o
-dossiê executivo, a proposta e, desde o Lote L, o dossiê de CX. Todas
-fazem o mesmo: calcular a próxima versão, gravar e reprocessar na colisão
-do `UNIQUE`. Com um consumidor era abstração prematura; com três já não
-é. **Esta é a dívida mais madura da lista** — e é candidata natural para
-o tempo em que a chave do hub não chegar, já que não depende de nada
-externo.
+~~**O versionamento de documento tem três implementações irmãs.**~~
+**PAGA na 2.17.0.** Está tudo no `_lib/versionamento.js`, uma fábrica
+parametrizada por tabela e coluna-chave. O contrato do Lote G será o
+quarto consumidor quase de graça.
 
-O cuidado: unificar mexe no caminho da proposta, que já quebrou em
-produção uma vez. Vale fazer com a prova em SQLite antes.
+A comparação lado a lado revelou dois defeitos que ninguém veria lendo
+uma cópia só, e os dois foram corrigidos junto: **a proposta era a única
+que não registrava falha** (migração 009), e **o `dados_json` do
+Executivo guardava `versao: null`**, o que faria um reprocessamento do
+template renderizar capa sem versão.
 
 **Os rótulos de influência e postura estão duplicados** entre o
 `_lib/schema-dossie-cx.js` e o `public/js/stakeholders.js`. É inevitável

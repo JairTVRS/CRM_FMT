@@ -28,9 +28,23 @@ import {
   ROTULO_INFLUENCIA, ROTULO_POSTURA
 } from './_lib/schema-dossie-cx.js';
 import { renderizarDossieCx } from './_lib/dossie-cx-template.js';
+import { criarVersionador } from './_lib/versionamento.js';
 
 const MAX_TOKENS_DOSSIE_CX = 3000;
-const LIMITE_HTML_BYTES = 700_000;
+
+/**
+ * O versionamento é o mesmo dos outros dois documentos e mora no
+ * `_lib/versionamento.js` desde a 2.17.0. Aqui fica só o que é próprio
+ * deste dossiê: a chave é o CLIENTE, não o CNPJ — um cliente convertido
+ * terá os dois documentos, e chavear ambos por CNPJ misturaria as
+ * contagens de versão.
+ */
+const dossiesCx = criarVersionador({
+  tabela: 'dossies_cx',
+  chave: 'cliente_id',
+  rotulo: 'do dossiê de experiência',
+  colunasResumo: ['cliente_nome', 'documento', 'provider']
+});
 
 /* ==========================================================================
    PROMPT
@@ -223,40 +237,20 @@ export async function onRequestGet(context) {
     // --- O documento ---
     if (searchParams.get('html')) {
       const versao = Number(searchParams.get('versao')) || null;
+      const html = await dossiesCx.lerHtml(db, clienteId, versao);
 
-      const registro = versao
-        ? await db.prepare(
-            `SELECT html FROM dossies_cx
-             WHERE cliente_id = ? AND versao = ? AND status = 'concluido'`
-          ).bind(clienteId, versao).first()
-        : await db.prepare(
-            `SELECT html FROM dossies_cx
-             WHERE cliente_id = ? AND status = 'concluido'
-             ORDER BY versao DESC LIMIT 1`
-          ).bind(clienteId).first();
-
-      if (!registro?.html) {
+      if (!html) {
         return json({ error: 'Dossiê não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
       }
 
-      return new Response(registro.html, {
+      return new Response(html, {
         status: 200,
         headers: { ...cabecalhos, 'Content-Type': 'text/html; charset=utf-8' }
       });
     }
 
     // --- Metadados e histórico ---
-    const { results } = await db
-      .prepare(
-        `SELECT versao, gerado_por, gerado_em, provider, tamanho_bytes
-         FROM dossies_cx
-         WHERE cliente_id = ? AND status = 'concluido'
-         ORDER BY versao DESC`
-      )
-      .bind(clienteId)
-      .all();
-
-    const versoes = results || [];
+    const versoes = await dossiesCx.listarVersoes(db, clienteId);
     return json({ existe: versoes.length > 0, ultima: versoes[0] || null, versoes }, 200, cabecalhos);
 
   } catch (e) {
@@ -336,10 +330,20 @@ export async function onRequestPost(context) {
 
     // O número da versão só é conhecido dentro da gravação, e a capa do
     // documento o exibe. Por isso o HTML é montado lá, com a versão em mão.
-    const gravacao = await gravar({
-      db, clienteId, conta, usuario, provider,
-      dados: montarDados(null),
-      montarHtml: (versao) => renderizarDossieCx(montarDados(versao))
+    const gravacao = await dossiesCx.salvar({
+      db,
+      valorChave: clienteId,
+      usuario,
+      dados: montarDados,
+      montarHtml: (versao) => renderizarDossieCx(montarDados(versao)),
+      extras: {
+        // Cópia do nome e do CNPJ NA HORA da geração, de propósito: se o
+        // cadastro for corrigido depois, o histórico continua dizendo sob
+        // que nome o documento foi gerado.
+        cliente_nome: conta.cliente.nome || null,
+        documento: conta.cliente.documento || null,
+        provider
+      }
     });
 
     if (!gravacao.ok) {
@@ -365,92 +369,20 @@ export async function onRequestPost(context) {
 /* ==========================================================================
    GRAVAÇÃO
 
-   Mesma mecânica do dossiê e da proposta: calcula a próxima versão,
-   grava, e o UNIQUE (cliente_id, versao) é a defesa real contra dois
-   consultores gerando ao mesmo tempo — na colisão, refaz com o número
-   seguinte.
-
-   São três implementações irmãs do mesmo padrão, e a terceira é esta.
-   Unificá-las continua registrado como dívida no roadmap; fazê-lo dentro
-   deste lote significaria mexer no caminho da proposta, que já quebrou
-   em produção uma vez.
+   Vivia aqui até a 2.17.0, como terceira cópia do mesmo padrão. Foi para
+   o `_lib/versionamento.js`, que agora atende os três documentos — o
+   versionador configurado está no topo deste arquivo.
    ========================================================================== */
 
-async function proximaVersao(db, clienteId) {
-  const linha = await db
-    .prepare('SELECT COALESCE(MAX(versao), 0) AS n FROM dossies_cx WHERE cliente_id = ?')
-    .bind(clienteId)
-    .first();
-
-  return Number(linha?.n || 0) + 1;
-}
-
-async function gravar({ db, clienteId, conta, usuario, provider, dados, montarHtml }) {
-  for (let tentativa = 0; tentativa < 2; tentativa++) {
-    const versao = await proximaVersao(db, clienteId);
-
-    const html = montarHtml(versao);
-    const bytes = new TextEncoder().encode(html || '').length;
-
-    if (bytes === 0) return { ok: false, erro: 'HTML do dossiê veio vazio.' };
-    if (bytes > LIMITE_HTML_BYTES) {
-      return { ok: false, erro: `Dossiê grande demais (${Math.round(bytes / 1024)} KB).` };
-    }
-
-    try {
-      await db
-        .prepare(
-          `INSERT INTO dossies_cx
-             (cliente_id, cliente_nome, documento, versao, gerado_por, gerado_em,
-              provider, html, tamanho_bytes, dados_json, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'concluido')`
-        )
-        .bind(
-          clienteId,
-          conta.cliente.nome || null,
-          conta.cliente.documento || null,
-          versao,
-          usuario.email,
-          new Date().toISOString(),
-          provider,
-          html,
-          bytes,
-          JSON.stringify({ ...dados, gerado: { ...dados.gerado, versao } })
-        )
-        .run();
-
-      return { ok: true, versao, tamanhoBytes: bytes };
-
-    } catch (e) {
-      const colisao = /UNIQUE|constraint/i.test(e.message || '');
-      if (colisao && tentativa === 0) continue;
-      return { ok: false, erro: e.message };
-    }
-  }
-
-  return { ok: false, erro: 'Não foi possível determinar a versão do dossiê.' };
-}
-
-/** Falha ao registrar falha é ignorada de propósito. */
-async function registrarErro(db, clienteId, conta, usuario, provider, mensagem) {
-  try {
-    const versao = await proximaVersao(db, clienteId);
-    await db
-      .prepare(
-        `INSERT INTO dossies_cx
-           (cliente_id, cliente_nome, versao, gerado_por, gerado_em, provider,
-            status, erro_mensagem)
-         VALUES (?, ?, ?, ?, ?, ?, 'erro', ?)`
-      )
-      .bind(
-        clienteId, conta?.cliente?.nome || null, versao,
-        usuario.email, new Date().toISOString(), provider, mensagem
-      )
-      .run();
-  } catch (e) {
-    // silencioso
-  }
-}
+/** Falha ao registrar falha é engolida de propósito. */
+const registrarErro = (db, clienteId, conta, usuario, provider, mensagem) =>
+  dossiesCx.registrarErro({
+    db,
+    valorChave: clienteId,
+    usuario,
+    mensagem,
+    extras: { cliente_nome: conta?.cliente?.nome || null, provider }
+  });
 
 /* ========================================================================== */
 

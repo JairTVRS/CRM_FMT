@@ -370,11 +370,13 @@ export async function onRequestPost(context) {
     });
 
     // O número da versão só é conhecido dentro de salvarDossie, e o rodapé
-    // do documento precisa dele. Por isso passamos uma função, não o HTML.
-    const dados = montarDados(null);
-
+    // do documento precisa dele. Por isso passamos funções, não o HTML
+    // pronto — inclusive para os dados: até a 2.16.0 gravávamos
+    // `montarDados(null)`, e o `dados_json` do Executivo ficava com
+    // `versao: null`. Reprocessar o template a partir dele renderizaria
+    // uma capa sem versão.
     const gravacao = await salvarDossie({
-      db, cnpj, dados, usuario, provider, fontes,
+      db, cnpj, montarDados, usuario, provider, fontes,
       montarHtml: (versao) => renderizarDossie(montarDados(versao))
     });
     if (!gravacao.ok) {

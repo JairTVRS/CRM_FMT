@@ -14,8 +14,23 @@
  */
 
 import { renderizarProposta, SERVICOS } from './_lib/proposta-template.js';
+import { criarVersionador } from './_lib/versionamento.js';
 
-const LIMITE_HTML_BYTES = 700_000;
+/**
+ * O versionamento é o mesmo dos dois dossiês e mora no
+ * `_lib/versionamento.js` desde a 2.17.0.
+ *
+ * Sem `provider` nas colunas de resumo, ao contrário dos outros dois: a
+ * proposta sai de um formulário preenchido por gente, não de um modelo.
+ * Uma coluna que seria sempre nula documentaria uma semelhança que não
+ * existe.
+ */
+const propostas = criarVersionador({
+  tabela: 'propostas',
+  chave: 'lead_id',
+  rotulo: 'da proposta',
+  colunasResumo: ['cliente_nome', 'documento']
+});
 
 function json(objeto, status, cabecalhos) {
   return new Response(JSON.stringify(objeto), { status, headers: cabecalhos });
@@ -127,18 +142,13 @@ export async function onRequestGet(context) {
     // --- O documento, para abrir numa aba ---
     if (searchParams.get('html')) {
       const versao = Number(searchParams.get('versao')) || null;
+      const html = await propostas.lerHtml(db, leadId, versao);
 
-      const registro = versao
-        ? await db.prepare('SELECT html FROM propostas WHERE lead_id = ? AND versao = ?')
-            .bind(leadId, versao).first()
-        : await db.prepare('SELECT html FROM propostas WHERE lead_id = ? ORDER BY versao DESC LIMIT 1')
-            .bind(leadId).first();
-
-      if (!registro) {
+      if (!html) {
         return json({ error: 'Proposta não encontrada.', code: 'NAO_ENCONTRADA' }, 404, cabecalhos);
       }
 
-      return new Response(registro.html, {
+      return new Response(html, {
         status: 200,
         headers: {
           ...cabecalhos,
@@ -149,24 +159,12 @@ export async function onRequestGet(context) {
     }
 
     // --- Histórico e dados da última, para preencher o formulário ---
-    const { results } = await db
-      .prepare(
-        `SELECT versao, gerado_por, gerado_em, tamanho_bytes
-         FROM propostas WHERE lead_id = ? ORDER BY versao DESC`
-      )
-      .bind(leadId)
-      .all();
+    const [versoes, dados] = await Promise.all([
+      propostas.listarVersoes(db, leadId),
+      propostas.lerDados(db, leadId)
+    ]);
 
-    const ultima = await db
-      .prepare('SELECT dados_json FROM propostas WHERE lead_id = ? ORDER BY versao DESC LIMIT 1')
-      .bind(leadId)
-      .first();
-
-    let dados = null;
-    try { dados = ultima?.dados_json ? JSON.parse(ultima.dados_json) : null; }
-    catch (e) { dados = null; }
-
-    return json({ versoes: results || [], dados }, 200, cabecalhos);
+    return json({ versoes, dados }, 200, cabecalhos);
 
   } catch (e) {
     return json({ error: 'Falha ao consultar as propostas.', details: e.message }, 500, cabecalhos);
@@ -205,56 +203,52 @@ export async function onRequestPost(context) {
   }
 
   try {
-    // Uma retentativa cobre a corrida entre dois consultores gerando ao
-    // mesmo tempo: na colisão do UNIQUE, refaz com o número seguinte.
-    for (let tentativa = 0; tentativa < 2; tentativa++) {
-      const ultima = await db
-        .prepare('SELECT COALESCE(MAX(versao), 0) AS n FROM propostas WHERE lead_id = ?')
-        .bind(leadId)
-        .first();
-
-      const versao = Number(ultima?.n || 0) + 1;
-      const html = renderizarProposta(dados);
-      const bytes = new TextEncoder().encode(html).length;
-
-      if (bytes > LIMITE_HTML_BYTES) {
-        return json({ error: `Proposta grande demais (${Math.round(bytes / 1024)} KB).` }, 400, cabecalhos);
+    // A proposta não estampa a versão no documento — ao contrário dos
+    // dossiês, cuja capa a exibe. Por isso `montarHtml` ignora o número
+    // que recebe; a assinatura é a do módulo comum, não uma exigência
+    // deste documento.
+    const gravacao = await propostas.salvar({
+      db,
+      valorChave: leadId,
+      usuario,
+      dados,
+      montarHtml: () => renderizarProposta(dados),
+      extras: {
+        documento: dados.cliente.documento || null,
+        cliente_nome: dados.cliente.nome || null
       }
+    });
 
-      try {
-        await db
-          .prepare(
-            `INSERT INTO propostas
-               (lead_id, documento, cliente_nome, versao, gerado_por, gerado_em,
-                html, tamanho_bytes, dados_json)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-          )
-          .bind(
-            leadId,
-            dados.cliente.documento || null,
-            dados.cliente.nome || null,
-            versao,
-            usuario.email,
-            new Date().toISOString(),
-            html,
-            bytes,
-            JSON.stringify(dados)
-          )
-          .run();
+    if (!gravacao.ok) {
+      // Desde a 2.17.0 a proposta também deixa rastro quando falha. Era a
+      // única das três sem isso — e foi justamente ela que quebrou em
+      // produção na v2.13.0, sem que o banco guardasse uma linha sequer.
+      await propostas.registrarErro({
+        db,
+        valorChave: leadId,
+        usuario,
+        mensagem: gravacao.erro,
+        extras: { cliente_nome: dados.cliente.nome || null }
+      });
 
-        console.log(`[proposta] lead ${leadId} v${versao} por ${usuario.email}`);
-        return json({ ok: true, versao, tamanhoBytes: bytes }, 201, cabecalhos);
-
-      } catch (e) {
-        const colisao = /UNIQUE|constraint/i.test(e.message || '');
-        if (colisao && tentativa === 0) continue;
-        throw e;
-      }
+      return json({ error: 'Falha ao gerar a proposta.', details: gravacao.erro }, 500, cabecalhos);
     }
 
-    return json({ error: 'Não foi possível determinar a versão da proposta.' }, 500, cabecalhos);
+    console.log(`[proposta] lead ${leadId} v${gravacao.versao} por ${usuario.email}`);
+    return json({
+      ok: true,
+      versao: gravacao.versao,
+      tamanhoBytes: gravacao.tamanhoBytes
+    }, 201, cabecalhos);
 
   } catch (e) {
+    // Sobrou algo que o `salvar` não previu — renderização, por exemplo.
+    // Também deixa rastro, pelo mesmo motivo.
+    await propostas.registrarErro({
+      db, valorChave: leadId, usuario, mensagem: e.message,
+      extras: { cliente_nome: dados?.cliente?.nome || null }
+    });
+
     return json({ error: 'Falha ao gerar a proposta.', details: e.message }, 500, cabecalhos);
   }
 }
