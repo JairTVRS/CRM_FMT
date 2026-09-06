@@ -111,6 +111,14 @@ const Clientes = (() => {
       const d = await r.json();
       etapasJornada = d.etapas || [];
       montarSelectEtapas();
+
+      // A faixa pode já estar na tela: as etapas chegam depois do
+      // primeiro render, e um select vazio esconderia a escolha.
+      const destino = el('jornada-etapa-destino');
+      if (destino) {
+        destino.innerHTML = etapasJornada
+          .map((e) => `<option value="${e.id}">${esc(e.nome)}</option>`).join('');
+      }
     } catch (e) {
       // Sem etapas o select fica vazio; o cadastro ainda grava, e a API
       // põe o cliente na primeira coluna da jornada.
@@ -119,6 +127,10 @@ const Clientes = (() => {
 
   /* O motivo pelo qual a lista do ERP não veio, quando não veio. */
   let avisoHub = null;
+
+  /* Quantos ativos do ERP ainda não têm jornada — o que a faixa oferece
+     resolver de uma vez. Zero esconde a faixa. */
+  let semJornada = 0;
 
   /**
    * Filtro e paginação em memória, para a lista que vem do ERP.
@@ -161,6 +173,7 @@ const Clientes = (() => {
       // A aba de inativos é do CRM, não do ERP: mostra quem a CX
       // desligou aqui dentro. Vai direto ao banco.
       if (estado.inativos) {
+        semJornada = 0;
         await carregarDoCrm();
         return;
       }
@@ -178,6 +191,7 @@ const Clientes = (() => {
         // explicação seria lida como "não há clientes", que é outra
         // afirmação — e falsa.
         avisoHub = d.error || 'Não foi possível consultar o ERP.';
+        semJornada = 0;
         await carregarDoCrm();
         return;
       }
@@ -185,6 +199,8 @@ const Clientes = (() => {
       avisoHub = d.truncado
         ? 'A lista do ERP é maior que o teto de páginas e pode estar incompleta.'
         : null;
+
+      semJornada = Number(d.semJornada || 0);
 
       const filtrados = filtrarEmMemoria(d.clientes || []);
 
@@ -252,6 +268,7 @@ const Clientes = (() => {
     }
 
     mostrarAvisoHub();
+    mostrarFaixaSemJornada();
 
     const info = el('total-clientes');
     if (info) info.textContent = `Total de Registros: ${estado.total}`;
@@ -322,6 +339,82 @@ const Clientes = (() => {
     faixa.textContent = avisoHub
       ? `Lista do ERP indisponível — mostrando só o que o CRM tem. ${avisoHub}`
       : '';
+  }
+
+  /**
+   * A faixa "há N clientes do ERP sem jornada".
+   *
+   * Só aparece quando há o que fazer. Barra que fica sempre na tela vira
+   * parte do cenário e ninguém mais lê.
+   */
+  function mostrarFaixaSemJornada() {
+    const faixa = el('jornada-sem-jornada');
+    if (!faixa) return;
+
+    faixa.classList.toggle('hidden', semJornada === 0);
+    if (semJornada === 0) return;
+
+    el('jornada-sem-jornada-texto').textContent = semJornada === 1
+      ? '1 cliente ativo do ERP ainda não tem jornada definida.'
+      : `${semJornada} clientes ativos do ERP ainda não têm jornada definida.`;
+
+    const select = el('jornada-etapa-destino');
+    if (select && !select.options.length) {
+      select.innerHTML = etapasJornada
+        .map((e) => `<option value="${e.id}">${esc(e.nome)}</option>`).join('');
+    }
+  }
+
+  /**
+   * Traz TODOS de uma vez.
+   *
+   * Um a um não serve com centenas de ativos, que é a situação real: o
+   * ERP tem a carteira inteira e todos já assinaram contrato.
+   */
+  async function trazerTodos() {
+    const select = el('jornada-etapa-destino');
+    const etapaId = select?.value || null;
+    const nomeEtapa = select?.selectedOptions?.[0]?.textContent || 'primeira etapa';
+
+    if (!confirm(
+      `Trazer ${semJornada} cliente(s) do ERP para a jornada, em "${nomeEtapa}"?\n\n` +
+      'Cada um ganha uma ficha no CRM já vinculada ao ERP. A etapa pode ser trocada '
+      + 'depois, um a um ou arrastando no quadro.'
+    )) return;
+
+    const botao = el('btn-trazer-todos');
+    if (botao) { botao.disabled = true; botao.textContent = 'Trazendo…'; }
+
+    try {
+      const r = await fetch('/api/hub-clientes?todos=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ etapa_id: etapaId })
+      });
+
+      const d = await r.json();
+
+      if (!r.ok) {
+        alert(d.error || d.details || 'Não foi possível trazer os clientes.');
+        return;
+      }
+
+      // As falhas por lote vêm nomeadas: "criei 800 de 850" sem dizer
+      // quais 50 faltaram deixaria o usuário sem saída.
+      const aviso = d.falhas?.length
+        ? `\n\n${d.falhas.length} lote(s) não entraram:\n`
+          + d.falhas.map((f) => `• de "${f.de}" a "${f.ate}": ${f.motivo}`).join('\n')
+        : '';
+
+      const jaTinham = d.jaTinham ? `\n${d.jaTinham} já tinham.` : '';
+      alert(`${d.criados} cliente(s) entraram na jornada.${jaTinham}${aviso}`);
+      recarregarVisao();
+
+    } catch (e) {
+      alert('Falha de conexão ao trazer os clientes.');
+    } finally {
+      if (botao) { botao.disabled = false; botao.textContent = 'Trazer todos'; }
+    }
   }
 
   /**
@@ -823,6 +916,8 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
     document.querySelectorAll('.cli-tab-btn').forEach((botao) => {
       botao.addEventListener('click', () => mostrarAba(botao.dataset.cliTab));
     });
+
+    el('btn-trazer-todos')?.addEventListener('click', trazerTodos);
 
     el('btn-incluir-cliente')?.addEventListener('click', () => abrirFicha(null));
     el('btn-cliente-close')?.addEventListener('click', fecharFicha);

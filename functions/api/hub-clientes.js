@@ -5,6 +5,8 @@
  *
  * GET                     lista os ativos do hub, já cruzados com o CRM
  * GET ?diagnostico=1      só diz se a chave funciona e o que falta
+ * POST ?documento=CNPJ    traz UM cliente do ERP para a jornada
+ * POST ?todos=1           traz TODOS os que ainda não têm jornada
  *
  * É o **caminho 2** para um cliente chegar à trilha de CX: quem já é
  * cliente no ERP aparece na Jornada sem ninguém cadastrar nada. O caminho
@@ -223,6 +225,10 @@ export async function onRequestPost(context) {
 
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
 
+  if (searchParams.get('todos')) {
+    return trazerTodos(context, cabecalhos, usuario, env, db);
+  }
+
   const documento = String(searchParams.get('documento') || '').replace(/\D/g, '');
   if (documento.length !== 14) {
     return json({ error: 'Informe o CNPJ do cliente.', code: 'DOCUMENTO_OBRIGATORIO' }, 400, cabecalhos);
@@ -316,6 +322,122 @@ export async function onRequestPost(context) {
         code: 'DUPLICADO'
       }, 409, cabecalhos);
     }
+    return erroDoHub(e, cabecalhos);
+  }
+}
+
+
+/* ==========================================================================
+   TRAZER TODOS DE UMA VEZ
+
+   Um a um não serve quando o ERP tem centenas de ativos e todos já
+   assinaram contrato — que é a situação real da Formatar. Clicar ➕
+   oitocentas vezes não é uma interface, é uma punição.
+
+   Continua não sendo replicação do ERP: o que se cria aqui é a CAMADA DE
+   JORNADA de cada cliente — etapa, e depois núcleos e stakeholders. A
+   identidade do cliente segue vindo do hub a cada leitura.
+   ========================================================================== */
+
+/** O D1 tem teto por lote; 50 é folgado e mantém cada transação curta. */
+const POR_LOTE = 50;
+
+async function trazerTodos(context, cabecalhos, usuario, env, db) {
+  let corpo = {};
+  try { corpo = await context.request.json(); } catch (e) { corpo = {}; }
+
+  try {
+    const { clientes: doHub, truncado } = await listarClientesDoHub(env, { status: 'active' });
+
+    // Etapa de destino: a escolhida, ou a primeira da jornada. Validada
+    // contra o pipeline para não jogar cliente numa coluna do funil
+    // comercial — as duas trilhas têm uma etapa de ordem 1.
+    let etapaId = corpo.etapa_id ? Number(corpo.etapa_id) : null;
+    if (etapaId) {
+      const valida = await db
+        .prepare("SELECT id FROM etapas WHERE id = ? AND pipeline = 'jornada' AND ativo = 1")
+        .bind(etapaId).first();
+      if (!valida) etapaId = null;
+    }
+    if (!etapaId) {
+      const primeira = await db
+        .prepare("SELECT id FROM etapas WHERE ativo = 1 AND pipeline = 'jornada' ORDER BY ordem LIMIT 1")
+        .first();
+      etapaId = primeira?.id || null;
+    }
+
+    if (!etapaId) {
+      return json({
+        error: 'Não há etapa da jornada cadastrada para receber os clientes.',
+        code: 'SEM_ETAPA'
+      }, 400, cabecalhos);
+    }
+
+    // Quem já tem linha no CRM não é recriado — nem quando está inativo:
+    // o índice único de CNPJ vale só entre ativos, mas ressuscitar alguém
+    // que a CX desligou de propósito seria pior que deixá-lo de fora.
+    const { results } = await db.prepare('SELECT documento, ativo FROM clientes').all();
+    const jaTem = new Set((results || [])
+      .filter((c) => c.documento)
+      .map((c) => String(c.documento).replace(/\D/g, '')));
+
+    const faltando = doHub.filter((c) => c.documento && !jaTem.has(c.documento));
+
+    if (faltando.length === 0) {
+      return json({
+        ok: true, criados: 0, jaTinham: doHub.length, truncado,
+        mensagem: 'Todos os clientes ativos do ERP já têm jornada.'
+      }, 200, cabecalhos);
+    }
+
+    const agora = new Date().toISOString();
+
+    const comando = (c) => db
+      .prepare(
+        `INSERT INTO clientes
+           (nome, nome_fantasia, documento, telefone, email,
+            etapa_id, nucleos, classificacao, data_inicio,
+            erp_id, criado_por, criado_em, ativo)
+         VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?, ?, ?, ?, 1)`
+      )
+      .bind(
+        c.nome, c.nome_fantasia, c.documento, c.telefone, c.email,
+        etapaId, c.classificacao,
+        // O início da relação vem do contrato no ERP, não da data de
+        // hoje — que só diria quando alguém clicou neste botão.
+        String(c.contratado_em || '').slice(0, 10) || agora.slice(0, 10),
+        c.erp_id, usuario.email, agora
+      );
+
+    let criados = 0;
+    const falhas = [];
+
+    for (let i = 0; i < faltando.length; i += POR_LOTE) {
+      const fatia = faltando.slice(i, i + POR_LOTE);
+      try {
+        // `batch` é transacional no D1: ou a fatia inteira entra, ou
+        // nenhuma linha dela entra.
+        await db.batch(fatia.map(comando));
+        criados += fatia.length;
+      } catch (e) {
+        // Uma fatia ruim não pode derrubar as outras. O nome de quem
+        // ficou de fora vai na resposta: sem isso, "criei 800 de 850"
+        // deixaria o usuário sem saber quais 50 faltaram.
+        falhas.push({ de: fatia[0]?.nome, ate: fatia[fatia.length - 1]?.nome, motivo: e.message });
+      }
+    }
+
+    console.log(`[hub-clientes] ${criados} clientes trazidos para a jornada por ${usuario.email}`);
+
+    return json({
+      ok: true,
+      criados,
+      jaTinham: doHub.length - faltando.length,
+      falhas,
+      truncado
+    }, 201, cabecalhos);
+
+  } catch (e) {
     return erroDoHub(e, cabecalhos);
   }
 }

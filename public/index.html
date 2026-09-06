@@ -257,6 +257,17 @@
              "a chave não tem hub:customers:read" — a tela não adivinha. -->
         <p id="jornada-aviso-hub" class="campo-informativo aviso-hub hidden"></p>
 
+        <!-- Clientes do ERP que ainda não têm jornada. Só aparece quando
+             existe algum, e some sozinha quando todos entram. Um a um não
+             serve com centenas de ativos. -->
+        <div id="jornada-sem-jornada" class="faixa-acao hidden">
+          <span id="jornada-sem-jornada-texto"></span>
+          <span class="espaco"></span>
+          <label for="jornada-etapa-destino">Entrar em</label>
+          <select id="jornada-etapa-destino" class="form-control form-control-sm"></select>
+          <button id="btn-trazer-todos" class="btn btn-primary btn-sm">Trazer todos</button>
+        </div>
+
         <div id="view-clientes-tabela">
           <div class="table-container">
             <table class="data-table">

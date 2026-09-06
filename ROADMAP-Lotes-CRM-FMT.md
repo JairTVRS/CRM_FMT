@@ -1,8 +1,13 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 05/09/2026
-**Versão no ar:** 2.19.0 (migrações 008 e 009 aplicadas e conferidas no
-D1 remoto; a 2.18.0 e a 2.19.0 não têm migração)
+**Atualizado em:** 06/09/2026
+**Versão no ar:** 2.19.0 · **pronta para subir: 2.20.0**
+(migrações 008 e 009 aplicadas e conferidas no D1 remoto; da 2.18.0 em
+diante nenhuma versão tem migração)
+
+**A chave do hub JÁ TEM o escopo `hub:customers:read`** — confirmado em
+06/09/2026, com os clientes do ERP listando na Jornada.
 
 A 2.19.0 **precisa do Secret `HUB_API_KEY` com a permissão
 `hub:customers:read`** para mostrar os clientes do ERP. O Secret já
@@ -39,6 +44,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.17.0** | **Versionamento num módulo só** — os três geradores passam a compartilhar `_lib/versionamento.js`; a proposta ganha registro de falha (migração 009) |
 | **F¹** | **2.18.0** | **O lead vira cliente** — conversão a partir de "Finalizado", com tela de setup |
 | **F²** | **2.19.0** | **Os clientes do ERP na Jornada** — lista ao vivo, "sem jornada" com um clique para começar, trava do CNPJ e vínculo do `erp_id` |
+| — | **2.20.0** | **Trazer todos de uma vez** — a carteira inteira do ERP entra na jornada em lotes transacionais |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

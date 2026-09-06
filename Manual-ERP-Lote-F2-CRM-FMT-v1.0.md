@@ -1,16 +1,21 @@
 # Manual — Lote F (parte 2): os clientes do ERP na Jornada (CRM Formatar)
 
-**Versão:** 1.0
+**Versão:** 1.1
 **Data:** 05/09/2026
-**Versão do sistema:** 2.19.0
+**Versão do sistema:** 2.19.0 · **atualizado em 06/09/2026 para a 2.20.0**
 **Responsável:** Jair Tavares
 
 ---
 
-## 1. ONDE COLAR A CHAVE
+## 1. A CHAVE DO HUB
 
-Este é o passo que falta para tudo funcionar. **A chave não vai em
-nenhum arquivo do repositório** — é um Secret do ambiente.
+**Já está cadastrada e já tem o escopo certo** — confirmado em
+06/09/2026, com os clientes do ERP listando na Jornada. Esta seção fica
+como referência, para quando for preciso trocar a chave ou montar outro
+ambiente.
+
+**A chave não vai em nenhum arquivo do repositório** — é um Secret do
+ambiente.
 
 ### Em produção (Cloudflare Pages)
 
@@ -21,8 +26,8 @@ nenhum arquivo do repositório** — é um Secret do ambiente.
 5. Salvar e **refazer o deploy** — variável nova só entra em vigor no
    build seguinte
 
-**A permissão necessária é `hub:customers:read`.** A chave que hoje
-valida usuários tem apenas `hub:users:read`.
+**A permissão necessária é `hub:customers:read`**, e a chave em uso já a
+tem — a mesma que valida usuários.
 
 **Se a chave de clientes for outra**, diferente da que valida usuários,
 crie um segundo Secret chamado **`HUB_CUSTOMERS_KEY`**. Quando ele
@@ -89,6 +94,29 @@ stakeholders.
 **Um botão ➕ começa a jornada** de quem está sem ela: cria a ficha do
 CRM já vinculada ao ERP, com a razão social, a classificação 1–6 e o
 início da relação vindos de lá.
+
+### Trazer todos de uma vez (2.20.0)
+
+Um a um não serve quando o ERP tem centenas de ativos e todos já
+assinaram contrato — que é a situação real da Formatar. Clicar ➕
+oitocentas vezes não é uma interface, é uma punição.
+
+Uma faixa aparece acima da tabela **só quando há clientes sem jornada**:
+diz quantos são, deixa escolher a etapa de destino e traz todos.
+
+- **Roda quantas vezes for preciso.** Quem já tem jornada é pulado, então
+  clicar de novo depois de o ERP cadastrar clientes novos traz só os
+  novos.
+- **Quem a CX inativou não volta.** O índice único de CNPJ vale só entre
+  ativos, mas ressuscitar alguém que foi desligado de propósito seria
+  pior que deixá-lo de fora.
+- **Em lotes de 50, cada um transacional.** Uma fatia ruim não derruba as
+  outras, e os nomes de quem ficou de fora vão na resposta — "criei 800
+  de 850" sem dizer quais 50 faltaram deixaria você sem saída.
+- A etapa pode ser trocada depois, um a um ou arrastando no quadro.
+
+**Isto não é replicar o ERP.** O que se cria é a *camada de jornada* de
+cada cliente; a identidade continua vindo do hub a cada leitura.
 
 ### A trava do ERP se liga sozinha
 
@@ -157,7 +185,7 @@ node dev/hub-stub.mjs --sem-permissao
 
 ### O que eu verifiquei
 
-**32 verificações, todas passando, ponta a ponta**: a prova sobe o dublê
+**44 verificações, todas passando, ponta a ponta**: a prova sobe o dublê
 do hub **de verdade** num processo à parte e chama os handlers reais
 contra ele. Um dublê de dublê provaria que o meu falso concorda com o meu
 falso.
@@ -174,6 +202,10 @@ falso.
 - CNPJ que não existe no ERP não vira jornada;
 - a trava da conversão nos três cenários, incluindo que **sem chave a
   conversão continua funcionando** — não podia regredir;
+- o **trazer todos**: cria só quem faltava, não duplica ao rodar de novo,
+  usa a etapa escolhida (recusando etapa do funil comercial), traz o
+  início da relação do contrato no ERP, e **não ressuscita** quem a CX
+  inativou;
 - com permissão faltando, a conversão **segue permitida**: o problema é
   nosso, não do usuário.
 
@@ -181,12 +213,16 @@ As cinco provas anteriores continuam passando.
 
 ### O que eu NÃO verifiquei — é seu
 
-Nada passou por navegador, e **a chave real nunca foi usada** — toda a
-prova falou com o dublê.
+**A chave real nunca foi usada nas provas** — todas falaram com o dublê.
+Dois itens já foram conferidos por você em 06/09: a chave tem o escopo, e
+a Jornada lista os clientes do ERP.
 
-- [ ] Cadastrar a chave e conferir em `/api/hub-clientes?diagnostico=1`
-- [ ] A Jornada listar os clientes ativos do ERP
+- [x] ~~Cadastrar a chave e conferir o escopo~~ — feito em 06/09
+- [x] ~~A Jornada listar os clientes ativos do ERP~~ — feito em 06/09
 - [ ] Um cliente "sem jornada" e o botão ➕ criando a ficha dele
+- [ ] A faixa "N clientes sem jornada" e o **Trazer todos**
+- [ ] Depois de trazer todos, a faixa **some** e o quadro enche
+- [ ] Clicar em "Trazer todos" de novo diz que todos já têm jornada
 - [ ] Buscar por nome e por CNPJ na Jornada
 - [ ] **Sem a permissão**, a tela dizer o motivo em vez de ficar vazia
 - [ ] Converter um lead cujo CNPJ está no ERP — tem que gravar o vínculo
@@ -215,3 +251,4 @@ que é onde a ação de começar existe.
 | Versão | Data | O quê |
 |---|---|---|
 | 1.0 | 05/09/2026 | Clientes do ERP na Jornada, trava e vínculo do `erp_id` (sistema 2.19.0) |
+| 1.1 | 06/09/2026 | Trazer todos de uma vez, em lotes transacionais (sistema 2.20.0) |
