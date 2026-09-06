@@ -252,6 +252,11 @@
         </div>
 
         <!-- VISÃO 1: TABELA -->
+        <!-- Por que a lista do ERP não veio, quando não veio. O texto é
+             escrito pelo servidor, que sabe distinguir "falta a chave" de
+             "a chave não tem hub:customers:read" — a tela não adivinha. -->
+        <p id="jornada-aviso-hub" class="campo-informativo aviso-hub hidden"></p>
+
         <div id="view-clientes-tabela">
           <div class="table-container">
             <table class="data-table">
@@ -504,6 +509,21 @@
                 <input type="text" id="tag-nova-nome" class="form-control"
                        placeholder="Nova tag" maxlength="60">
                 <button type="button" id="btn-tag-criar" class="btn btn-sm btn-secondary">Criar</button>
+              </div>
+            </div>
+
+            <!-- Conversão em cliente. Aparece na ficha, e não só ao
+                 arrastar o cartão, porque um lead pode já estar parado
+                 em "Finalizado" desde antes de a conversão existir — foi
+                 exatamente o caso na estreia. -->
+            <div class="form-group col-span-2" id="lead-conversao">
+              <label>Trilha de CX</label>
+              <p id="lead-conversao-estado" class="campo-informativo"></p>
+              <div class="pessoa-form-acoes">
+                <button type="button" id="btn-converter-cliente"
+                        class="btn btn-primary btn-sm hidden">Converter em cliente</button>
+                <button type="button" id="btn-abrir-cliente"
+                        class="btn btn-secondary btn-sm hidden">Abrir a ficha do cliente</button>
               </div>
             </div>
           </div>
@@ -1100,6 +1120,9 @@
        acionados por ela. -->
   <script src="js/stakeholders.js"></script>
   <script src="js/dossie-cx.js"></script>
+  <!-- Depois do quadro.js e do clientes.js: é acionado pelo quadro do
+       funil e recarrega a Jornada ao converter. -->
+  <script src="js/conversao.js"></script>
   <script src="js/importar.js"></script>
 
   <!-- ===== Modal do Dossiê Executivo (js/dossie.js) ===== -->
@@ -1254,6 +1277,91 @@
         </div>
 
       </div>
+    </div>
+  </div>
+
+
+  <!-- ===== Conversão de lead em cliente (js/conversao.js) =====
+
+       Modal próprio, no padrão do `modal-cliente`. A conversão pede o que
+       o funil não tem — etapa da jornada, núcleos de atendimento, data de
+       início da relação —, e é por isso que ela é uma tela e não um
+       efeito colateral de arrastar o cartão. -->
+  <div id="modal-conversao" class="modal hidden">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2 id="modal-conversao-title">Converter em cliente</h2>
+        <button id="btn-conversao-close" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+
+      <div class="modal-body">
+        <p class="ajuda-campo" id="conversao-intro">
+          O lead vira um cliente da trilha de CX. Os dados do funil são
+          herdados; o que falta é o que só o pós-venda sabe.
+        </p>
+
+        <!-- Quando a conversão não pode acontecer, a tela diz por quê em
+             vez de oferecer um formulário que a gravação recusaria. -->
+        <div id="conversao-impedimento" class="campo-informativo hidden"></div>
+
+        <div id="conversao-formulario">
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label for="conversao-nome">Razão Social *</label>
+              <input type="text" id="conversao-nome" class="form-control" maxlength="200">
+            </div>
+
+            <div class="form-group">
+              <label for="conversao-fantasia">Nome Fantasia</label>
+              <input type="text" id="conversao-fantasia" class="form-control" maxlength="200">
+            </div>
+
+            <div class="form-group">
+              <label for="conversao-cnpj">CNPJ</label>
+              <input type="text" id="conversao-cnpj" class="form-control" readonly>
+              <small class="campo-ajuda">Vem do lead. É por ele que o cliente será
+                casado com o cadastro do ERP.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="conversao-etapa">Etapa da jornada</label>
+              <select id="conversao-etapa" class="form-control"></select>
+            </div>
+
+            <div class="form-group">
+              <label for="conversao-inicio">Início da relação</label>
+              <input type="date" id="conversao-inicio" class="form-control">
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Núcleos de atendimento</label>
+              <div id="conversao-nucleos" class="tags-caixa"></div>
+              <small class="campo-ajuda">Núcleo é o tipo de reunião. Pode ficar
+                vazio agora e ser marcado depois, na ficha.</small>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label for="conversao-observacoes">Observações</label>
+              <textarea id="conversao-observacoes" class="form-control" rows="2"
+                        maxlength="4000"></textarea>
+            </div>
+
+            <div class="form-group col-span-2">
+              <p class="campo-informativo">
+                O vínculo com o ERP não é preenchido agora — depende da chave
+                do hub, que ainda não chegou. O cliente nasce marcado como
+                <strong>sem ERP</strong>, que quer dizer "cadastro ainda não
+                conferido", e não "cliente fora do ERP".
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button id="btn-conversao-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-conversao-salvar" class="btn btn-primary">Converter em cliente</button>
+      </footer>
     </div>
   </div>
 

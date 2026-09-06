@@ -9,11 +9,21 @@
  * o mesmo componente do funil comercial — este módulo só entrega os
  * filtros e diz como desenhar o cartão.
  *
- * O que este módulo deliberadamente não faz é falar com o ERP. Enquanto
- * a chave do hub com escopo ampliado não chega, o cadastro é manual e
- * `erp_id` fica nulo. A trava "todo cliente de CX tem que existir no
- * ERP" é o Lote F; barrá-la agora, sem poder verificar, deixaria a
- * trilha inteira inutilizável.
+ * A LISTA É DO ERP, não do CRM. O hub é dono de quem é cliente ativo, e
+ * a linha de `clientes` no CRM guarda só a camada de jornada — etapa,
+ * núcleos, stakeholders, observações. Decisão de 05/09/2026.
+ *
+ * Isso cria três estados que a tabela precisa distinguir, e que não
+ * podem ser confundidos entre si:
+ *
+ *   no ERP + com jornada   o caso normal
+ *   no ERP + sem jornada   é cliente, mas ninguém definiu a jornada dele
+ *   só no CRM              conversão recém-feita que o ERP ainda não tem,
+ *                          ou cliente que saiu do filtro de status lá
+ *
+ * Se o hub não responder, a tela cai para a lista do CRM e **diz o
+ * motivo**: lista vazia sem explicação seria lida como "não há
+ * clientes", que é outra afirmação — e falsa.
  *
  * Carregar DEPOIS do cadastros.js e do quadro.js: a instância do quadro
  * da jornada é montada no fim deste arquivo e precisa da fábrica já
@@ -107,6 +117,37 @@ const Clientes = (() => {
     }
   }
 
+  /* O motivo pelo qual a lista do ERP não veio, quando não veio. */
+  let avisoHub = null;
+
+  /**
+   * Filtro e paginação em memória, para a lista que vem do ERP.
+   *
+   * O `/api/clientes` filtra em SQL, mas a lista do hub é cruzada em
+   * memória no servidor e chega inteira. Refazer o filtro aqui evita uma
+   * ida ao hub por tecla digitada — e a lista tem centenas de linhas, não
+   * milhares.
+   */
+  function filtrarEmMemoria(lista) {
+    const busca = estado.busca.trim().toLowerCase();
+    const digitos = busca.replace(/\D/g, '');
+
+    return lista.filter((c) => {
+      if (estado.classificacao && String(c.classificacao) !== String(estado.classificacao)) return false;
+
+      if (estado.nucleo) {
+        const ids = listaDeNucleos(c).map(Number);
+        if (!ids.includes(Number(estado.nucleo))) return false;
+      }
+
+      if (!busca) return true;
+
+      const alvo = [c.nome, c.nome_fantasia].filter(Boolean).join(' ').toLowerCase();
+      if (alvo.includes(busca)) return true;
+      return !!(digitos && String(c.documento || '').includes(digitos));
+    });
+  }
+
   async function carregar() {
     if (estado.carregando) return;
     estado.carregando = true;
@@ -116,6 +157,58 @@ const Clientes = (() => {
       corpo.innerHTML = `<tr><td colspan="7" class="leads-vazio">Carregando…</td></tr>`;
     }
 
+    try {
+      // A aba de inativos é do CRM, não do ERP: mostra quem a CX
+      // desligou aqui dentro. Vai direto ao banco.
+      if (estado.inativos) {
+        await carregarDoCrm();
+        return;
+      }
+
+      // A Jornada lista os ativos do ERP AO VIVO — o hub é dono da lista,
+      // e o CRM anota por cima. Decisão de 05/09/2026.
+      const params = new URLSearchParams();
+      if (estado.busca) params.set('busca', estado.busca);
+
+      const r = await fetch(`/api/hub-clientes?${params}`);
+      const d = await r.json();
+
+      if (!r.ok) {
+        // Cai para a lista do CRM, mas DIZ o motivo. Lista vazia sem
+        // explicação seria lida como "não há clientes", que é outra
+        // afirmação — e falsa.
+        avisoHub = d.error || 'Não foi possível consultar o ERP.';
+        await carregarDoCrm();
+        return;
+      }
+
+      avisoHub = d.truncado
+        ? 'A lista do ERP é maior que o teto de páginas e pode estar incompleta.'
+        : null;
+
+      const filtrados = filtrarEmMemoria(d.clientes || []);
+
+      estado.total = filtrados.length;
+      estado.totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+      if (estado.pagina > estado.totalPaginas) estado.pagina = estado.totalPaginas;
+
+      const inicio = (estado.pagina - 1) * POR_PAGINA;
+      naTela = filtrados.slice(inicio, inicio + POR_PAGINA);
+      renderizar();
+
+    } catch (e) {
+      if (corpo) {
+        corpo.innerHTML = `<tr><td colspan="7" class="leads-vazio">
+          Não foi possível carregar os clientes: ${esc(e.message)}</td></tr>`;
+      }
+    } finally {
+      estado.carregando = false;
+    }
+  }
+
+  /** A lista do CRM: aba de inativos, e queda quando o ERP não responde. */
+  async function carregarDoCrm() {
+    const corpo = el('table-clientes-body');
     const params = parametros();
     params.set('pagina', estado.pagina);
     params.set('porPagina', POR_PAGINA);
@@ -125,7 +218,7 @@ const Clientes = (() => {
       if (!r.ok) throw new Error('Falha ao carregar.');
 
       const d = await r.json();
-      naTela = d.clientes || [];
+      naTela = (d.clientes || []).map((c) => ({ ...c, origem: 'crm', semJornada: false }));
       estado.total = d.total || 0;
       estado.totalPaginas = d.totalPaginas || 1;
       renderizar();
@@ -135,8 +228,6 @@ const Clientes = (() => {
         corpo.innerHTML = `<tr><td colspan="7" class="leads-vazio">
           Não foi possível carregar os clientes.</td></tr>`;
       }
-    } finally {
-      estado.carregando = false;
     }
   }
 
@@ -152,11 +243,15 @@ const Clientes = (() => {
       corpo.innerHTML = `<tr><td colspan="7" class="leads-vazio">${
         estado.inativos
           ? 'Nenhum cliente inativo.'
-          : 'Nenhum cliente cadastrado ainda.'
+          : (avisoHub
+              ? 'A lista do ERP não pôde ser carregada, e o CRM não tem nenhum cliente próprio.'
+              : 'O ERP não devolveu nenhum cliente ativo.')
       }</td></tr>`;
     } else {
       corpo.innerHTML = naTela.map(linhaHtml).join('');
     }
+
+    mostrarAvisoHub();
 
     const info = el('total-clientes');
     if (info) info.textContent = `Total de Registros: ${estado.total}`;
@@ -172,25 +267,95 @@ const Clientes = (() => {
     const nucleos = listaDeNucleos(c).map(nomeDoNucleo).filter(Boolean);
     const etapa = etapaPorId(c.etapa_id);
 
-    // Na aba de inativos a ação é reativar, não inativar de novo.
-    const acoes = estado.inativos
-      ? `<button class="btn-action btn-reativar" title="Reativar cliente">↩︎</button>`
-      : `<button class="btn-action btn-edit" title="Abrir ficha">✏️</button>
-         <button class="btn-action btn-delete" title="Inativar cliente">🗑️</button>`;
+    // Três ações possíveis, e a escolha diz em que estado o cliente está.
+    let acoes;
+    if (estado.inativos) {
+      // Na aba de inativos a ação é reativar, não inativar de novo.
+      acoes = `<button class="btn-action btn-reativar" title="Reativar cliente">↩︎</button>`;
+    } else if (c.semJornada) {
+      // É cliente no ERP, mas o CRM ainda não tem linha para ele. Não há
+      // ficha a abrir nem nada a inativar — só a jornada a começar.
+      acoes = `<button class="btn-action btn-trazer"
+                 title="Criar a jornada deste cliente no CRM">➕</button>`;
+    } else {
+      acoes = `<button class="btn-action btn-edit" title="Abrir ficha">✏️</button>
+               <button class="btn-action btn-delete" title="Inativar cliente">🗑️</button>`;
+    }
+
+    // O selo diz de onde a linha veio. "Sem ERP" já existia e continua
+    // querendo dizer cadastro não conferido — não cliente fora do ERP.
+    const selo = c.semJornada
+      ? '<span class="selo-origem selo-sem-jornada" title="Existe no ERP; a jornada ainda não foi definida">sem jornada</span>'
+      : (c.origem === 'crm' && !c.erp_id
+          ? '<span class="selo-origem selo-sem-erp" title="Cadastro ainda não conferido contra o ERP">sem ERP</span>'
+          : '');
 
     return `
-      <tr data-id="${c.id}">
+      <tr data-id="${c.id ?? ''}" data-documento="${esc(c.documento || '')}">
         <td>
-          ${esc(c.nome)}
+          ${esc(c.nome)} ${selo}
           ${c.nome_fantasia ? `<div class="celula-secundaria">${esc(c.nome_fantasia)}</div>` : ''}
         </td>
         <td>${formatarCnpj(c.documento)}</td>
         <td>${esc(c.cidade) || '—'}</td>
         <td>${nucleos.length ? nucleos.map((n) => `<span class="chip-nucleo">${esc(n)}</span>`).join(' ') : '—'}</td>
         <td class="text-center">${c.classificacao || '—'}</td>
-        <td>${etapa ? `<span class="pilula-etapa" style="--cor-etapa:${esc(etapa.cor)}">${esc(etapa.nome)}</span>` : '—'}</td>
+        <td>${etapa
+              ? `<span class="pilula-etapa" style="--cor-etapa:${esc(etapa.cor)}">${esc(etapa.nome)}</span>`
+              : (c.semJornada ? '<span class="celula-secundaria">não definida</span>' : '—')}</td>
         <td class="text-center">${acoes}</td>
       </tr>`;
+  }
+
+  /**
+   * A faixa que explica por que a lista do ERP não veio.
+   *
+   * Fica acima da tabela e some sozinha quando o hub volta. O texto vem
+   * do servidor, que sabe distinguir "falta a chave" de "a chave não tem
+   * a permissão hub:customers:read" — a tela não deve adivinhar isso.
+   */
+  function mostrarAvisoHub() {
+    const faixa = el('jornada-aviso-hub');
+    if (!faixa) return;
+
+    faixa.classList.toggle('hidden', !avisoHub);
+    faixa.textContent = avisoHub
+      ? `Lista do ERP indisponível — mostrando só o que o CRM tem. ${avisoHub}`
+      : '';
+  }
+
+  /**
+   * Traz um cliente do ERP para a jornada: cria a linha do CRM e grava o
+   * vínculo `erp_id`.
+   *
+   * O vínculo NÃO é digitado nem enviado pela tela — o servidor o obtém
+   * consultando o hub pelo CNPJ. Vínculo carimbado à mão é pior que
+   * vínculo nenhum, porque a trava passaria a confiar nele.
+   */
+  async function trazerParaJornada(documento, nome) {
+    if (!confirm(`Começar a jornada de "${nome}"?
+
+Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser trocada depois.`)) return;
+
+    try {
+      const r = await fetch(`/api/hub-clientes?documento=${encodeURIComponent(documento)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+      });
+
+      const d = await r.json();
+      if (!r.ok) {
+        alert(d.error || d.details || 'Não foi possível criar a jornada deste cliente.');
+        return;
+      }
+
+      recarregarVisao();
+      if (d.cliente) abrirFicha(d.cliente);
+
+    } catch (e) {
+      alert('Falha de conexão ao trazer o cliente para a jornada.');
+    }
   }
 
   /* ----------------------------------------------------------
@@ -683,9 +848,22 @@ const Clientes = (() => {
     el('table-clientes-body')?.addEventListener('click', async (ev) => {
       const tr = ev.target.closest('tr');
       if (!tr) return;
-      const id = Number(tr.dataset.id);
-      const cliente = naTela.find((c) => c.id === id);
+
+      // Quem existe só no ERP ainda não tem id no CRM: a linha é achada
+      // pelo CNPJ, que é o que os dois lados têm em comum.
+      const id = Number(tr.dataset.id) || null;
+      const documento = tr.dataset.documento || null;
+
+      const cliente = id
+        ? naTela.find((c) => c.id === id)
+        : naTela.find((c) => c.documento && c.documento === documento);
+
       if (!cliente) return;
+
+      if (ev.target.classList.contains('btn-trazer')) {
+        trazerParaJornada(cliente.documento, cliente.nome);
+        return;
+      }
 
       if (ev.target.classList.contains('btn-edit')) abrirFicha(cliente);
       if (ev.target.classList.contains('btn-delete')) inativar(id, cliente.nome);

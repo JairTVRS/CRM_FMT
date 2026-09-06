@@ -2,7 +2,11 @@
 
 **Atualizado em:** 05/09/2026
 **Versão no ar:** 2.17.0 (migrações 008 e 009 aplicadas e conferidas no
-D1 remoto; a 2.16.0 não tem migração)
+D1 remoto)
+**Pronta para subir:** 2.18.0 e 2.19.0 — Lote F inteiro, sem migração.
+A 2.19.0 **exige o Secret `HUB_API_KEY` com `hub:customers:read`** para
+mostrar os clientes do ERP; sem ele a tela explica o que falta e segue
+funcionando com o que o CRM tem.
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -31,6 +35,8 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **L** | **2.15.0** | **Mapa de stakeholders e Dossiê de Experiência** — consumidor de verdade dos papéis criados no H |
 | — | **2.16.0** | **Ajustes de tela** — calendário abre pelo campo, busca de CEP no ViaCEP, e a análise falsa da IA removida |
 | — | **2.17.0** | **Versionamento num módulo só** — os três geradores passam a compartilhar `_lib/versionamento.js`; a proposta ganha registro de falha (migração 009) |
+| **F¹** | **2.18.0** | **O lead vira cliente** — conversão a partir de "Finalizado", com tela de setup |
+| **F²** | **2.19.0** | **Os clientes do ERP na Jornada** — lista ao vivo, "sem jornada" com um clique para começar, trava do CNPJ e vínculo do `erp_id` |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -45,7 +51,6 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 
 | Lote | Entrega | Depende de |
 |---|---|---|
-| **F** | **Cliente e conversão** — "Finalizado" abre a conversão, busca do CNPJ no ERP com trava, vínculo de ID, classificação herdada | chave do hub com escopo ampliado |
 | **G** | **Contrato e boas-vindas** — reaproveitam a casca do Lote E; cadastro das empresas contratadas; qualificação do representante preenchida na geração | template do contrato |
 | **I** | **Reuniões e atas** — sinais diretos do `/meetings`, parser do manual v2.3 para o plano de ação; traz a **carteira** (cliente + núcleo) | chave do hub — o `/meetings` está fora do escopo atual |
 | **J** | **Webhooks e notas** — recepção assinada, protocolo de 6 passos nas notas de Erro | endpoint de notas + webhooks |
@@ -55,23 +60,23 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 | **O** | **Relatório de Valor Gerado** | G, K |
 | **P** | **Dashboard de CX**, pauta da CX Review e Expansão | tudo |
 
-### Com o L entregue, acabaram os lotes desbloqueados
+### A chave do hub deixou de ser um bloqueio de código
 
-O L era o último que dava para fazer só com o que o CRM já tem. **Todos
-os lotes restantes esperam material externo.** A tabela do I dizia
-"depende de —", mas isso estava errado: o `/meetings` também está fora do
-escopo da chave atual. Corrigido acima.
+**O Lote F está fechado.** O código do caminho 2 — os clientes do ERP
+aparecendo sozinhos — está escrito e provado contra o dublê. O que falta
+é operacional, não de desenvolvimento: **cadastrar o Secret
+`HUB_API_KEY` com a permissão `hub:customers:read`** (ver a seção 1 do
+`Manual-ERP-Lote-F2-CRM-FMT-v1.0.md`).
 
-A chave do hub com escopo ampliado é o gargalo real — destrava F e I, e
-por tabela M e N. Enquanto ela não chega, não há próximo lote para puxar
-à frente; o que sobra é trabalho fora da fila: a verificação em navegador
-pendente do H e do L, ou a unificação dos três geradores de documento.
+Enquanto ele não é cadastrado, a tela **diz o que falta** em vez de ficar
+vazia, e os outros dois caminhos — conversão de lead e cadastro manual —
+seguem povoando a Jornada.
 
-**O que o Lote H já adiantou do F:** a tabela `clientes` existe com
-`erp_id` e `lead_id` nascendo nulos, a ficha está pronta e a aba de
-inativos foi entregue junto. O F acrescenta por cima — busca no ERP,
-trava, preenchimento dos vínculos e a tela de conversão a partir do lead
-— sem refazer nada.
+O mesmo cadastro destrava o **I** (`/meetings`) e, por tabela, o M e o N.
+
+**Três caminhos para um cliente chegar à trilha de CX**, e os três
+existem: o lead finalizado que converte (2.18.0), o ativo do ERP que
+aparece sozinho (2.19.0) e o cadastro manual (Lote H).
 
 ---
 
@@ -85,8 +90,12 @@ trava, preenchimento dos vínculos e a tela de conversão a partir do lead
 | **Endpoint de indicadores** (em desenvolvimento) | K |
 | **Template do contrato em Word** | G |
 
-**O Lote H foi entregue em 04/09/2026** justamente porque não dependia de
-nada disso. O próximo lote sem bloqueio é o **L**.
+O contrato do endpoint de clientes **deixou de faltar**: veio da
+documentação em 05/09/2026 e está implementado. `GET /customers`,
+permissão `hub:customers:read`, `fields` obrigatório, filtro `status`
+com `prospect|ad_hoc|active|inactive`, e resposta `{ size, data[] }`.
+
+O que resta é **cadastrar a chave** — passo operacional, não de código.
 
 ---
 
@@ -134,9 +143,13 @@ ser "converter lead em cliente e cadastrar" para ser "ligar o lead
 convertido a um cliente que o hub já conhece". A tabela `clientes`
 continua existindo, mas deixa de ser a fonte de quem é cliente.
 
-Consequência prática: **a Jornada fica vazia até a chave do hub com
-escopo ampliado chegar.** Cadastro manual segue possível, e é o que
-permite exercitar a trilha enquanto isso.
+Implementado na 2.19.0. O cruzamento é **por CNPJ**, não por `erp_id`:
+enquanto o vínculo não é gravado, o CNPJ é a única coisa que os dois
+lados têm em comum — e é por isso que a ficha exige CNPJ e recusa CPF.
+
+**"Sem ERP" e "sem jornada" não são a mesma coisa**, e a tela não pode
+deixar parecer que são: o primeiro é cadastro que ninguém conferiu contra
+o ERP; o segundo é cliente confirmado lá cuja jornada ainda não começou.
 
 **No endereço, o CEP manda.** Decidido em 05/09/2026. Quando a consulta
 de CNPJ (Receita) e a de CEP (ViaCEP) discordarem, vence o CEP: é a

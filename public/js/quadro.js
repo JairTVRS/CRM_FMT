@@ -314,6 +314,10 @@ const Quadro = (() => {
    * @param filtros      função que devolve os filtros da tela
    * @param cartao       função que desenha um cartão
    * @param aoAbrir      o que fazer quando o cartão é clicado
+   * @param aoMover      chamado DEPOIS de a movimentação ser gravada,
+   *                     com (registro, etapaDestino). O funil comercial
+   *                     usa para oferecer a conversão em cliente quando
+   *                     o lead cai numa etapa de encerramento.
    * @param porColuna    teto de cartões por coluna
    */
   function criar({
@@ -326,6 +330,7 @@ const Quadro = (() => {
     filtros = () => new URLSearchParams(),
     cartao,
     aoAbrir = () => {},
+    aoMover = () => {},
     porColuna = 50
   }) {
     let colunas = [];
@@ -635,12 +640,26 @@ const Quadro = (() => {
           })
         });
         if (!r.ok) throw new Error('recusado');
+
+        // Só DEPOIS de gravado. Avisar antes ofereceria uma conversão
+        // apoiada num movimento que o banco talvez tenha recusado.
+        aoMover(registroPorId(id), colunas.find((c) => c.etapa.id === destino)?.etapa || null);
+
       } catch (e) {
         // O quadro já mostrava o cartão no lugar novo. Se a gravação
         // falhou, recarregar é o único jeito honesto de voltar à verdade.
         alert('Não foi possível mover o cartão. O quadro será recarregado.');
         carregar();
       }
+    }
+
+    /** O registro como está no modelo depois do movimento. */
+    function registroPorId(id) {
+      for (const c of colunas) {
+        const achado = c.registros.find((x) => x.id === id);
+        if (achado) return achado;
+      }
+      return null;
     }
 
     /** Move no estado local para a tela responder antes da rede. */
@@ -766,5 +785,20 @@ const QuadroLeads = Quadro.criar({
 
   aoAbrir: (lead) => {
     if (typeof abrirModalComLead === 'function') abrirModalComLead(lead);
+  },
+
+  /**
+   * Lead que cai numa etapa de encerramento é candidato a virar cliente.
+   *
+   * NÃO converte sozinho — abre a tela de conversão, e só com ela
+   * preenchida grava. A conversão pede o que o funil não tem: etapa da
+   * jornada, núcleos de atendimento e data de início da relação.
+   *
+   * Até a v2.17.0 mover para "Finalizado" não produzia aviso nenhum. O
+   * comportamento estava certo, mas era mudo.
+   */
+  aoMover: (lead, etapa) => {
+    if (!lead || !etapa?.encerra) return;
+    if (typeof Conversao !== 'undefined') Conversao.oferecer(lead.id, etapa.nome);
   }
 });

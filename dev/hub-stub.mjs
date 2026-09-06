@@ -59,8 +59,42 @@ const USUARIOS = [
   { id: 1, name: 'Jair Tavares', email: 'jairdasilvatj@gmail.com', isActive: true }
 ];
 
+/**
+ * Clientes do dublê, no formato do `GET /customers` do hub real —
+ * inclusive `size` e `data`, e os nomes em inglês que a API usa.
+ *
+ * Servem para exercitar os três estados que a Jornada distingue:
+ *   - um que também existe no CRM (jornada definida)
+ *   - dois que só existem no ERP (sem jornada)
+ *   - um `inactive`, que o filtro padrão `status=active` deve esconder
+ */
+const CLIENTES = [
+  { id: '507f1f77bcf86cd799439011', nid: 100, status: 'active',
+    tradingName: 'Acme Indústria', companyName: 'Acme Indústria S.A.',
+    document: '12345678000190', email: 'contato@acme.com.br', phone1: '31988888888',
+    classification: 3, contractedAt: '2024-05-02T00:00:00.000Z' },
+
+  { id: '507f1f77bcf86cd799439012', nid: 101, status: 'active',
+    tradingName: 'Vale Verde', companyName: 'Comercial Vale Verde LTDA',
+    document: '19131243000197', email: 'contato@valeverde.com.br', phone1: '34999990001',
+    classification: 5, contractedAt: '2023-11-20T00:00:00.000Z' },
+
+  { id: '507f1f77bcf86cd799439013', nid: 102, status: 'active',
+    tradingName: 'Formatar', companyName: 'FORMATAR CONSULTORIA EMPRESARIAL LTDA',
+    document: '07091149000172', email: 'jair@formatar.com.br', phone1: '37991752215',
+    classification: 4, contractedAt: '2005-01-10T00:00:00.000Z' },
+
+  { id: '507f1f77bcf86cd799439014', nid: 103, status: 'inactive',
+    tradingName: 'Saiu Fora', companyName: 'Saiu Fora ME',
+    document: '11222333000181', email: null, phone1: null,
+    classification: 1, contractedAt: '2022-02-02T00:00:00.000Z' }
+];
+
 const inativo = process.argv.includes('--inativo');
 const semCadastro = process.argv.includes('--sem-cadastro');
+
+/** `--sem-permissao` imita a chave sem `hub:customers:read`. */
+const semPermissao = process.argv.includes('--sem-permissao');
 
 const servidor = createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORTA}`);
@@ -72,7 +106,7 @@ const servidor = createServer((req, res) => {
     console.log(`  ${status}  ${req.method} ${url.pathname}${url.search}  ->  ${texto.slice(0, 120)}`);
   };
 
-  if (url.pathname !== '/v1/users') {
+  if (url.pathname !== '/v1/users' && url.pathname !== '/v1/customers') {
     return responder(404, { error: 'Rota não coberta pelo dublê.' });
   }
 
@@ -83,6 +117,41 @@ const servidor = createServer((req, res) => {
     return responder(401, { error: 'Sem credencial.' });
   }
 
+  /* ---------------- Clientes ---------------- */
+  if (url.pathname === '/v1/customers') {
+    // O caso mais provável em produção hoje: a chave existe e funciona,
+    // mas não tem escopo de clientes. Poder simulá-lo é o que permite
+    // conferir se a tela explica o motivo em vez de ficar vazia.
+    if (semPermissao) {
+      return responder(403, { error: 'Sem permissão para esta operação.' });
+    }
+
+    // `fields` é obrigatório no hub real, e omiti-lo devolve 400. O dublê
+    // exige o mesmo: um esquecimento tem que doer aqui, não em produção.
+    if (!url.searchParams.get('fields')) {
+      return responder(400, { error: 'API_FIELDS_VALIDATION: o parâmetro fields é obrigatório.' });
+    }
+
+    const documento = (url.searchParams.get('document') || '').replace(/\D/g, '');
+    const status = (url.searchParams.get('status') || '').split(',').filter(Boolean);
+    const busca = (url.searchParams.get('search') || '').toLowerCase();
+
+    let lista = CLIENTES;
+    if (documento) lista = lista.filter((c) => c.document === documento);
+    if (status.length) lista = lista.filter((c) => status.includes(c.status));
+    if (busca) {
+      lista = lista.filter((c) =>
+        `${c.companyName} ${c.tradingName} ${c.document} ${c.email || ''}`
+          .toLowerCase().includes(busca));
+    }
+
+    // O dublê devolve tudo na página 1; a página 2 vem vazia, que é o
+    // sinal de fim que o `listarClientesDoHub` usa para parar.
+    const pagina = Number(url.searchParams.get('page') || 1);
+    return responder(200, { size: lista.length, data: pagina > 1 ? [] : lista });
+  }
+
+  /* ---------------- Usuários ---------------- */
   if (semCadastro) return responder(200, { data: [] });
 
   const busca = (url.searchParams.get('search') || '').toLowerCase();
@@ -97,10 +166,13 @@ servidor.listen(PORTA, '127.0.0.1', () => {
   console.log('┌───────────────────────────────────────────────────────────');
   console.log('│  DUBLÊ DO HUB — só desenvolvimento local');
   console.log(`│  http://127.0.0.1:${PORTA}/v1/users`);
+  console.log(`│  http://127.0.0.1:${PORTA}/v1/customers`);
   console.log('│');
   console.log(`│  Cadastrado: ${USUARIOS.map((u) => u.email).join(', ')}`);
   if (inativo) console.log('│  MODO: --inativo (responde isActive=false)');
   if (semCadastro) console.log('│  MODO: --sem-cadastro (responde lista vazia)');
+  if (semPermissao) console.log('│  MODO: --sem-permissao (clientes respondem 403)');
+  console.log(`│  Clientes no dublê: ${CLIENTES.length} (${CLIENTES.filter((c) => c.status === 'active').length} ativos)`);
   console.log('│');
   console.log('│  O login do Google continua sendo validado de verdade.');
   console.log('└───────────────────────────────────────────────────────────');

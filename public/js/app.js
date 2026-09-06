@@ -315,6 +315,11 @@ function abrirModalComLead(lead) {
 
   document.getElementById('modal-lead-title').textContent = `Lead: ${lead.nome || 'Editar'}`;
   modal.classList.remove('hidden');
+
+  // A aba Funil mostra se este lead já virou cliente, ou se pode virar.
+  // Evento em vez de chamada direta: quem responde é o conversao.js, que
+  // carrega depois deste arquivo.
+  document.dispatchEvent(new CustomEvent('crm:lead-ficha', { detail: { lead } }));
 }
 
 /* ==========================================================================

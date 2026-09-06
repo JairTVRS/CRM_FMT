@@ -306,3 +306,41 @@
 @media (max-width: 900px) {
   #view-clientes-quadro { display: none !important; }
 }
+
+/* --------------------------------------------------------------------------
+   ORIGEM DA LINHA NA JORNADA (Lote F parte 2)
+
+   A lista vem do ERP, e três estados precisam ser distinguíveis a olho:
+   no ERP com jornada (sem selo), no ERP sem jornada, e só no CRM.
+
+   "sem ERP" e "sem jornada" NÃO são a mesma coisa e não podem parecer a
+   mesma coisa: o primeiro é cadastro que ninguém conferiu contra o ERP;
+   o segundo é cliente confirmado no ERP cuja jornada ainda não começou.
+   -------------------------------------------------------------------------- */
+.selo-origem {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.08rem 0.38rem;
+  border-radius: 10px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Falta uma ação nossa: laranja da marca, que é a cor de "faça algo". */
+.selo-sem-jornada { color: var(--accent-color); }
+
+/* Falta uma conferência: apagado e tracejado, como as marcas
+   "não avaliada" do mapa de stakeholders — é ausência de informação. */
+.selo-sem-erp {
+  color: var(--text-subtle);
+  border-style: dashed;
+}
+
+/* A faixa que explica por que a lista do ERP não veio. */
+.aviso-hub {
+  margin-bottom: 0.8rem;
+  border-color: var(--accent-color);
+  color: var(--text-muted);
+}
