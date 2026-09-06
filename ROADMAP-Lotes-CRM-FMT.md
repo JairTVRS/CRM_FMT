@@ -2,8 +2,8 @@
 
 **Atualizado em:** 05/09/2026
 **Atualizado em:** 06/09/2026
-**Versão no ar:** 2.20.0 · **pronta para subir: 2.21.0** (Lote I —
-**tem migração**, a 010)
+**Versão no ar:** 2.21.0 (migrações 008, 009 e 010 aplicadas e conferidas
+no D1 remoto)
 (migrações 008 e 009 aplicadas e conferidas no D1 remoto; da 2.18.0 em
 diante nenhuma versão tem migração)
 
