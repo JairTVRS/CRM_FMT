@@ -1,12 +1,14 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 05/09/2026
-**Versão no ar:** 2.17.0 (migrações 008 e 009 aplicadas e conferidas no
-D1 remoto)
-**Pronta para subir:** 2.18.0 e 2.19.0 — Lote F inteiro, sem migração.
-A 2.19.0 **exige o Secret `HUB_API_KEY` com `hub:customers:read`** para
-mostrar os clientes do ERP; sem ele a tela explica o que falta e segue
-funcionando com o que o CRM tem.
+**Versão no ar:** 2.19.0 (migrações 008 e 009 aplicadas e conferidas no
+D1 remoto; a 2.18.0 e a 2.19.0 não têm migração)
+
+A 2.19.0 **precisa do Secret `HUB_API_KEY` com a permissão
+`hub:customers:read`** para mostrar os clientes do ERP. O Secret já
+existe na Cloudflare desde antes; se o escopo dele ainda for só
+`hub:users:read`, a Jornada diz isso na tela e segue funcionando com o
+que o CRM tem.
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
