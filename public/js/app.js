@@ -109,6 +109,12 @@ function initNavigation() {
       if (targetId === 'view-clientes' && typeof Clientes !== 'undefined') {
         Clientes.aoEntrarNaTela();
       }
+
+      // O plano de acao le as atas de meses de reunioes no ERP. Caro
+      // demais para uma tela que talvez nem seja aberta na sessao.
+      if (targetId === 'view-plano' && typeof Plano !== 'undefined') {
+        Plano.aoEntrarNaTela();
+      }
     });
   });
 }

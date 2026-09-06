@@ -90,6 +90,113 @@ const CLIENTES = [
     classification: 1, contractedAt: '2022-02-02T00:00:00.000Z' }
 ];
 
+
+/**
+ * Carteiras e reunioes do duble.
+ *
+ * Duas reunioes da MESMA carteira, para exercitar o que mais importa: a
+ * ata mais recente manda, porque acao encerrada sai do plano.
+ */
+const CARTEIRAS = [
+  { id: '607f1f77bcf86cd799439101', nid: 10,
+    customer: '507f1f77bcf86cd799439012', meetingType: '707f1f77bcf86cd799439201',
+    frequency: 'monthly', externalConsultant: '807f1f77bcf86cd799439301',
+    internalConsultants: [], startDate: '2023-11-20T00:00:00.000Z', isActive: true },
+
+  { id: '607f1f77bcf86cd799439102', nid: 11,
+    customer: '507f1f77bcf86cd799439011', meetingType: '707f1f77bcf86cd799439202',
+    frequency: 'biweekly', externalConsultant: null,
+    internalConsultants: [], startDate: '2024-05-02T00:00:00.000Z', isActive: true }
+];
+
+/* A ata de agosto: a ACAO 1 ainda esta no plano. */
+const ATA_ANTIGA = `Atas Comercial Vale Verde - LOGISTICA
+20/08/26 - 09:00 - 10:30
+Formatar: Jair Tavares, Marina Alves
+Cliente: Roberto Nunes
+
+1. Revisao do plano anterior.
+
+Plano de acao:
+
+ACAO 1: Implantar contagem ciclica semanal no CD
+Resp.: Tiago Nunes
+Prazo: 30/09/26
+Status: Nova
+
+ACAO 2: Revisar politica de estoque minimo
+Resp.: Marina Alves
+Prazo: 15/08/26
+Status: Pendente desde 08/06/26`;
+
+/* A de setembro: a ACAO 1 foi encerrada e SAIU do plano; entrou a 3.
+   No fim, uma nota privada que nao pode vazar. */
+const ATA_RECENTE = `Atas Comercial Vale Verde - LOGISTICA
+03/09/26 - 09:00 - 10:00
+Formatar: Jair Tavares
+[PARTICIPANTES CLIENTE A CONFIRMAR].
+
+1. A ACAO 1 foi concluida e sai do plano.
+
+Plano de acao:
+
+ACAO 2: Revisar politica de estoque minimo
+Resp.: Marina Alves
+Prazo: 15/08/26
+Status: Pendente desde 08/06/26
+
+ACAO 3: Contratar operador para o turno da noite
+Resp.: Roberto Nunes
+Prazo: 10/10/26
+Status: Repactuado em 20/08/26
+
+CLIENTE DEMONSTROU DESCONFORTO COM O CUSTO`;
+
+const REUNIOES = [
+  { id: '907f1f77bcf86cd799439401', nid: 88, title: 'Reuniao mensal Vale Verde',
+    status: 'finished', customer: '507f1f77bcf86cd799439012',
+    meetingType: '707f1f77bcf86cd799439201',
+    startDate: '2026-09-03T12:00:00.000Z', endDate: '2026-09-03T13:00:00.000Z',
+    durationInMinutes: 60, isDelayed: false, rescheduled: false,
+    participants: [{ user: 'u1' }], customerParticipants: [],
+    notes: ATA_RECENTE, technicalNotes: 'NOTA TECNICA QUE NAO PODE VAZAR' },
+
+  { id: '907f1f77bcf86cd799439402', nid: 87, title: 'Reuniao mensal Vale Verde',
+    status: 'finished', customer: '507f1f77bcf86cd799439012',
+    meetingType: '707f1f77bcf86cd799439201',
+    startDate: '2026-08-20T12:00:00.000Z', endDate: '2026-08-20T13:30:00.000Z',
+    durationInMinutes: 90, isDelayed: false, rescheduled: false,
+    participants: [{ user: 'u1' }, { user: 'u2' }],
+    customerParticipants: [{ name: 'Roberto Nunes' }],
+    notes: ATA_ANTIGA, technicalNotes: null },
+
+  // Cancelada: nao tem ata e nao pode produzir acao.
+  { id: '907f1f77bcf86cd799439403', nid: 86, title: 'Reuniao cancelada',
+    status: 'canceled_by_customer', customer: '507f1f77bcf86cd799439012',
+    meetingType: '707f1f77bcf86cd799439201',
+    startDate: '2026-07-10T12:00:00.000Z', endDate: null,
+    durationInMinutes: null, isDelayed: false, rescheduled: false,
+    participants: [], customerParticipants: [], notes: null, technicalNotes: null }
+];
+
+/** Tipos de reuniao — os nucleos. `teams` e array de ObjectId. */
+const TIPOS_REUNIAO = [
+  { id: '707f1f77bcf86cd799439201', nid: 2, title: 'Logística',
+    teams: ['807f1f77bcf86cd799439501'], isActive: true },
+  { id: '707f1f77bcf86cd799439202', nid: 3, title: 'Estoque',
+    teams: ['807f1f77bcf86cd799439501'], isActive: true },
+  { id: '707f1f77bcf86cd799439203', nid: 4, title: 'Conselho Gestor',
+    teams: ['807f1f77bcf86cd799439502'], isActive: true }
+];
+
+/** Times — o agrupamento interno da Formatar. */
+const TIMES = [
+  { id: '807f1f77bcf86cd799439501', nid: 3, title: 'Operações',
+    responsible: '907f1f77bcf86cd799439601', isActive: true },
+  { id: '807f1f77bcf86cd799439502', nid: 4, title: 'Governança',
+    responsible: '907f1f77bcf86cd799439602', isActive: true }
+];
+
 const inativo = process.argv.includes('--inativo');
 const semCadastro = process.argv.includes('--sem-cadastro');
 
@@ -106,7 +213,9 @@ const servidor = createServer((req, res) => {
     console.log(`  ${status}  ${req.method} ${url.pathname}${url.search}  ->  ${texto.slice(0, 120)}`);
   };
 
-  if (url.pathname !== '/v1/users' && url.pathname !== '/v1/customers') {
+  const ROTAS = ['/v1/users', '/v1/customers', '/v1/meetings',
+                 '/v1/portfolios', '/v1/meeting-types', '/v1/teams'];
+  if (!ROTAS.includes(url.pathname)) {
     return responder(404, { error: 'Rota não coberta pelo dublê.' });
   }
 
@@ -151,6 +260,44 @@ const servidor = createServer((req, res) => {
     return responder(200, { size: lista.length, data: pagina > 1 ? [] : lista });
   }
 
+  /* ---------------- Tipos de reunião e times ---------------- */
+  if (url.pathname === '/v1/meeting-types' || url.pathname === '/v1/teams') {
+    if (semPermissao) return responder(403, { error: 'Sem permissão para esta operação.' });
+    if (!url.searchParams.get('fields')) {
+      return responder(400, { error: 'API_FIELDS_VALIDATION: o parâmetro fields é obrigatório.' });
+    }
+    const lista = url.pathname === '/v1/teams' ? TIMES : TIPOS_REUNIAO;
+    const pagina = Number(url.searchParams.get('page') || 1);
+    return responder(200, { size: lista.length, data: pagina > 1 ? [] : lista });
+  }
+
+  /* ---------------- Carteiras e reuniões ---------------- */
+  if (url.pathname === '/v1/portfolios' || url.pathname === '/v1/meetings') {
+    if (semPermissao) {
+      return responder(403, { error: 'Sem permissão para esta operação.' });
+    }
+    if (!url.searchParams.get('fields')) {
+      return responder(400, { error: 'API_FIELDS_VALIDATION: o parâmetro fields é obrigatório.' });
+    }
+
+    const pagina = Number(url.searchParams.get('page') || 1);
+    const cliente = url.searchParams.get('customer');
+    const tipo = url.searchParams.get('meetingType');
+    const status = (url.searchParams.get('status') || '').split(',').filter(Boolean);
+
+    let lista = url.pathname === '/v1/portfolios' ? CARTEIRAS : REUNIOES;
+    if (cliente) lista = lista.filter((x) => x.customer === cliente);
+    if (tipo) lista = lista.filter((x) => x.meetingType === tipo);
+    if (status.length) lista = lista.filter((x) => status.includes(x.status));
+
+    // A ordenação padrão de reuniões é startDate DESCENDENTE.
+    if (url.pathname === '/v1/meetings') {
+      lista = [...lista].sort((a, b) => String(b.startDate).localeCompare(String(a.startDate)));
+    }
+
+    return responder(200, { size: lista.length, data: pagina > 1 ? [] : lista });
+  }
+
   /* ---------------- Usuários ---------------- */
   if (semCadastro) return responder(200, { data: [] });
 
@@ -167,6 +314,10 @@ servidor.listen(PORTA, '127.0.0.1', () => {
   console.log('│  DUBLÊ DO HUB — só desenvolvimento local');
   console.log(`│  http://127.0.0.1:${PORTA}/v1/users`);
   console.log(`│  http://127.0.0.1:${PORTA}/v1/customers`);
+  console.log(`│  http://127.0.0.1:${PORTA}/v1/meetings`);
+  console.log(`│  http://127.0.0.1:${PORTA}/v1/portfolios`);
+  console.log(`│  http://127.0.0.1:${PORTA}/v1/meeting-types`);
+  console.log(`│  http://127.0.0.1:${PORTA}/v1/teams`);
   console.log('│');
   console.log(`│  Cadastrado: ${USUARIOS.map((u) => u.email).join(', ')}`);
   if (inativo) console.log('│  MODO: --inativo (responde isActive=false)');

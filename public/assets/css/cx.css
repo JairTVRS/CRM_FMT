@@ -368,3 +368,171 @@
 .faixa-acao .espaco { flex: 1; }
 .faixa-acao label { white-space: nowrap; }
 .faixa-acao .form-control-sm { width: auto; padding: 0.3rem 0.5rem; font-size: 0.8rem; }
+
+/* --------------------------------------------------------------------------
+   PLANO DE AÇÃO EM 5W2H (Lote I)
+
+   A tela mostra duas metades e a fronteira precisa ser visível: o que a
+   ata diz (não se edita, o dono é o ERP) e o que a CX anota por cima.
+   -------------------------------------------------------------------------- */
+
+.plano-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.plano-numero {
+  display: flex;
+  flex-direction: column;
+  min-width: 6.5rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+.plano-numero strong { font-size: 1.3rem; color: var(--text-color); line-height: 1.2; }
+.plano-numero span   { font-size: 0.7rem; color: var(--text-subtle); }
+
+/* Só acende quando há algo a fazer. Número zero em vermelho seria ruído. */
+.plano-numero.alerta { border-color: var(--accent-color); }
+.plano-numero.alerta strong { color: var(--accent-color); }
+
+.filtros-linha {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.filtros-linha .form-control { flex: 1; min-width: 12rem; }
+.filtros-linha select.form-control { flex: 0 0 auto; min-width: 11rem; }
+
+.plano-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.plano-cartao {
+  padding: 0.8rem 0.9rem;
+  border-radius: 6px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  /* A faixa da esquerda é o sinal de longe: atrasada acende. */
+  border-left: 3px solid transparent;
+}
+
+.plano-cartao.atrasada { border-left-color: var(--danger-color); }
+
+.plano-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.plano-topo .espaco { flex: 1; }
+.plano-cliente { font-weight: 600; color: var(--text-color); font-size: 0.9rem; }
+
+.plano-numero-acao {
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
+
+/* O What: é o que a pessoa lê primeiro. */
+.plano-oque {
+  margin: 0.5rem 0 0.4rem;
+  font-size: 0.86rem;
+  color: var(--text-color);
+  line-height: 1.45;
+}
+
+.plano-marcas { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.plano-marca {
+  font-size: 0.7rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.marca-atraso     { color: var(--danger-color); border-color: var(--danger-color); }
+.marca-nova       { color: var(--success-color); border-color: var(--success-color); }
+.marca-repactuado { color: #eab308; border-color: #eab308; }
+
+/* O que falta na ata: apagado e tracejado, como as marcas "não avaliada"
+   do mapa de stakeholders. É ausência de informação, não um estado. */
+.marca-falta, .marca-desconhecido {
+  color: var(--text-subtle);
+  border-style: dashed;
+}
+
+/* --------------------------------------------------------------------------
+   Os quatro campos que a CX preenche
+   -------------------------------------------------------------------------- */
+.plano-5w2h {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.4rem 0.9rem;
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.w-campo { display: flex; flex-direction: column; font-size: 0.76rem; }
+.w-obs   { grid-column: 1 / -1; }
+
+.w-rotulo {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
+
+.w-valor { color: var(--text-muted); white-space: pre-wrap; }
+.w-campo.vazio .w-valor { color: var(--text-subtle); }
+
+.plano-form {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--accent-color);
+}
+
+/* A ata mudou depois da anotação, ou a carteira não foi encontrada. */
+.plano-mudou {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  border: 1px dashed var(--accent-color);
+}
+
+.plano-avisos {
+  margin-top: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.plano-avisos summary { cursor: pointer; color: var(--text-subtle); }
+.plano-avisos ul { margin: 0.5rem 0 0; padding-left: 1.1rem; line-height: 1.6; }
+
+/* O Time responsável na Formatar. Visualmente distinto do chip de núcleo:
+   são níveis diferentes — Time é agrupamento interno, núcleo é o tipo de
+   reunião no cliente. Confundi-los seria confundir os dois conceitos. */
+.plano-time {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  color: var(--text-subtle);
+  background-color: var(--input-bg);
+  white-space: nowrap;
+}

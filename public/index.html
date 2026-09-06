@@ -63,6 +63,15 @@
           </svg>
           Jornada
         </a>
+        <!-- A terceira tela: a fila de acoes de TODAS as carteiras. O CX
+             trabalha o dia por aqui, nao cliente por cliente. -->
+        <a href="#" class="menu-item" data-target="view-plano">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          Plano de Acao
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -308,7 +317,58 @@
         </div>
       </section>
 
-      <!-- TELA 3: CONFIGURAÇÕES DO SISTEMA -->
+      <!-- TELA 3: PLANO DE ACAO (5W2H)
+
+           A ata da tres dos sete campos: What (a descricao da ACAO), Who
+           (Resp.) e When (Prazo). Why, Where, How e How much nao existem
+           no texto e sao preenchidos pela CX. A fronteira entre as duas
+           metades e visivel na tela de proposito. -->
+      <section id="view-plano" class="content-body hidden">
+        <header class="content-header">
+          <div class="header-titles">
+            <h1>Plano de Ação</h1>
+            <p class="subtitle">
+              As ações abertas de todas as carteiras, lidas das atas do ERP.
+              O 5W2H se completa aqui.
+            </p>
+          </div>
+          <div class="header-actions">
+            <button id="btn-plano-recarregar" class="btn btn-secondary">Recarregar</button>
+          </div>
+        </header>
+
+        <p id="plano-aviso" class="campo-informativo aviso-hub hidden"></p>
+
+        <div id="plano-resumo" class="plano-resumo"></div>
+
+        <div class="filtros-linha">
+          <input type="text" id="plano-busca" class="form-control"
+                 placeholder="Buscar por cliente, núcleo, ação ou responsável...">
+          <select id="plano-cliente" class="form-control"></select>
+          <!-- Time e o agrupamento interno da Formatar (Governanca,
+               Operacoes); nucleo e o tipo de reuniao no cliente. Filtrar
+               por Time e ler a fila por frente de trabalho. -->
+          <select id="plano-time" class="form-control"></select>
+          <select id="plano-situacao" class="form-control">
+            <option value="">Toda situação</option>
+            <option value="atrasadas">Só as atrasadas</option>
+            <option value="sem-anotacao">Sem 5W2H preenchido</option>
+            <option value="sem-responsavel">Sem responsável</option>
+            <option value="sem-prazo">Sem prazo</option>
+          </select>
+        </div>
+
+        <div id="plano-lista" class="plano-lista"></div>
+
+        <!-- Os avisos que o parser levantou ao ler as atas. Ata fora do
+             manual nao e erro do CRM, mas quem escreveu precisa saber. -->
+        <details id="plano-avisos-caixa" class="plano-avisos hidden">
+          <summary><span id="plano-avisos-total"></span></summary>
+          <ul id="plano-avisos"></ul>
+        </details>
+      </section>
+
+      <!-- TELA 4: CONFIGURAÇÕES DO SISTEMA -->
       <section id="view-configuracoes" class="content-body hidden">
         <header class="content-header">
           <div class="header-titles">
@@ -1134,6 +1194,7 @@
   <!-- Depois do quadro.js e do clientes.js: é acionado pelo quadro do
        funil e recarrega a Jornada ao converter. -->
   <script src="js/conversao.js"></script>
+  <script src="js/plano-acao.js"></script>
   <script src="js/importar.js"></script>
 
   <!-- ===== Modal do Dossiê Executivo (js/dossie.js) ===== -->

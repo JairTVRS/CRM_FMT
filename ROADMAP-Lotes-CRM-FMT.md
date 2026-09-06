@@ -2,7 +2,8 @@
 
 **Atualizado em:** 05/09/2026
 **Atualizado em:** 06/09/2026
-**Versão no ar:** 2.19.0 · **pronta para subir: 2.20.0**
+**Versão no ar:** 2.20.0 · **pronta para subir: 2.21.0** (Lote I —
+**tem migração**, a 010)
 (migrações 008 e 009 aplicadas e conferidas no D1 remoto; da 2.18.0 em
 diante nenhuma versão tem migração)
 
@@ -45,6 +46,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **F¹** | **2.18.0** | **O lead vira cliente** — conversão a partir de "Finalizado", com tela de setup |
 | **F²** | **2.19.0** | **Os clientes do ERP na Jornada** — lista ao vivo, "sem jornada" com um clique para começar, trava do CNPJ e vínculo do `erp_id` |
 | — | **2.20.0** | **Trazer todos de uma vez** — a carteira inteira do ERP entra na jornada em lotes transacionais |
+| **I** | **2.21.0** | **Reuniões, atas e plano de ação em 5W2H** — parser do manual v2.3, tela própria com a fila de ações de todas as carteiras (migração 010) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -60,7 +62,6 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 | Lote | Entrega | Depende de |
 |---|---|---|
 | **G** | **Contrato e boas-vindas** — reaproveitam a casca do Lote E; cadastro das empresas contratadas; qualificação do representante preenchida na geração | template do contrato |
-| **I** | **Reuniões e atas** — sinais diretos do `/meetings`, parser do manual v2.3 para o plano de ação; traz a **carteira** (cliente + núcleo) | chave do hub — o `/meetings` está fora do escopo atual |
 | **J** | **Webhooks e notas** — recepção assinada, protocolo de 6 passos nas notas de Erro | endpoint de notas + webhooks |
 | **K** | **KPIs Empresariais** — série contínua com marco zero | endpoint de indicadores |
 | **M** | **Saúde de CX** — Saúde e Aderência do ERP mais a camada de percepção | F, I, J, K |
@@ -137,6 +138,44 @@ vale a pior das carteiras — nunca a média, que esconderia o vermelho.
 
 **Dois dossiês distintos:** o Executivo é pré-venda e existe; o de
 Experiência é pós-venda e vem no Lote L.
+
+**O 5W2H do plano de ação é meio da ata, meio do CRM.** Decidido em
+06/09/2026. A ata dá três dos sete campos — What (a descrição da AÇÃO),
+Who (`Resp.:`) e When (`Prazo:`). Why, Where, How e How much **não
+existem no texto** e são preenchidos pela CX.
+
+Foi recusada a alternativa de a IA sugeri-los a partir do contexto:
+sugestão não confirmada vira verdade com o tempo, e este é um plano que
+as pessoas cobram umas das outras.
+
+**A chave da anotação é (carteira + número da ação)**, não a reunião. O
+manual v2.3 diz que o ID nasce e morre com a ação e que a sequência é por
+carteira; a mesma AÇÃO 7 reaparece nas atas seguintes até ser encerrada.
+Chavear por reunião perderia a anotação na semana seguinte — justamente
+quando ela passa a valer.
+
+**A ata mais recente manda:** ação encerrada sai do plano, então o que
+está na última ata é o que continua aberto.
+
+**O CRM numera as ações por CLIENTE; a ata numera por tipo de reunião.**
+Decidido em 06/09/2026. Um cliente com três carteiras tem três "AÇÃO 1"
+no ERP. O identificador do CRM é `N.M` — N é a sequência do cliente, M é
+o número da ação no núcleo.
+
+O N é **gravado na primeira vez que a ação é vista e nunca reaproveitado**.
+Calculado na hora, renumeraria quando uma ação fechasse, e o identificador
+mudaria de significado. Consequência assumida: a leitura do plano escreve.
+
+**O nome do núcleo vem do ERP** (`GET /meeting-types`), não do cabeçalho
+da ata — o cadastro é dono do nome, e a ata é a reserva para quando o
+tipo de reunião não estiver na lista. O **Time** vem do `GET /teams`, e
+os três níveis chegam à tela sem se confundir: Time é o agrupamento
+interno da Formatar, núcleo é o tipo de reunião no cliente, carteira é
+cliente + núcleo.
+
+**`participants` são os funcionários da Formatar; `customerParticipants`
+são os do cliente.** Confirmado em 06/09/2026. Importa porque a presença
+do cliente nas reuniões é insumo do Health Score.
 
 **O hub é dono da lista de clientes ativos; o CRM anota por cima.**
 Decidido em 05/09/2026, ao verificar a Jornada em navegador. A Jornada
