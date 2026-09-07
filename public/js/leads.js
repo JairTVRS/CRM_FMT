@@ -179,7 +179,7 @@ const Leads = (() => {
 
     return `
     <tr data-id="${lead.id}">
-      <td><strong>${esc(lead.nome)}</strong></td>
+      <td><button type="button" class="celula-abrir" title="Abrir a ficha">${esc(lead.nome)}</button></td>
       <td>${esc(formatarDocumento(lead.documento))}</td>
       <td>${esc(lead.telefone || '—')}</td>
       <td>${canal ? `<span class="badge">${esc(canal)}</span>` : '—'}</td>

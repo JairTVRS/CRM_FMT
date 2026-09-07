@@ -276,8 +276,9 @@ function initTableActions() {
     const leadData = Leads.porId(id);
     if (!leadData) return;
 
-    // Botão Editar
-    if (target.classList.contains('btn-edit')) {
+    // Abrir a ficha: pelo lápis OU pelo nome. O nome é o alvo natural
+    // — quem quer ver o lead clica nele, não num ícone ao lado.
+    if (target.classList.contains('btn-edit') || target.classList.contains('celula-abrir')) {
       editingRow = tr;
       abrirModalComLead(leadData);
     }

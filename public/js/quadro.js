@@ -451,6 +451,15 @@ const Quadro = (() => {
         </section>`;
     }
 
+    /**
+     * O registro pelo id, vindo do modelo em memória.
+     *
+     * A comparação é por texto de propósito: `dataset.id` do cartão é
+     * STRING e o `id` do registro é NÚMERO. Com `===` estrito nunca casa,
+     * e o cartão para de abrir — foi o que aconteceu na v2.19.0, quando
+     * uma segunda função com este nome foi declarada mais abaixo no mesmo
+     * escopo e sobrescreveu esta.
+     */
     function registroPorId(id) {
       for (const c of colunas) {
         const achado = c.registros.find((x) => String(x.id) === String(id));
@@ -651,15 +660,6 @@ const Quadro = (() => {
         alert('Não foi possível mover o cartão. O quadro será recarregado.');
         carregar();
       }
-    }
-
-    /** O registro como está no modelo depois do movimento. */
-    function registroPorId(id) {
-      for (const c of colunas) {
-        const achado = c.registros.find((x) => x.id === id);
-        if (achado) return achado;
-      }
-      return null;
     }
 
     /** Move no estado local para a tela responder antes da rede. */

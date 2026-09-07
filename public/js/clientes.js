@@ -310,7 +310,9 @@ const Clientes = (() => {
     return `
       <tr data-id="${c.id ?? ''}" data-documento="${esc(c.documento || '')}">
         <td>
-          ${esc(c.nome)} ${selo}
+          <button type="button" class="celula-abrir"
+                  title="${c.semJornada ? 'Começar a jornada deste cliente' : 'Abrir a ficha'}"
+          >${esc(c.nome)}</button> ${selo}
           ${c.nome_fantasia ? `<div class="celula-secundaria">${esc(c.nome_fantasia)}</div>` : ''}
         </td>
         <td>${formatarCnpj(c.documento)}</td>
@@ -955,12 +957,18 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
 
       if (!cliente) return;
 
-      if (ev.target.classList.contains('btn-trazer')) {
+      // Clicar no NOME é o gesto natural de "quero ver este cliente".
+      // Em quem ainda não tem jornada não há ficha a abrir: a única ação
+      // possível é começar a jornada, e é o que o clique oferece.
+      const clicouNoNome = ev.target.classList.contains('celula-abrir');
+
+      if (ev.target.classList.contains('btn-trazer')
+          || (clicouNoNome && cliente.semJornada)) {
         trazerParaJornada(cliente.documento, cliente.nome);
         return;
       }
 
-      if (ev.target.classList.contains('btn-edit')) abrirFicha(cliente);
+      if (ev.target.classList.contains('btn-edit') || clicouNoNome) abrirFicha(cliente);
       if (ev.target.classList.contains('btn-delete')) inativar(id, cliente.nome);
       if (ev.target.classList.contains('btn-reativar')) reativar(id, cliente.nome);
     });
