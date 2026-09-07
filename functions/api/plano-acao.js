@@ -77,6 +77,41 @@ function erroDoHub(e, cabecalhos) {
   return json({ error: 'Falha ao montar o plano de ação.', details: e.message }, 500, cabecalhos);
 }
 
+/* Na mesma ordem das consultas, para nomear qual falhou. */
+const NOMES_DAS_FONTES = ['carteiras', 'reuniões', 'clientes', 'tipos de reunião', 'times'];
+
+/**
+ * Reúne TODAS as fontes que falharam numa resposta só.
+ *
+ * O caso que motiva isto: a chave do hub cobre clientes mas não carteiras.
+ * Com `Promise.all`, a tela dizia só "falta hub:portfolios:read" — e só
+ * depois de corrigida é que apareceria a próxima. Dizer as quatro juntas
+ * transforma quatro idas ao painel da Cloudflare em uma.
+ */
+function erroDasFontes(falhas, cabecalhos) {
+  const permissoes = [...new Set(
+    falhas
+      .filter((f) => f.erro instanceof ErroHub && f.erro.codigo === 'HUB_SEM_PERMISSAO')
+      .map((f) => (String(f.erro.message).match(/hub:[a-z-]+:read/) || [])[0])
+      .filter(Boolean)
+  )];
+
+  if (permissoes.length) {
+    return json({
+      error: permissoes.length === 1
+        ? `A chave do hub não tem a permissão ${permissoes[0]}.`
+        : `A chave do hub não tem estas permissões: ${permissoes.join(', ')}.`,
+      code: 'HUB_SEM_PERMISSAO',
+      permissoesFaltando: permissoes,
+      fontes: falhas.map((f) => f.qual)
+    }, 403, cabecalhos);
+  }
+
+  // Nenhuma falha foi de permissão: devolve a primeira, que é a que
+  // explica o problema real.
+  return erroDoHub(falhas[0].erro, cabecalhos);
+}
+
 /**
  * Quantos meses de reunião olhar para trás, por padrão.
  *
@@ -197,15 +232,29 @@ export async function onRequestGet(context) {
   const desde = searchParams.get('desde') || inicioDaJanela();
 
   try {
-    // As cinco fontes do ERP, em paralelo. A do CRM vem depois.
+    // As cinco fontes do ERP, em paralelo.
+    //
+    // `allSettled`, não `all`: com `all` a primeira que falha derruba o
+    // resto, e o usuário descobre UMA permissão faltante por vez — corrige
+    // carteiras, recarrega, descobre reuniões, e assim por diante. Uma
+    // viagem por permissão. Aqui todas são tentadas e o erro lista as que
+    // faltam de uma vez.
+    const fontes = await Promise.allSettled([
+      listarCarteiras(env, { clienteErpId }),
+      listarReunioes(env, { clienteErpId, desde }),
+      listarClientesDoHub(env, { status: 'active' }),
+      mapaDeTiposDeReuniao(env),
+      mapaDeTimes(env)
+    ]);
+
+    const falhas = fontes
+      .map((f, i) => (f.status === 'rejected' ? { erro: f.reason, qual: NOMES_DAS_FONTES[i] } : null))
+      .filter(Boolean);
+
+    if (falhas.length) return erroDasFontes(falhas, cabecalhos);
+
     const [{ carteiras }, { reunioes, truncado }, { clientes }, tiposDeReuniao, times] =
-      await Promise.all([
-        listarCarteiras(env, { clienteErpId }),
-        listarReunioes(env, { clienteErpId, desde }),
-        listarClientesDoHub(env, { status: 'active' }),
-        mapaDeTiposDeReuniao(env),
-        mapaDeTimes(env)
-      ]);
+      fontes.map((f) => f.value);
 
     const { results } = await db.prepare('SELECT * FROM acoes_cx').all();
     const anotacoes = new Map(

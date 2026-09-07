@@ -12,7 +12,8 @@
  */
 
 import {
-  documento, folha, esc, dataBr, moeda, documentoBr, FORMATAR, MARCA
+  documento, folha, esc, dataBr, moeda, documentoBr, FORMATAR, MARCA,
+  nomeDeDocumento, TIPO_DOCUMENTO
 } from './documento-base.js';
 
 /* ==========================================================================
@@ -321,7 +322,9 @@ export function renderizarProposta(dados) {
   ];
 
   return documento({
-    titulo: `Proposta — ${d.cliente?.nome || 'Cliente'}`,
+    // O título vira o nome do PDF: a proposta só existe como PDF, então
+    // é o único caminho para ela ter nome padronizado.
+    titulo: nomeDeDocumento(TIPO_DOCUMENTO.PROPOSTA, d.cliente?.nome, d.gerado?.em),
     folhas
   });
 }

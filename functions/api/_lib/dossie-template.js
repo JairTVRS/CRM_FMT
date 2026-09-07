@@ -39,6 +39,8 @@ function moeda(valor) {
   return `R$ ${Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 }
 
+import { nomeDeDocumento, TIPO_DOCUMENTO } from './documento-base.js';
+
 const ROTULO_FONTE = {
   brasilapi: 'Receita Federal', opencnpj: 'Receita Federal',
   'brasilapi (cache)': 'Receita Federal', 'opencnpj (cache)': 'Receita Federal',
@@ -190,7 +192,15 @@ function rodapeFontes(f, g) {
 export function renderizarDossie(dados) {
   const e = dados.empresa || {};
   const a = dados.analise || {};
+  // O nome legível vai no corpo do documento; o TÍTULO segue o padrão de
+  // nome de arquivo, porque é dele que o "Imprimir / PDF" tira o nome
+  // sugerido. Padrão decidido em 06/09/2026.
   const titulo = e.nomeFantasia || e.razaoSocial || 'Dossiê Executivo';
+  const nomeArquivo = nomeDeDocumento(
+    TIPO_DOCUMENTO.PROSPECCAO,
+    e.razaoSocial || e.nomeFantasia,
+    dados.gerado?.em || dados.meta?.geradoEm
+  );
 
   const aba1 = [
     blocoSecao('Identificação', fichaCadastral(e), '01'),
@@ -222,7 +232,7 @@ export function renderizarDossie(dados) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(titulo)} — Inteligência Comercial | Formatar</title>
+<title>${esc(nomeArquivo)}</title>
 <style>
 :root{
   --laranja:#F2421A; --tinta:#1a1d24; --grafite:#4a5160; --cinza:#7b8494;

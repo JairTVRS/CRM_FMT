@@ -83,7 +83,11 @@ const Plano = (() => {
         // A causa vem no corpo, com código próprio: a tela precisa poder
         // dizer "falta a permissão hub:meetings:read" em vez de mostrar
         // uma lista vazia, que seria lida como "não há ações".
-        avisoHub = d.error || 'Não foi possível montar o plano de ação.';
+        // O servidor lista TODAS as permissões que faltam, não só a
+        // primeira: quatro idas ao painel da Cloudflare viram uma.
+        avisoHub = d.permissoesFaltando?.length
+          ? `${d.error} Cadastre o escopo no Secret HUB_API_KEY e refaça o deploy.`
+          : (d.error || 'Não foi possível montar o plano de ação.');
         acoes = [];
         resumo = null;
         avisos = [];
@@ -99,7 +103,6 @@ const Plano = (() => {
       resumo = d.resumo || null;
       avisos = d.avisos || [];
 
-      montarFiltroClientes();
       renderizar();
 
     } catch (e) {
@@ -114,6 +117,13 @@ const Plano = (() => {
      Filtros
      ---------------------------------------------------------- */
 
+  /**
+   * O select sempre tem ao menos a opção "todos".
+   *
+   * Antes ele só era montado no caminho de sucesso: quando a carga
+   * falhava, ficava completamente vazio na tela — nem o rótulo aparecia,
+   * e parecia defeito de layout em vez de consequência do erro.
+   */
   function montarSelect(id, campo, rotuloTodos) {
     const select = el(id);
     if (!select) return;
@@ -124,7 +134,10 @@ const Plano = (() => {
 
     select.innerHTML = `<option value="">${rotuloTodos}</option>`
       + nomes.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-    select.value = escolhido;
+
+    // Se o filtro escolhido sumiu da lista, volta para "todos" em vez de
+    // ficar com um valor que não filtra nada.
+    select.value = nomes.includes(escolhido) ? escolhido : '';
   }
 
   function montarFiltroClientes() {
@@ -291,6 +304,7 @@ const Plano = (() => {
 
   function renderizar() {
     mostrarAviso();
+    montarFiltroClientes();
     renderizarResumo();
     renderizarAvisos();
 

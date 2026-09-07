@@ -16,7 +16,8 @@
  */
 
 import {
-  documento, folha, esc, dataBr, documentoBr, FORMATAR, MARCA
+  documento, folha, esc, dataBr, documentoBr, FORMATAR, MARCA,
+  nomeDeDocumento, TIPO_DOCUMENTO
 } from './documento-base.js';
 
 import { ROTULO_INFLUENCIA, ROTULO_POSTURA } from './schema-dossie-cx.js';
@@ -356,7 +357,13 @@ export function renderizarDossieCx(dados) {
   ];
 
   return documento({
-    titulo: `Dossiê de Experiência — ${d.conta?.nomeFantasia || d.conta?.razaoSocial || 'Cliente'}`,
+    // O título é o nome do arquivo, não uma frase: o "Imprimir / PDF" não
+    // passa pelo nosso código e usa o título como nome sugerido.
+    titulo: nomeDeDocumento(
+      TIPO_DOCUMENTO.EXPERIENCIA,
+      d.conta?.razaoSocial || d.conta?.nomeFantasia,
+      d.gerado?.em
+    ),
     folhas
   });
 }

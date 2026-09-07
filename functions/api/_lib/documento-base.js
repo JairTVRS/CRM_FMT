@@ -43,6 +43,51 @@ export const FORMATAR = {
    UTILIDADES DE FORMATAÇÃO
    ========================================================================== */
 
+/* ==========================================================================
+   NOME DO DOCUMENTO
+
+   Padrao decidido em 06/09/2026: Dossie_Prospeccao_Alphatex_2026_09
+
+   SEM ACENTO e SEM CEDILHA de proposito: nome de arquivo com `e` e `c`
+   funciona no Windows, mas quebra em anexo de e-mail e em alguns
+   sistemas. SEM o sufixo de versao, tambem por decisao -- com a
+   contrapartida assumida de que baixar duas versoes no mesmo mes faz o
+   navegador gerar "(1)" no nome.
+
+   Serve ao download E ao <title> do documento: o "Imprimir / PDF" nao
+   passa pelo nosso codigo, e o nome que o navegador sugere vem do
+   titulo. Sem isso, a proposta -- que so tem PDF -- nunca teria nome
+   padronizado.
+   ========================================================================== */
+
+export const TIPO_DOCUMENTO = {
+  PROSPECCAO: 'Dossie_Prospeccao',
+  EXPERIENCIA: 'Dossie_Experiencia',
+  PROPOSTA: 'Proposta'
+};
+
+/**
+ * `Dossie_Prospeccao_Alphatex_2026_09`
+ *
+ * @param {string} tipo     um de TIPO_DOCUMENTO
+ * @param {string} cliente  razao social ou nome fantasia
+ * @param {string} dataIso  a data da geracao; hoje se ausente
+ */
+export function nomeDeDocumento(tipo, cliente, dataIso) {
+  const base = String(cliente || 'Cliente')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')          // tira acentos
+    .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')  // tipos societarios
+    .replace(/[^A-Za-z0-9\s-]/g, ' ')
+    .trim().split(/\s+/).slice(0, 4).join('-') || 'Cliente';
+
+  const d = dataIso ? new Date(dataIso) : new Date();
+  const quando = Number.isNaN(d.getTime()) ? new Date() : d;
+  const ano = quando.getFullYear();
+  const mes = String(quando.getMonth() + 1).padStart(2, '0');
+
+  return `${tipo}_${base}_${ano}_${mes}`;
+}
+
 export function esc(valor) {
   return String(valor ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

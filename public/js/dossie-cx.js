@@ -393,17 +393,29 @@ const DossieCx = (() => {
      Baixar e imprimir
      ---------------------------------------------------------- */
 
+  /**
+   * `Dossie_Prospeccao_Alphatex_2026_09.html`
+   *
+   * Copia do `nomeDeDocumento` do `_lib/documento-base.js`. A duplicacao
+   * e inevitavel: aquele e modulo ES das Functions e este e script
+   * classico do navegador. Se o padrao mudar, mudam os dois.
+   *
+   * Sem acento e sem sufixo de versao, por decisao de 06/09/2026 -- com
+   * a contrapartida assumida de que baixar duas versoes no mesmo mes faz
+   * o navegador gerar "(1)" no nome.
+   */
   function montarNomeArquivo() {
     const base = String(nomeDoCliente() || 'Cliente')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')      // tira acentos
-      .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '') // tipos societários
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')
       .replace(/[^A-Za-z0-9\s-]/g, ' ')
       .trim().split(/\s+/).slice(0, 4).join('-') || 'Cliente';
 
     const d = new Date();
-    const anoMes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
 
-    return `Dossie-Experiencia_${base}_${anoMes}_v${versaoAtual || 1}.html`;
+    return `Dossie_Experiencia_${base}_${ano}_${mes}.html`;
   }
 
   function baixar() {

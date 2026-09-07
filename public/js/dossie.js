@@ -327,22 +327,28 @@ const Dossie = (() => {
      ---------------------------------------------------------- */
 
   /**
-   * Nome legivel: Dossie_Feheros-Shop_2026-08_v1.html
+   * `Dossie_Prospeccao_Alphatex_2026_09.html`
    *
-   * A versao entra no fim porque baixar duas versoes no mesmo mes
-   * geraria "(1)" no nome, e ai nao se sabe qual e qual.
+   * Copia do `nomeDeDocumento` do `_lib/documento-base.js`. A duplicacao
+   * e inevitavel: aquele e modulo ES das Functions e este e script
+   * classico do navegador. Se o padrao mudar, mudam os dois.
+   *
+   * Sem acento e sem sufixo de versao, por decisao de 06/09/2026 -- com
+   * a contrapartida assumida de que baixar duas versoes no mesmo mes faz
+   * o navegador gerar "(1)" no nome.
    */
   function montarNomeArquivo(nomeEmpresa) {
-    const base = String(nomeEmpresa || 'Empresa')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // tira acentos
-      .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')  // tipos societarios
+    const base = String(nomeEmpresa || 'Cliente')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')
       .replace(/[^A-Za-z0-9\s-]/g, ' ')
-      .trim().split(/\s+/).slice(0, 4).join('-') || 'Empresa';
+      .trim().split(/\s+/).slice(0, 4).join('-') || 'Cliente';
 
     const d = new Date();
-    const anoMes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
 
-    return `Dossie_${base}_${anoMes}_v${versaoAtual || 1}.html`;
+    return `Dossie_Prospeccao_${base}_${ano}_${mes}.html`;
   }
 
   function baixar(nomeEmpresa) {
