@@ -85,8 +85,17 @@ const Plano = (() => {
         // uma lista vazia, que seria lida como "não há ações".
         // O servidor lista TODAS as permissões que faltam, não só a
         // primeira: quatro idas ao painel da Cloudflare viram uma.
+        // A instrução ANTERIOR aqui era errada e custou tempo: mandava
+        // "cadastrar o escopo no Secret e refazer o deploy". Não é isso.
+        // A chave está cadastrada e FUNCIONA — é a mesma que lista os
+        // clientes na Jornada. O que falta é a permissão concedida a ela
+        // do lado do HUB, onde as Secret Keys são administradas. Nada
+        // muda na Cloudflare, e não há o que republicar.
         avisoHub = d.permissoesFaltando?.length
-          ? `${d.error} Cadastre o escopo no Secret HUB_API_KEY e refaça o deploy.`
+          ? `${d.error} A chave está cadastrada e funciona — é a mesma que `
+            + `lista os clientes na Jornada. O que falta é essa permissão ser `
+            + `concedida a ela NO HUB, por quem administra as chaves de acesso. `
+            + `Não é preciso mexer na Cloudflare nem republicar o CRM.`
           : (d.error || 'Não foi possível montar o plano de ação.');
         acoes = [];
         resumo = null;
