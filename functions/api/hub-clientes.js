@@ -41,10 +41,21 @@ function json(objeto, status, cabecalhos) {
  * vez de mostrar uma lista vazia. Lista vazia é indistinguível de "não há
  * clientes", que é uma afirmação diferente e falsa.
  */
+/**
+ * Falta de permissao no hub NAO e 403.
+ *
+ * 403 quer dizer "voce nao pode". Aqui quem nao pode e a CHAVE DO
+ * SERVIDOR, e o usuario nao tem nada com isso -- nem como resolver. O
+ * front derrubava a sessao em todo 403, entao esta rota expulsava a
+ * pessoa do CRM e mostrava o erro do hub na tela de login. O front foi
+ * corrigido tambem, mas o codigo certo importa por si: 503 e o mesmo
+ * que HUB_SEM_CHAVE ja usava, e pelo mesmo motivo -- o CRM esta sem
+ * condicoes de atender, por configuracao, nao por autorizacao.
+ */
 function erroDoHub(e, cabecalhos) {
   if (e instanceof ErroHub) {
     const status = e.codigo === 'HUB_SEM_CHAVE' ? 503
-      : e.codigo === 'HUB_SEM_PERMISSAO' ? 403
+      : e.codigo === 'HUB_SEM_PERMISSAO' ? 503
       : e.codigo === 'HUB_CREDENCIAL' ? 502
       : e.codigo === 'HUB_LIMITE' ? 429
       : 502;

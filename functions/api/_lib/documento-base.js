@@ -66,11 +66,32 @@ export const TIPO_DOCUMENTO = {
   PROPOSTA: 'Proposta'
 };
 
+/** Conectivos que alongam o nome do arquivo sem identificar nada. */
+const CONECTIVOS = new Set(['E', 'DE', 'DA', 'DO', 'DAS', 'DOS', 'EM', 'A', 'O']);
+
+/**
+ * "ALPHATEX" vira "Alphatex", mas "JBS" e "3M" ficam como estao.
+ *
+ * O ERP grava razao social e fantasia em CAIXA ALTA. `ALPHATEX` num nome
+ * de arquivo grita; `Alphatex` e o que o padrao pede. O corte em 3
+ * letras preserva sigla, que em caixa alta e informacao e nao estilo.
+ */
+function comoNome(palavra) {
+  if (palavra.length <= 3 || palavra !== palavra.toUpperCase()) return palavra;
+  return palavra[0] + palavra.slice(1).toLowerCase();
+}
+
 /**
  * `Dossie_Prospeccao_Alphatex_2026_09`
  *
+ * Passe o NOME FANTASIA quando houver. A razao social existe para o
+ * contrato, nao para identificar o arquivo: "ALPHATEX COMERCIO
+ * IMPORTACAO E EXPORTACAO DE TECIDOS EIRELI" produzia
+ * `Dossie_Experiencia_ALPHATEX-COMERCIO-IMPORTACAO-E_2026_09`, que nao
+ * cabe na tela e nao diz mais que "Alphatex".
+ *
  * @param {string} tipo     um de TIPO_DOCUMENTO
- * @param {string} cliente  razao social ou nome fantasia
+ * @param {string} cliente  nome fantasia; razao social como reserva
  * @param {string} dataIso  a data da geracao; hoje se ausente
  */
 export function nomeDeDocumento(tipo, cliente, dataIso) {
@@ -78,7 +99,11 @@ export function nomeDeDocumento(tipo, cliente, dataIso) {
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')          // tira acentos
     .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')  // tipos societarios
     .replace(/[^A-Za-z0-9\s-]/g, ' ')
-    .trim().split(/\s+/).slice(0, 4).join('-') || 'Cliente';
+    .trim().split(/\s+/)
+    .filter((palavra) => palavra && !CONECTIVOS.has(palavra.toUpperCase()))
+    .slice(0, 3)                                 // 4 palavras alongavam demais
+    .map(comoNome)
+    .join('-') || 'Cliente';
 
   const d = dataIso ? new Date(dataIso) : new Date();
   const quando = Number.isNaN(d.getTime()) ? new Date() : d;
@@ -223,6 +248,9 @@ td{padding:2.5mm 3mm;border-bottom:1px solid #e8e5de;font-size:9.5pt;vertical-al
 tr:nth-child(even) td{background:#faf9f6}
 td.rotulo{width:38%;color:var(--cinza);font-weight:500}
 td.valor{font-weight:600}
+/* "o sistema nao sabe" tem aparencia propria: peso normal e cinza, para
+   nao ser lido como um valor preenchido. */
+td.valor .ausente{font-weight:400;color:var(--cinza);font-style:italic}
 
 /* ---------- Listas ---------- */
 ul{list-style:none;margin-bottom:3mm}

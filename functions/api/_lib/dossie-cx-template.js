@@ -115,6 +115,11 @@ function folhaConta(d, n, total) {
         ${c.documento ? `<tr><td class="rotulo">CNPJ</td><td class="valor">${documentoBr(c.documento)}</td></tr>` : ''}
         ${linha('Cidade', c.cidade)}
         ${linha('Etapa da jornada', c.etapa)}
+        ${c.etapa ? `<tr><td class="rotulo">Nesta etapa desde</td><td class="valor">${
+          c.etapaDesde
+            ? `${dataBr(c.etapaDesde)}${c.mesesNaEtapa != null ? ` (${c.mesesNaEtapa} meses)` : ''}`
+            : '<span class="ausente">não registrado — o CRM só passou a guardar esta data depois</span>'
+        }</td></tr>` : ''}
         ${c.dataInicio ? `<tr><td class="rotulo">Início da jornada</td><td class="valor">${dataBr(c.dataInicio)}${tempo ? ` (${esc(tempo)})` : ''}</td></tr>` : ''}
         ${linha('Classificação', c.classificacao)}
         ${linha('Contato principal', c.contatoNome)}
@@ -361,7 +366,7 @@ export function renderizarDossieCx(dados) {
     // passa pelo nosso código e usa o título como nome sugerido.
     titulo: nomeDeDocumento(
       TIPO_DOCUMENTO.EXPERIENCIA,
-      d.conta?.razaoSocial || d.conta?.nomeFantasia,
+      d.conta?.nomeFantasia || d.conta?.razaoSocial,
       d.gerado?.em
     ),
     folhas

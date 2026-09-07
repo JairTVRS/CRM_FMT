@@ -1035,6 +1035,9 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
     /** O que a aba do dossiê mostra como "o que entra nesta versão". */
     resumoDaFicha: () => ({
       nome: el('cliente-input-nome')?.value.trim() || null,
+      // O fantasia é quem nomeia o ARQUIVO. A razão social continua
+      // sendo o nome do cliente na tela e dentro do documento.
+      fantasia: el('cliente-input-fantasia')?.value.trim() || null,
       etapa: etapaPorId(el('cliente-input-etapa')?.value)?.nome || null,
       inicio: el('cliente-input-inicio')?.value || null,
       classificacao: el('cliente-input-classificacao')?.value || null

@@ -221,26 +221,139 @@ export function resumirMapa(stakeholders, nucleos) {
 
 export const PENDENCIAS = [
   {
+    chave: 'reunioes',
     tema: 'Reuniões e atas',
     lote: 'I',
-    texto: 'As reuniões e o plano de ação das atas ainda não chegam ao CRM. Nada neste documento se apoia no que foi tratado nos encontros.'
+    texto: 'As reuniões e o plano de ação das atas ainda não chegam ao CRM. Nada neste documento se apoia no que foi tratado nos encontros.',
+    termos: /\b(reuni[õo]|reuni[ãa]o|atas?|encontros?|plano de a[çc][ãa]o)/i
   },
   {
+    chave: 'indicadores',
     tema: 'Indicadores empresariais',
     lote: 'K',
-    texto: 'Os KPIs do ERP ainda não são lidos. Não há série histórica de resultado por trás das leituras abaixo.'
+    texto: 'Os KPIs do ERP ainda não são lidos. Não há série histórica de resultado por trás das leituras abaixo.',
+    termos: /\b(kpis?|indicador|indicadores|faturamento|margem|ebitda)\b/i
   },
   {
+    chave: 'saude',
     tema: 'Saúde da carteira',
     lote: 'M',
-    texto: 'Saúde e Aderência ainda não são calculadas. A ausência de alerta aqui não significa conta saudável.'
+    texto: 'Saúde e Aderência ainda não são calculadas. A ausência de alerta aqui não significa conta saudável.',
+    termos: /\b(sa[úu]de da (carteira|conta)|ader[êe]ncia)\b/i
   },
   {
+    chave: 'percepcao',
     tema: 'Percepção do cliente',
     lote: 'N',
-    texto: 'Check-in, NPS e CSAT ainda não existem. A postura registrada é a leitura da CX, não a voz do cliente.'
+    texto: 'Check-in, NPS e CSAT ainda não existem. A postura registrada é a leitura da CX, não a voz do cliente.',
+    termos: /\b(nps|csat|check-?in|satisfa[çc][ãa]o|insatisfa[çc][ãa]o)\b/i
   }
 ];
+
+/* ==========================================================================
+   A GUARDA — o prompt pede, isto confere
+
+   O prompt já proibia o modelo de falar de reuniões, atas, NPS e saúde.
+   Na PRIMEIRA geração real ele desobedeceu nos dois pontos: escreveu
+   "sem registro de pessoas ou reuniões" como risco e "percepção de baixa
+   entrega da Formatar" como outro.
+
+   A lição não é escrever um prompt melhor. Instrução em prompt é pedido,
+   não garantia — e este documento nomeia pessoas de um cliente real e é
+   lido como se fosse apurado. O que o modelo afirma precisa passar por
+   uma conferência que não depende da boa vontade dele.
+
+   Descarte, e não reescrita: um item que se apoia numa fonte inexistente
+   não tem versão salvável. E o descarte é DECLARADO no documento — some
+   em silêncio seria trocar um defeito por outro mais difícil de ver.
+   ========================================================================== */
+
+/** Um item citou fonte que o CRM ainda não tem? Devolve o rótulo dela. */
+function fonteInexistente(texto, presentes) {
+  const t = String(texto || '');
+  for (const p of PENDENCIAS) {
+    if (presentes.has(p.chave)) continue;
+    if (p.termos.test(t)) return p.tema;
+  }
+  return null;
+}
+
+/** Fala em tempo de permanência na etapa sem o CRM saber desde quando. */
+const RE_DURACAO = /\b(\d+\s*(meses|m[êe]s|anos?|dias)|h[áa]\s+\d+|desde\s+\d{4})/i;
+const RE_ETAPA = /\b(etapa|estagna|estagnad|permanec|parad[ao])/i;
+
+function tempoDeEtapaInventado(texto, sabeDesdeQuando) {
+  if (sabeDesdeQuando) return null;
+  const t = String(texto || '');
+  return RE_DURACAO.test(t) && RE_ETAPA.test(t)
+    ? 'tempo de permanência na etapa'
+    : null;
+}
+
+/**
+ * Filtra os itens da análise que se apoiam no que o CRM não tem.
+ *
+ * Só listas são descartadas — riscos, oportunidades, perguntas, lacunas.
+ * São afirmações discretas: cada uma se sustenta ou não sozinha. Textos
+ * corridos (panorama, leitura do mapa, recomendação) não são apagados
+ * por uma palavra no meio; para eles fica o aviso, porque descartar o
+ * panorama inteiro deixaria o documento sem começo.
+ *
+ * @param {Set<string>} presentes  chaves de PENDENCIAS que JÁ existem
+ * @param {boolean} sabeEtapaDesde `etapa_desde` está preenchido?
+ */
+export function filtrarPorFontes(analise, { presentes = new Set(), sabeEtapaDesde = false } = {}) {
+  if (!analise) return { analise, descartados: [], avisos: [] };
+
+  const descartados = [];
+  const avisos = [];
+
+  const passa = (texto, onde) => {
+    const motivo = fonteInexistente(texto, presentes)
+      || tempoDeEtapaInventado(texto, sabeEtapaDesde);
+    if (motivo) {
+      descartados.push({ onde, motivo, trecho: String(texto).slice(0, 120) });
+      return false;
+    }
+    return true;
+  };
+
+  const a = {
+    ...analise,
+    mapaPoder: {
+      ...analise.mapaPoder,
+      lacunas: (analise.mapaPoder?.lacunas || []).filter((l) => passa(l, 'lacuna'))
+    },
+    riscos: (analise.riscos || [])
+      .filter((r) => passa(`${r.risco} ${r.fundamento || ''}`, 'risco')),
+    oportunidades: (analise.oportunidades || [])
+      .filter((o) => passa(`${o.titulo} ${o.descricao || ''}`, 'oportunidade')),
+    perguntas: (analise.perguntas || []).filter((p) => passa(p, 'pergunta'))
+  };
+
+  for (const campo of ['panorama', 'recomendacao']) {
+    const motivo = fonteInexistente(analise[campo], presentes)
+      || tempoDeEtapaInventado(analise[campo], sabeEtapaDesde);
+    if (motivo) avisos.push(`O texto de "${campo}" menciona ${motivo} — leia com reserva.`);
+  }
+
+  const leitura = analise.mapaPoder?.leitura;
+  const motivoLeitura = fonteInexistente(leitura, presentes)
+    || tempoDeEtapaInventado(leitura, sabeEtapaDesde);
+  if (motivoLeitura) {
+    avisos.push(`A leitura do mapa menciona ${motivoLeitura} — leia com reserva.`);
+  }
+
+  if (descartados.length) {
+    const quais = [...new Set(descartados.map((d) => d.motivo))].join(', ');
+    avisos.push(
+      `${descartados.length} item(ns) da análise foram descartados por se `
+      + `apoiarem em fonte que o CRM ainda não tem: ${quais}.`
+    );
+  }
+
+  return { analise: a, descartados, avisos };
+}
 
 /* ==========================================================================
    MONTAGEM DO DOCUMENTO FINAL
@@ -301,6 +414,13 @@ export function montarDossieCx({ cliente, etapa, nucleos, stakeholders, analise,
       etapaCor: etapa?.cor || null,
       dataInicio: cliente?.data_inicio || null,
       mesesDeJornada: mesesDesde(cliente?.data_inicio),
+
+      // Nulo é "o CRM não sabe", e o documento diz isso com todas as
+      // letras. O contrário — deixar em branco — foi o que permitiu ao
+      // modelo somar o início da jornada com a etapa atual e inventar
+      // 83 meses de estagnação numa conta real.
+      etapaDesde: cliente?.etapa_desde || null,
+      mesesNaEtapa: mesesDesde(cliente?.etapa_desde),
       classificacao: cliente?.classificacao ?? null,
 
       nucleos: atendidos.map((n) => ({ nome: n.nome, cor: n.cor || null })),

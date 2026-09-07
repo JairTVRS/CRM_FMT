@@ -23,7 +23,7 @@
 
 import { chamarIA, extrairJson, chaveConfigurada, PROVEDORES } from './_lib/ia.js';
 import {
-  FORMATO_ANALISE_CX, validarAnaliseCx, analiseCxUtilizavel,
+  FORMATO_ANALISE_CX, validarAnaliseCx, analiseCxUtilizavel, filtrarPorFontes,
   montarDossieCx, resumirMapa, mesesDesde,
   ROTULO_INFLUENCIA, ROTULO_POSTURA
 } from './_lib/schema-dossie-cx.js';
@@ -91,6 +91,29 @@ ${FORMATO_ANALISE_CX}`;
  * Monta o contexto factual. Tudo aqui saiu do banco — é a única coisa
  * que o modelo pode tratar como verdade.
  */
+/**
+ * A linha sobre o tempo na etapa — inclusive quando a resposta é "não sei".
+ *
+ * Dizer explicitamente que o dado não existe custa uma linha e evita o
+ * defeito de 07/09/2026, quando o modelo somou `data_inicio` (2019) com
+ * a etapa (posta em 2026) e afirmou 83 meses de estagnação. Omitir o
+ * campo não bastaria: o vazio é justamente onde a inferência entra.
+ */
+function tempoDeEtapa(cliente, etapa) {
+  if (!etapa) return 'Nesta etapa desde: — (não há etapa registrada)';
+
+  if (!cliente.etapa_desde) {
+    return 'Nesta etapa desde: O CRM NÃO SABE. O registro é anterior ao '
+      + 'controle desta data, ou a etapa foi atribuída em massa na importação. '
+      + 'É PROIBIDO afirmar ou estimar há quanto tempo o cliente está nesta '
+      + 'etapa, e é proibido tratar a permanência nela como risco.';
+  }
+
+  const meses = mesesDesde(cliente.etapa_desde);
+  return `Nesta etapa desde: ${cliente.etapa_desde}`
+    + (meses != null ? ` (${meses} meses nesta etapa)` : '');
+}
+
 function montarContexto({ cliente, etapa, nucleos, stakeholders, mapa }) {
   const partes = [];
 
@@ -101,7 +124,11 @@ Razão social: ${cliente.nome || '—'}
 Nome fantasia: ${cliente.nome_fantasia || '—'}
 Cidade: ${cliente.cidade || '—'}
 Etapa da jornada: ${etapa?.nome || '—'}
+${tempoDeEtapa(cliente, etapa)}
 Início da jornada: ${cliente.data_inicio || '—'}${meses != null ? ` (${meses} meses de relação)` : ''}
+ATENÇÃO — as duas linhas acima são fatos SEPARADOS. O início da jornada é
+o começo do CONTRATO; não diz nada sobre há quanto tempo o cliente está
+na etapa atual. Não some, não subtraia e não conclua uma da outra.
 Classificação (escala 1–6 do ERP): ${cliente.classificacao ?? '—'}
 Contato principal: ${cliente.contato_nome || '—'}
 Vínculo com o ERP: ${cliente.erp_id ? `sim (ID ${cliente.erp_id})` : 'ainda não conferido — cadastro manual. Isto NÃO significa que o cliente esteja fora do ERP.'}
@@ -308,7 +335,33 @@ export async function onRequestPost(context) {
       }, 502, cabecalhos);
     }
 
-    const { analise, avisos, seccoesVazias } = validarAnaliseCx(resposta);
+    const bruta = validarAnaliseCx(resposta);
+    const seccoesVazias = bruta.seccoesVazias;
+
+    // A conferência das fontes vem ANTES do teste de suficiência: um
+    // dossiê que só se sustenta em afirmações descartáveis não é um
+    // dossiê fraco, é um dossiê que não deveria existir. Melhor recusar
+    // e dizer por quê do que imprimir a sobra.
+    //
+    // `presentes` está vazio de propósito nesta versão: nenhuma das
+    // quatro fontes chegou ao CRM ainda. No lote que trouxer as atas,
+    // 'reunioes' entra no conjunto e os itens que falam delas passam a
+    // valer — sem tocar nesta função.
+    const guarda = filtrarPorFontes(bruta.analise, {
+      presentes: new Set(),
+      sabeEtapaDesde: !!conta.cliente.etapa_desde
+    });
+
+    const analise = guarda.analise;
+    const avisos = [...bruta.avisos, ...guarda.avisos];
+
+    if (guarda.descartados.length) {
+      console.log(
+        `[dossie-cx] cliente ${clienteId}: ${guarda.descartados.length} item(ns) `
+        + `descartados por fonte inexistente — `
+        + guarda.descartados.map((d) => `${d.onde}: ${d.motivo}`).join(' | ')
+      );
+    }
 
     if (!analiseCxUtilizavel(analise)) {
       await registrarErro(db, clienteId, conta, usuario, provider,

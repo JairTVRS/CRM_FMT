@@ -250,6 +250,18 @@ const DossieCx = (() => {
     return naTela || clienteNome || null;
   }
 
+  /**
+   * O nome do ARQUIVO usa o fantasia; o da TELA usa a razão social.
+   *
+   * São perguntas diferentes. "ALPHATEX COMERCIO IMPORTAÇÃO E EXPORTAÇÃO
+   * DE TECIDOS EIRELI" identifica o cliente num documento e é ilegível
+   * num nome de arquivo.
+   */
+  function nomeParaArquivo() {
+    const ficha = typeof Clientes !== 'undefined' ? Clientes.resumoDaFicha() : {};
+    return ficha.fantasia || nomeDoCliente();
+  }
+
   function abrirModal() {
     el('dossie-cx-modal')?.classList.add('aberto');
     document.body.style.overflow = 'hidden';
@@ -393,8 +405,16 @@ const DossieCx = (() => {
      Baixar e imprimir
      ---------------------------------------------------------- */
 
+  const CONECTIVOS = new Set(['E', 'DE', 'DA', 'DO', 'DAS', 'DOS', 'EM', 'A', 'O']);
+
+  /** "ALPHATEX" vira "Alphatex"; "JBS" e "3M" ficam como estao. */
+  function comoNome(palavra) {
+    if (palavra.length <= 3 || palavra !== palavra.toUpperCase()) return palavra;
+    return palavra[0] + palavra.slice(1).toLowerCase();
+  }
+
   /**
-   * `Dossie_Prospeccao_Alphatex_2026_09.html`
+   * `Dossie_Experiencia_Alphatex_2026_09.html`
    *
    * Copia do `nomeDeDocumento` do `_lib/documento-base.js`. A duplicacao
    * e inevitavel: aquele e modulo ES das Functions e este e script
@@ -405,11 +425,15 @@ const DossieCx = (() => {
    * o navegador gerar "(1)" no nome.
    */
   function montarNomeArquivo() {
-    const base = String(nomeDoCliente() || 'Cliente')
+    const base = String(nomeParaArquivo() || 'Cliente')
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')
       .replace(/[^A-Za-z0-9\s-]/g, ' ')
-      .trim().split(/\s+/).slice(0, 4).join('-') || 'Cliente';
+      .trim().split(/\s+/)
+      .filter((p) => p && !CONECTIVOS.has(p.toUpperCase()))
+      .slice(0, 3)
+      .map(comoNome)
+      .join('-') || 'Cliente';
 
     const d = new Date();
     const ano = d.getFullYear();

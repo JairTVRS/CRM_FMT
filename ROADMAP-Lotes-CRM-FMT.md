@@ -1,20 +1,17 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 05/09/2026
-**Atualizado em:** 06/09/2026
-**Versão no ar:** 2.21.0 (migrações 008, 009 e 010 aplicadas e conferidas
-no D1 remoto)
-(migrações 008 e 009 aplicadas e conferidas no D1 remoto; da 2.18.0 em
-diante nenhuma versão tem migração)
+**Atualizado em:** 07/09/2026
+**Versão no ar:** 2.23.0
 
-**A chave do hub JÁ TEM o escopo `hub:customers:read`** — confirmado em
-06/09/2026, com os clientes do ERP listando na Jornada.
+**Migrações:** 008, 009 e 010 aplicadas e conferidas no D1 remoto. **A
+011 está PENDENTE** — o token `wrangler` desta máquina não tem escopo de
+D1 (erro 7403). A 2.23.0 é segura sem ela: sem a coluna, o dossiê trata
+como "o CRM não sabe", que é a verdade de hoje.
 
-A 2.19.0 **precisa do Secret `HUB_API_KEY` com a permissão
-`hub:customers:read`** para mostrar os clientes do ERP. O Secret já
-existe na Cloudflare desde antes; se o escopo dele ainda for só
-`hub:users:read`, a Jornada diz isso na tela e segue funcionando com o
-que o CRM tem.
+**A chave do hub tem `hub:customers:read`** — confirmado em 06/09/2026,
+com os clientes do ERP listando na Jornada. **Faltam os quatro escopos do
+Lote I** (`portfolios`, `meetings`, `meeting-types`, `teams`): desde a
+2.22.0 o Plano de Ação nomeia os quatro de uma vez, numa tela só.
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -47,6 +44,9 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **F²** | **2.19.0** | **Os clientes do ERP na Jornada** — lista ao vivo, "sem jornada" com um clique para começar, trava do CNPJ e vínculo do `erp_id` |
 | — | **2.20.0** | **Trazer todos de uma vez** — a carteira inteira do ERP entra na jornada em lotes transacionais |
 | **I** | **2.21.0** | **Reuniões, atas e plano de ação em 5W2H** — parser do manual v2.3, tela própria com a fila de ações de todas as carteiras (migração 010) |
+| — | **2.21.1** | **Correção do cartão que parou de abrir** — uma segunda `registroPorId` declarada na 2.19.0 sombreava a primeira e travava os dois quadros |
+| — | **2.22.0** | **As permissões do hub todas de uma vez**, filtros do Plano de Ação nunca vazios e o nome padrão dos documentos (`Dossie_Prospeccao_Cliente_2026_09`) |
+| — | **2.23.0** | **A sessão para de cair** (403 do hub não é mais expulsão), guarda contra afirmação sem fonte no dossiê, `etapa_desde` (migração 011) e nome de arquivo pelo fantasia |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -59,6 +59,23 @@ depende de material externo. Em 04/09 o H passou na frente do F; em 05/09
 o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 — ganham a próxima quando saírem.
 
+**Os dois proximos ja estao desenhados**, decididos com o usuario em
+07/09/2026:
+
+| Versao | Entrega | Depende de |
+|---|---|---|
+| **2.24.0** | **Identidade do ERP, avaliacao do CRM** — os stakeholders vem de `GET /customers/{id}` (`contacts`) e do `customerParticipants` das carteiras; o CRM nao cria nem renomeia pessoa. Influencia, postura e patrocinador ficam no CRM, amarrados ao id do contato. O cadastro de **Papeis** sai: vale o Cargo do ERP | a estrutura do `contacts`, que o proprio lote descobre por diagnostico |
+| **2.25.0** | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
+
+A 2.25.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
+inverte.
+
+**Reversao registrada:** em 05/09 eu deixei `contacts` fora do `fields`
+do `/customers`, com a justificativa de que "a ficha do CRM tem os seus".
+A premissa estava errada — para cliente, o dono dos contatos e o ERP,
+como ja valia para a lista de clientes e para as atas. O principio "o CRM
+nao replica o ERP" estava aplicado em todo lugar menos ali.
+
 | Lote | Entrega | Depende de |
 |---|---|---|
 | **G** | **Contrato e boas-vindas** — reaproveitam a casca do Lote E; cadastro das empresas contratadas; qualificação do representante preenchida na geração | template do contrato |
@@ -69,19 +86,28 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 | **O** | **Relatório de Valor Gerado** | G, K |
 | **P** | **Dashboard de CX**, pauta da CX Review e Expansão | tudo |
 
-### A chave do hub deixou de ser um bloqueio de código
+### A chave do hub: o que já vale e o que ainda falta
 
-**O Lote F está fechado.** O código do caminho 2 — os clientes do ERP
-aparecendo sozinhos — está escrito e provado contra o dublê. O que falta
-é operacional, não de desenvolvimento: **cadastrar o Secret
-`HUB_API_KEY` com a permissão `hub:customers:read`** (ver a seção 1 do
-`Manual-ERP-Lote-F2-CRM-FMT-v1.0.md`).
+**O Lote F está fechado, e funcionando de verdade.** O escopo
+`hub:customers:read` foi cadastrado e os clientes do ERP listam na
+Jornada — deixou de ser promessa contra dublê.
 
-Enquanto ele não é cadastrado, a tela **diz o que falta** em vez de ficar
-vazia, e os outros dois caminhos — conversão de lead e cadastro manual —
-seguem povoando a Jornada.
+**O Lote I ainda não.** Faltam quatro escopos na mesma chave:
 
-O mesmo cadastro destrava o **I** (`/meetings`) e, por tabela, o M e o N.
+| Permissão | Para quê |
+|---|---|
+| `hub:portfolios:read` | as carteiras |
+| `hub:meetings:read` | as reuniões e as atas |
+| `hub:meeting-types:read` | os tipos de reunião (os núcleos) |
+| `hub:teams:read` | os times |
+
+Até a 2.21.0 a tela nomeava **uma por vez**: cada ida ao painel da
+Cloudflare revelava a seguinte, quatro viagens para um problema só. A
+2.22.0 consulta as cinco fontes com `Promise.allSettled` e lista todas as
+que faltam de uma vez. É diagnóstico, não conveniência — a mesma lição do
+incidente da migração 007.
+
+Destravado o I, destravam-se por tabela o M e o N.
 
 **Três caminhos para um cliente chegar à trilha de CX**, e os três
 existem: o lead finalizado que converte (2.18.0), o ativo do ERP que
@@ -93,7 +119,7 @@ aparece sozinho (2.19.0) e o cadastro manual (Lote H).
 
 | O quê | Bloqueia |
 |---|---|
-| **Chave do hub com escopo ampliado** — clientes, reuniões, carteiras, tipos de reunião, times, notas | F em diante |
+| **Chave do hub com os quatro escopos do Lote I** — carteiras, reuniões, tipos de reunião, times | I, e por tabela M e N |
 | **Endpoint das notas da carteira** (em desenvolvimento) | J |
 | **Estrutura dos webhooks** | J |
 | **Endpoint de indicadores** (em desenvolvimento) | K |
@@ -228,6 +254,70 @@ banco durou um dia; o bug de diagnóstico é que o tornou invisível.
 Mensagem de erro que engole a causa não protege ninguém numa
 ferramenta interna: só transfere o trabalho de descobrir para quem tem
 menos meios de fazê-lo.
+
+---
+
+## Incidente: o prompt proibia, o modelo escreveu assim mesmo
+
+Em 07/09/2026, o primeiro Dossie de Experiencia gerado sobre um cliente
+real afirmou, com **CONFIANCA ALTA**, que a ALPHATEX estava "estagnada na
+etapa de Diagnostico ha mais de 83 meses". Tambem escreveu "percepcao de
+baixa entrega da Formatar" e apoiou um risco em "sem registro de pessoas
+ou reunioes".
+
+O prompt proibia as tres coisas, com todas as letras. Proibia falar de
+reunioes e de percepcao, e proibia tratar a ausencia de mapa como risco
+do cliente.
+
+Duas causas, e as duas importam:
+
+**O dado nao existia.** O CRM sabia `data_inicio` (2019, o contrato) e a
+etapa atual (posta na importacao em massa do dia anterior). Nao sabia
+desde quando o cliente estava naquela etapa — e o vazio e onde a
+inferencia entra. Corrigido com `etapa_desde` (migracao 011), onde nulo
+significa "nao sei" e o contexto declara isso ao modelo.
+
+**A guarda so existia no prompt.** Instrucao em prompt e pedido, nao
+garantia. Este documento nomeia pessoas de um cliente real e e lido como
+se fosse apurado; o que ele afirma passa agora por `filtrarPorFontes`,
+que descarta todo item apoiado em fonte que o CRM nao tem — e **declara**
+o descarte, porque sumir em silencio seria trocar um defeito por outro
+mais dificil de ver.
+
+**A regra geral que fica:** onde saida de IA vira documento com o nome da
+Formatar, a conferencia e codigo, nao instrucao. Vale para o Dossie
+Executivo, para a Balanca Avaliativa e para o que vier depois. E o mesmo
+principio da analise falsa removida na 2.16.0, agora com mecanismo.
+
+---
+
+## Incidente: uma função sombreou a outra e o quadro parou de abrir
+
+Na v2.19.0 declarei uma segunda `registroPorId` no mesmo escopo de
+`public/js/quadro.js`. A última declaração vence, e a minha comparava o
+id com `===` estrito — mas o `dataset.id` do cartão é **texto** e o `id`
+do registro é **número**. Nunca casava.
+
+O efeito não ficou no quadro. Sem abrir o cartão não se chega à ficha, e
+sem a ficha não se chega ao Dossiê Executivo nem à proposta: um erro de
+uma linha tornou inalcançável meia trilha comercial. **Ficou assim de
+05/09 a 06/09** e travou o trabalho do lado do usuário.
+
+Nada apontou para o defeito porque não houve erro — a função existia e
+retornava `null`, que o código trata como "cartão sem registro". Falha
+silenciosa em JavaScript não é exceção: é o comportamento normal de
+sombreamento de escopo.
+
+**O que passou a existir:** a prova `ids.mjs` falha se qualquer arquivo
+do front declarar duas funções com o mesmo nome. Foi verificada
+injetando uma duplicata falsa — guarda que não se viu falhar não é
+guarda. As funções legitimamente repetidas entre arquivos (`renderizar`,
+`iniciar`) estão numa lista de conhecidas.
+
+**A lição:** o front é feito de scripts clássicos sem empacotador, e
+todos partilham o mesmo escopo global. Não há linter no caminho do
+deploy, e a redeclaração é legal na linguagem. Enquanto for assim, a
+prova é o único lugar onde isso pode ser pego.
 
 ---
 

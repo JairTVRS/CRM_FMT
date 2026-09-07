@@ -338,11 +338,24 @@ const Dossie = (() => {
    * o navegador gerar "(1)" no nome.
    */
   function montarNomeArquivo(nomeEmpresa) {
+    const CONECTIVOS = new Set(['E', 'DE', 'DA', 'DO', 'DAS', 'DOS', 'EM', 'A', 'O']);
+
+    /** "ALPHATEX" vira "Alphatex"; "JBS" e "3M" ficam como estao. */
+    const comoNome = (palavra) => (
+      palavra.length <= 3 || palavra !== palavra.toUpperCase()
+        ? palavra
+        : palavra[0] + palavra.slice(1).toLowerCase()
+    );
+
     const base = String(nomeEmpresa || 'Cliente')
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')
       .replace(/[^A-Za-z0-9\s-]/g, ' ')
-      .trim().split(/\s+/).slice(0, 4).join('-') || 'Cliente';
+      .trim().split(/\s+/)
+      .filter((p) => p && !CONECTIVOS.has(p.toUpperCase()))
+      .slice(0, 3)
+      .map(comoNome)
+      .join('-') || 'Cliente';
 
     const d = new Date();
     const ano = d.getFullYear();

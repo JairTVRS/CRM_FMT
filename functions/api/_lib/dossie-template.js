@@ -198,7 +198,7 @@ export function renderizarDossie(dados) {
   const titulo = e.nomeFantasia || e.razaoSocial || 'Dossiê Executivo';
   const nomeArquivo = nomeDeDocumento(
     TIPO_DOCUMENTO.PROSPECCAO,
-    e.razaoSocial || e.nomeFantasia,
+    e.nomeFantasia || e.razaoSocial,
     dados.gerado?.em || dados.meta?.geradoEm
   );
 

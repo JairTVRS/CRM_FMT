@@ -66,10 +66,21 @@ function json(objeto, status, cabecalhos) {
   return new Response(JSON.stringify(objeto), { status, headers: cabecalhos });
 }
 
+/**
+ * Falta de permissao no hub NAO e 403.
+ *
+ * 403 quer dizer "voce nao pode". Aqui quem nao pode e a CHAVE DO
+ * SERVIDOR, e o usuario nao tem nada com isso -- nem como resolver. O
+ * front derrubava a sessao em todo 403, entao esta rota expulsava a
+ * pessoa do CRM e mostrava o erro do hub na tela de login. O front foi
+ * corrigido tambem, mas o codigo certo importa por si: 503 e o mesmo
+ * que HUB_SEM_CHAVE ja usava, e pelo mesmo motivo -- o CRM esta sem
+ * condicoes de atender, por configuracao, nao por autorizacao.
+ */
 function erroDoHub(e, cabecalhos) {
   if (e instanceof ErroHub) {
     const status = e.codigo === 'HUB_SEM_CHAVE' ? 503
-      : e.codigo === 'HUB_SEM_PERMISSAO' ? 403
+      : e.codigo === 'HUB_SEM_PERMISSAO' ? 503
       : e.codigo === 'HUB_LIMITE' ? 429
       : 502;
     return json({ error: e.message, code: e.codigo, hubStatus: e.status }, status, cabecalhos);
@@ -104,7 +115,7 @@ function erroDasFontes(falhas, cabecalhos) {
       code: 'HUB_SEM_PERMISSAO',
       permissoesFaltando: permissoes,
       fontes: falhas.map((f) => f.qual)
-    }, 403, cabecalhos);
+    }, 503, cabecalhos);
   }
 
   // Nenhuma falha foi de permissão: devolve a primeira, que é a que

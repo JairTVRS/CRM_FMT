@@ -218,6 +218,26 @@ const Auth = (() => {
      Interceptação global do fetch
      ---------------------------------------------------------------- */
 
+  /**
+   * Os codigos que significam "esta SESSAO nao vale mais".
+   *
+   * Sao os quatro do _middleware.js, e so eles. Ate a v2.22.0 QUALQUER
+   * 401 ou 403 derrubava a sessao, e isso confundia duas coisas
+   * diferentes:
+   *
+   *   - "voce nao tem acesso"      -> problema do usuario, expulsar e certo
+   *   - "a CHAVE do hub nao tem"   -> problema de configuracao do servidor
+   *
+   * O segundo caso derrubava o usuario de verdade: abrir o Plano de Acao
+   * sem `hub:portfolios:read` mostrava o erro do HUB na tela de LOGIN,
+   * como se o acesso da pessoa tivesse sido revogado. Ela reentrava,
+   * abria a tela de novo e caia de novo -- e nada no CRM explicava por
+   * que. Foi o que aconteceu em 07/09/2026.
+   */
+  const CODIGOS_DE_SESSAO = new Set([
+    'TOKEN_AUSENTE', 'TOKEN_INVALIDO', 'SEM_CADASTRO', 'INATIVO'
+  ]);
+
   const fetchOriginal = window.fetch.bind(window);
 
   window.fetch = async function (recurso, opcoes = {}) {
@@ -249,8 +269,19 @@ const Auth = (() => {
     if (resposta.status === 401 || resposta.status === 403) {
       const copia = resposta.clone();
       const erro = await copia.json().catch(() => ({}));
-      idToken = null;
-      mostrarLogin(erro.error || 'Sua sessão expirou. Entre novamente.');
+
+      // Um 401 SEM codigo ainda e sessao: e o que o servidor responde
+      // quando o token nem chega a ser lido. Um 403 sem codigo, nao --
+      // na duvida, manter a pessoa dentro do app e o erro barato. A
+      // requisicao falhou de qualquer jeito, e a tela que a pediu ja
+      // sabe mostrar o aviso; expulsar por engano custa o trabalho dela.
+      const ehSessao = CODIGOS_DE_SESSAO.has(erro.code)
+        || (resposta.status === 401 && !erro.code);
+
+      if (ehSessao) {
+        idToken = null;
+        mostrarLogin(erro.error || 'Sua sessão expirou. Entre novamente.');
+      }
     }
 
     return resposta;
