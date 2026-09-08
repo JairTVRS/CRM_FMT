@@ -8,7 +8,8 @@
     "dev:hub": "node dev/hub-stub.mjs",
     "db:local": "wrangler d1 execute crm-formatar --local -y",
     "db:remoto": "wrangler d1 execute crm-formatar --remote",
-    "versao": "npm version --no-git-tag-version"
+    "versao": "npm version --no-git-tag-version",
+    "prova": "node dev/prova/roda.mjs"
   },
   "dependencies": {
     "axios": "^1.6.0",

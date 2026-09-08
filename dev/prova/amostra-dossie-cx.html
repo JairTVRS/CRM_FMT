@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dossie_Experiencia_Vale-Verde_2026_09</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --laranja:#F2421A;
+  --tinta:#0D0D0D;
+  --tinta-suave:#1A1A1A;
+  --cinza:#8C887F;
+  --creme:#F4F1EA;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:"Poppins","Urbane Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:var(--tinta);
+  background:#8a8a8a;             /* fora da folha, só na tela */
+  font-size:11pt;
+  line-height:1.55;
+}
+
+/* Cada .folha é uma página A4. Na tela aparecem empilhadas com sombra;
+   na impressão, uma por página. */
+.folha{
+  width:210mm;
+  min-height:297mm;
+  padding:18mm 18mm 22mm;
+  margin:0 auto 8mm;
+  background:#fff;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+
+.folha.capa{
+  background:var(--tinta);
+  color:#fff;
+  justify-content:space-between;
+  padding:24mm 20mm;
+}
+
+/* ---------- Marca ---------- */
+.marca{font-size:26pt;font-weight:700;letter-spacing:-.02em;line-height:1}
+.marca-assinatura{
+  font-size:6.5pt;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--laranja);margin-top:2mm;font-weight:600
+}
+.capa .marca{font-size:34pt}
+
+/* ---------- Cabeçalho e rodapé das folhas internas ---------- */
+.folha-topo{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  border-bottom:2px solid var(--laranja);
+  padding-bottom:4mm;margin-bottom:8mm
+}
+.folha-topo .marca{font-size:15pt;color:var(--tinta)}
+.folha-topo .marca-assinatura{font-size:5.5pt}
+
+.folha-titulo{
+  font-size:7.5pt;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--cinza);font-weight:600;text-align:right
+}
+
+.folha-rodape{
+  position:absolute;left:18mm;right:18mm;bottom:10mm;
+  border-top:1px solid #e0ddd6;padding-top:3mm;
+  display:flex;justify-content:space-between;
+  font-size:7pt;color:var(--cinza)
+}
+
+.conteudo{flex:1}
+
+/* ---------- Kicker e títulos ---------- */
+.kicker{
+  font-size:7.5pt;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--laranja);font-weight:600;margin-bottom:2mm
+}
+
+h1{font-size:22pt;font-weight:700;line-height:1.15;letter-spacing:-.015em;margin-bottom:5mm}
+h2{font-size:13pt;font-weight:700;margin:7mm 0 3mm;letter-spacing:-.01em}
+h2:first-child{margin-top:0}
+h3{font-size:10.5pt;font-weight:600;margin:4mm 0 1.5mm}
+
+p{margin-bottom:2.5mm;text-align:justify}
+strong{font-weight:600}
+
+/* ---------- Blocos ---------- */
+.bloco{background:var(--creme);padding:5mm;border-radius:2mm;margin-bottom:4mm}
+.bloco-escuro{background:var(--tinta);color:#fff;padding:5mm;border-radius:2mm;margin-bottom:4mm}
+.bloco-escuro .kicker{color:var(--laranja)}
+
+.faixa-laranja{background:var(--laranja);color:#fff;padding:4mm 5mm;border-radius:2mm;margin-bottom:4mm}
+
+/* ---------- Tabela de dados ---------- */
+table{width:100%;border-collapse:collapse;margin-bottom:4mm}
+th{
+  background:var(--tinta);color:#fff;text-align:left;
+  padding:2.5mm 3mm;font-size:8pt;letter-spacing:.08em;text-transform:uppercase;font-weight:600
+}
+td{padding:2.5mm 3mm;border-bottom:1px solid #e8e5de;font-size:9.5pt;vertical-align:top}
+tr:nth-child(even) td{background:#faf9f6}
+td.rotulo{width:38%;color:var(--cinza);font-weight:500}
+td.valor{font-weight:600}
+/* "o sistema nao sabe" tem aparencia propria: peso normal e cinza, para
+   nao ser lido como um valor preenchido. */
+td.valor .ausente{font-weight:400;color:var(--cinza);font-style:italic}
+
+/* ---------- Listas ---------- */
+ul{list-style:none;margin-bottom:3mm}
+li{padding-left:6mm;position:relative;margin-bottom:1.5mm;font-size:9.5pt;text-align:justify}
+li::before{
+  content:'';position:absolute;left:0;top:2.1mm;
+  width:2.5mm;height:2.5mm;background:var(--laranja);border-radius:.5mm
+}
+ol{margin:0 0 3mm 5mm}
+ol li{padding-left:1mm}
+ol li::before{display:none}
+
+/* ---------- Assinaturas ---------- */
+.assinaturas{display:flex;gap:12mm;margin-top:14mm}
+.assinatura{flex:1;text-align:center}
+.assinatura .linha{border-top:1px solid var(--tinta);margin-bottom:2mm}
+.assinatura .nome{font-weight:600;font-size:9.5pt}
+.assinatura .cargo{font-size:8pt;color:var(--cinza)}
+
+/* ---------- Barra de impressão (some no papel) ---------- */
+.barra-imprimir{
+  position:fixed;top:0;left:0;right:0;z-index:10;
+  background:var(--tinta);color:#fff;padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:13px
+}
+.barra-imprimir button{
+  background:var(--laranja);color:#fff;border:none;
+  padding:8px 18px;border-radius:5px;font-size:13px;font-weight:600;cursor:pointer
+}
+.espaco-barra{height:46px}
+
+@media print{
+  body{background:#fff}
+  .barra-imprimir,.espaco-barra{display:none}
+  .folha{
+    margin:0;
+    /* Sem quebra forçada na última folha: geraria uma página em branco */
+    page-break-after:always;
+    box-shadow:none
+  }
+  .folha:last-child{page-break-after:auto}
+
+  /* Sem isto o navegador descarta os fundos escuros e a capa sai branca */
+  -webkit-print-color-adjust:exact;print-color-adjust:exact
+}
+
+@page{size:A4;margin:0}
+</style>
+</head>
+<body>
+<div class="barra-imprimir">
+  <span>Dossie_Experiencia_Vale-Verde_2026_09</span>
+  <button onclick="window.print()">Salvar como PDF</button>
+</div>
+<div class="espaco-barra"></div>
+
+<section class="folha capa">
+  <div>
+    <div class="marca">formatar</div>
+    <div class="marca-assinatura">GESTÃO, GOVERNANÇA E CONEXÕES</div>
+  </div>
+
+  <div>
+    <div class="kicker">Dossiê de Experiência</div>
+    <h1 style="color:#fff;font-size:30pt">Vale Verde</h1>
+    <p style="color:#8C887F;text-align:left;font-size:10pt">
+      Uberlândia &middot; 12.345.678/0001-99
+      <br>Jornada: Em operação
+    </p>
+  </div>
+
+  <div style="border-top:2px solid #F2421A;padding-top:5mm">
+    <p style="color:#8C887F;text-align:left;font-size:8.5pt;margin:0">
+      Gerado em 08/09/2026 por cx@formatar.com.br &middot; versão 2
+    </p>
+    <p style="color:#8C887F;text-align:left;font-size:8.5pt;margin:2mm 0 0">
+      <strong style="color:#fff">Documento interno.</strong>
+      Contém a leitura da Formatar sobre pessoas nomeadas do cliente e
+      não se destina a ser compartilhado com ele.
+    </p>
+  </div>
+</section>
+
+<section class="folha">
+  <div class="folha-topo">
+    <div>
+      <div class="marca">formatar</div>
+      <div class="marca-assinatura">GESTÃO, GOVERNANÇA E CONEXÕES</div>
+    </div>
+    <div class="folha-titulo">A conta hoje</div>
+  </div>
+  <div class="conteudo">
+      <div class="kicker">Onde estamos</div>
+      <h1>Comercial Vale Verde LTDA</h1>
+
+      <table>
+        <tr><td class="rotulo">Razão social</td><td class="valor">Comercial Vale Verde LTDA</td></tr>
+        <tr><td class="rotulo">Nome fantasia</td><td class="valor">Vale Verde</td></tr>
+        <tr><td class="rotulo">CNPJ</td><td class="valor">12.345.678/0001-99</td></tr>
+        <tr><td class="rotulo">Cidade</td><td class="valor">Uberlândia</td></tr>
+        <tr><td class="rotulo">Etapa da jornada</td><td class="valor">Em operação</td></tr>
+        <tr><td class="rotulo">Nesta etapa desde</td><td class="valor"><span class="ausente">não registrado — o CRM só passou a guardar esta data depois</span></td></tr>
+        <tr><td class="rotulo">Início da jornada</td><td class="valor">10/03/2025 (1 ano e 5 meses)</td></tr>
+        <tr><td class="rotulo">Classificação</td><td class="valor">3</td></tr>
+        <tr><td class="rotulo">Contato principal</td><td class="valor">Marina Alves</td></tr>
+        
+        
+      </table>
+
+      
+        <h2>Núcleos atendidos</h2>
+        <ul><li>Logística</li><li>Estoque</li><li>Conselho Gestor</li></ul>
+        <p style="font-size:8.5pt;color:#8C887F">
+          Núcleo é o tipo de reunião. Cliente mais núcleo é o que forma a
+          <strong>carteira</strong>, que chega com as reuniões do hub.
+        </p>
+
+      
+        <div class="bloco">
+          <p style="margin:0">
+            <strong>Sem vínculo com o ERP.</strong> Este cadastro foi feito à mão e
+            ainda não foi conferido contra o ERP — o que é diferente de dizer que o
+            cliente não existe lá.
+          </p>
+        </div>
+
+      <h2>Panorama</h2><p>Conta em operação há mais de um ano.</p><p>Segue estável.</p>
+
+      
+        <h2>Observações da ficha</h2>
+        <div class="bloco"><p style="margin:0">Conta puxada pelo dono; filho assumiu o estoque.</p></div></div>
+  <div class="folha-rodape">
+    <span>www.formatar.com.br</span>
+    <span>1 / 4</span>
+  </div>
+</section>
+
+<section class="folha">
+  <div class="folha-topo">
+    <div>
+      <div class="marca">formatar</div>
+      <div class="marca-assinatura">GESTÃO, GOVERNANÇA E CONEXÕES</div>
+    </div>
+    <div class="folha-titulo">Mapa de stakeholders</div>
+  </div>
+  <div class="conteudo">
+      <div class="kicker">Quem decide, quem influencia</div>
+      <h1>Mapa de stakeholders</h1>
+
+      
+    <table>
+      <tr>
+        <th>Pessoa</th><th>Papel</th><th>Influência</th><th>Postura</th><th>Núcleos</th>
+      </tr>
+      
+        <tr>
+          <td>
+            <strong>Roberto Nunes</strong> &middot; patrocinador
+            <br><span style="color:#8C887F;font-size:8.5pt">Diretor</span>
+          </td>
+          <td>Decisor</td>
+          <td>Alta</td>
+          <td>Promotor</td>
+          <td>Logística, Conselho Gestor</td>
+        </tr>
+        <tr>
+          <td>
+            <strong>Cláudia Reis</strong>
+            <br><span style="color:#8C887F;font-size:8.5pt">Financeiro</span>
+          </td>
+          <td>—</td>
+          <td>Não avaliada</td>
+          <td>Não avaliada</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>
+            <strong>Marina Alves</strong>
+            <br><span style="color:#8C887F;font-size:8.5pt">Coordenadora de Logística</span>
+          </td>
+          <td>Usuário-chave</td>
+          <td>Média</td>
+          <td>Neutro</td>
+          <td>Logística</td>
+        </tr>
+        <tr>
+          <td>
+            <strong>Tiago Nunes</strong>
+            <br><span style="color:#8C887F;font-size:8.5pt">Gerente de Estoque</span>
+          </td>
+          <td>—</td>
+          <td>Baixa</td>
+          <td>Neutro</td>
+          <td>Estoque</td>
+        </tr>
+    </table>
+      
+    <h2>O mapa em números</h2>
+    <table>
+      <tr><td class="rotulo">Pessoas mapeadas</td><td class="valor">4</td></tr>
+      <tr>
+        <td class="rotulo">Patrocinador da conta</td>
+        <td class="valor">Roberto Nunes</td>
+      </tr>
+      <tr>
+        <td class="rotulo">Influência alta</td>
+        <td class="valor">1</td>
+      </tr>
+      <tr>
+        <td class="rotulo">Promotores &middot; neutros &middot; resistentes</td>
+        <td class="valor">1 &middot; 2 &middot; 0</td>
+      </tr>
+      
+        <tr>
+          <td class="rotulo">Ainda não avaliadas</td>
+          <td class="valor">1</td>
+        </tr>
+    </table>
+
+    
+
+      <h2>Leitura do mapa</h2><p>Decisão concentrada no diretor.</p>
+
+      
+        <h2>O que falta mapear</h2>
+        <ul><li>Ninguém mapeado no Conselho Gestor</li></ul>
+
+      <p style="font-size:8.5pt;color:#8C887F">
+        Influência e postura são a leitura registrada pela equipe da Formatar na
+        ficha do cliente, não uma avaliação produzida por este documento.
+      </p></div>
+  <div class="folha-rodape">
+    <span>www.formatar.com.br</span>
+    <span>2 / 4</span>
+  </div>
+</section>
+
+<section class="folha">
+  <div class="folha-topo">
+    <div>
+      <div class="marca">formatar</div>
+      <div class="marca-assinatura">GESTÃO, GOVERNANÇA E CONEXÕES</div>
+    </div>
+    <div class="folha-titulo">Leitura da relação</div>
+  </div>
+  <div class="conteudo">
+      <div class="kicker">Interpretação</div>
+      <h1>Leitura da relação</h1>
+
+      
+    <h2>Riscos de relacionamento</h2>
+    
+      <div class="bloco">
+        <h3 style="margin-top:0">Dependência de uma pessoa só</h3>
+        <p style="margin:0 0 1.5mm">O patrocinador é o único de influência alta.</p>
+        
+  <span style="font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;
+               color:#8C887F;font-weight:600">
+    confiança alta
+  </span>
+      </div>
+      <div class="bloco">
+        <h3 style="margin-top:0">Sucessão em curso</h3>
+        <p style="margin:0 0 1.5mm">O filho assumiu o estoque.</p>
+        
+  <span style="font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;
+               color:#8C887F;font-weight:600">
+    confiança baixa
+  </span>
+      </div>
+    <h2>Oportunidades de expansão</h2>
+    <p style="font-size:8.5pt;color:#8C887F">
+      Expansão é acréscimo de produto ou serviço à entrega atual. Não gera
+      contrato novo nem devolve a conta ao funil comercial.
+    </p>
+    
+      <h3>Núcleo de Compras <span style="color:#8C887F;font-weight:400">— Estoque</span></h3>
+      <p>Acréscimo ao escopo atual.</p>
+    <h2>Perguntas para o próximo contato</h2>
+    <ul><li>Quem decide na ausência do diretor?</li></ul></div>
+  <div class="folha-rodape">
+    <span>www.formatar.com.br</span>
+    <span>3 / 4</span>
+  </div>
+</section>
+
+<section class="folha">
+  <div class="folha-topo">
+    <div>
+      <div class="marca">formatar</div>
+      <div class="marca-assinatura">GESTÃO, GOVERNANÇA E CONEXÕES</div>
+    </div>
+    <div class="folha-titulo">Recomendação</div>
+  </div>
+  <div class="conteudo">
+      <div class="kicker">O que fazer a seguir</div>
+      <h1>Recomendação</h1>
+
+      <p>Mapear alguém do Conselho Gestor.</p>
+
+      
+        <h2>O que este dossiê ainda não vê</h2>
+        <p style="font-size:9pt">
+          As fontes abaixo ainda não chegam ao CRM. A ausência de alerta sobre
+          elas não é sinal de que esteja tudo bem — é sinal de que ninguém olhou.
+        </p>
+        <table>
+          
+            <tr>
+              <td class="rotulo">Reuniões e atas</td>
+              <td>As reuniões e o plano de ação das atas ainda não chegam ao CRM. Nada neste documento se apoia no que foi tratado nos encontros.</td>
+            </tr>
+            <tr>
+              <td class="rotulo">Indicadores empresariais</td>
+              <td>Os KPIs do ERP ainda não são lidos. Não há série histórica de resultado por trás das leituras abaixo.</td>
+            </tr>
+            <tr>
+              <td class="rotulo">Saúde da carteira</td>
+              <td>Saúde e Aderência ainda não são calculadas. A ausência de alerta aqui não significa conta saudável.</td>
+            </tr>
+            <tr>
+              <td class="rotulo">Percepção do cliente</td>
+              <td>Check-in, NPS e CSAT ainda não existem. A postura registrada é a leitura da CX, não a voz do cliente.</td>
+            </tr>
+        </table>
+
+      <div class="bloco-escuro">
+        <div class="kicker">Como este documento foi produzido</div>
+        <p style="margin:0;font-size:9pt">
+          A parte factual — cadastro, jornada, núcleos e o mapa de pessoas — vem do
+          CRM e não passa por modelo de IA. A leitura (panorama, mapa de poder,
+          riscos, oportunidades, perguntas e recomendação) foi escrita
+          por <strong>deepseek</strong> a partir desses
+          fatos, em 08/09/2026. É
+          interpretação, e deve ser tratada como tal.
+        </p>
+      </div>
+
+      <p style="text-align:center;font-size:8pt;color:#8C887F;margin-top:8mm">
+        Rua Coronel João Notini, 1511 — Bairro Sidil — Divinópolis/MG — CEP 35500-017<br>
+        (37) 3213-0005 &middot; www.formatar.com.br &middot; formatar@formatar.com.br
+      </p></div>
+  <div class="folha-rodape">
+    <span>www.formatar.com.br</span>
+    <span>4 / 4</span>
+  </div>
+</section>
+</body>
+</html>
