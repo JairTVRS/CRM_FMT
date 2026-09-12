@@ -47,6 +47,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.21.1** | **Correção do cartão que parou de abrir** — uma segunda `registroPorId` declarada na 2.19.0 sombreava a primeira e travava os dois quadros |
 | — | **2.22.0** | **As permissões do hub todas de uma vez**, filtros do Plano de Ação nunca vazios e o nome padrão dos documentos (`Dossie_Prospeccao_Cliente_2026_09`) |
 | — | **2.23.0** | **A sessão para de cair** (403 do hub não é mais expulsão), guarda contra afirmação sem fonte no dossiê, `etapa_desde` (migração 011) e nome de arquivo pelo fantasia |
+| — | **2.23.2** | **A importação lê a planilha que existe** — uma aba só com aviso que ensina a reexibir a oculta, cabeçalho procurado em vez de assumido na linha 1, `.xls`/`.xlsb`, modelo gerado no navegador, etapa vinda do `Status2` e etapas novas confirmadas na prévia |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

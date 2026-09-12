@@ -1465,14 +1465,19 @@
               <path d="M7 10l5-5 5 5"></path><path d="M12 5v13"></path>
             </svg>
             <strong>Escolher arquivo</strong>
-            <span>.xlsx, .csv ou .txt</span>
+            <span>.xlsx, .xlsb, .xls, .csv ou .txt</span>
           </label>
-          <input type="file" id="imp-arquivo" accept=".xlsx,.csv,.txt" hidden>
+          <input type="file" id="imp-arquivo" accept=".xlsx,.xlsb,.xls,.csv,.txt" hidden>
 
           <div class="imp-nota">
             <strong>Antes de importar:</strong> toda linha precisa de CNPJ ou CPF.
             E o identificador do lead e o contexto que a IA usa na inteligencia
             comercial. Documento ja cadastrado atualiza o lead, sem duplicar.
+            A planilha precisa ter uma aba so.
+          </div>
+
+          <div class="imp-acoes">
+            <button id="btn-imp-modelo" class="imp-btn imp-btn-secundario">Baixar modelo</button>
           </div>
         </div>
 
@@ -1501,6 +1506,7 @@
           </div>
 
           <div id="imp-previa-atualizacoes" class="imp-aviso" style="display:none"></div>
+          <div id="imp-previa-apoio" class="imp-aviso" style="display:none"></div>
           <div id="imp-previa-ignoradas" class="imp-nota" style="display:none"></div>
 
           <div class="imp-acoes">
@@ -1515,6 +1521,8 @@
           <p id="imp-erro-msg" class="imp-texto"></p>
           <ul id="imp-erro-detalhes" class="imp-detalhes" style="display:none"></ul>
           <div class="imp-acoes">
+            <button id="btn-imp-modelo-erro" class="imp-btn imp-btn-secundario">Baixar modelo</button>
+            <button id="btn-imp-log" class="imp-btn imp-btn-secundario" style="display:none">Baixar log</button>
             <button id="btn-imp-voltar" class="imp-btn imp-btn-secundario">Escolher outro arquivo</button>
           </div>
         </div>

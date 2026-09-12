@@ -31,6 +31,9 @@ o que já saiu e o que vem. Estes manuais são o detalhe de cada linha dele.
 | 2.19.0 | [Lote F, parte 2](Manual-ERP-Lote-F2-CRM-FMT-v1.0.md) | Os clientes do ERP na Jornada |
 | 2.21.0 | [Lote I](Manual-Plano-Acao-Lote-I-CRM-FMT-v1.0.md) | Reuniões, atas e plano de ação em 5W2H |
 | 2.23.0 | [Correções v2.23](Manual-Correcoes-v2.23-CRM-FMT-v1.0.md) | A sessão para de cair, o dossiê para de inventar |
+| 2.23.2 | [Importação, lote 1](Manual-Importacao-Lote-1-CRM-FMT-v1.0.md) | Ler a planilha certa |
+| 2.23.2 | [Importação, lote 2](Manual-Importacao-Lote-2-CRM-FMT-v1.0.md) | Modelo, formatos e mapeamento |
+| 2.23.2 | [Importação, lote 3](Manual-Importacao-Lote-3-CRM-FMT-v1.0.md) | Etapas novas passam pelo usuário |
 
 Os quatro primeiros são anteriores à convenção de registrar a versão do
 sistema no cabeçalho — estão na ordem de data.

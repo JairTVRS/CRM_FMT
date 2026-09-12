@@ -44,6 +44,26 @@ function paraCentavos(valor) {
   return Number.isFinite(n) ? Math.round(n * 100) : null;
 }
 
+/**
+ * Faixa de sanidade das datas que chegam da planilha.
+ *
+ * Existe por um caso concreto: na planilha de propostas a coluna
+ * "Data Fechamento2" tem FORMATO de data aplicado, mas 37 das 98 linhas
+ * guardam valores de dinheiro (9900, 6300). O Excel e o leitor de
+ * planilhas obedecem ao formato e entregam "07/02/1927" — uma data
+ * perfeitamente válida, perfeitamente errada, que entraria sem reclamar.
+ *
+ * Data fora da faixa vira nulo: campo vazio é recuperável, data falsa
+ * gravada no histórico comercial não é.
+ */
+const ANO_MINIMO = 1990;
+const ANOS_A_FRENTE = 10;
+
+function dentroDaFaixa(iso) {
+  const ano = Number(iso.slice(0, 4));
+  return ano >= ANO_MINIMO && ano <= new Date().getFullYear() + ANOS_A_FRENTE;
+}
+
 function paraDataIso(valor) {
   if (!valor) return null;
   const t = String(valor).trim();
@@ -52,11 +72,12 @@ function paraDataIso(valor) {
   if (br) {
     const [, d, m, a] = br;
     const ano = a.length === 2 ? `20${a}` : a;
-    return `${ano}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    const iso = `${ano}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    return dentroDaFaixa(iso) ? iso : null;
   }
 
   const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return iso ? iso[0] : null;
+  return iso && dentroDaFaixa(iso[0]) ? iso[0] : null;
 }
 
 function normalizarSegmento(valor) {
@@ -145,50 +166,147 @@ function validar(linhas) {
 /* ==========================================================================
    CADASTROS DE APOIO
    Advisor e etapa chegam como texto da planilha e precisam virar ID.
-   Advisor inexistente é criado — é a mesma mecânica de tag que o
-   usuário já tem na tela.
+
+   Leitura e escrita ficam separadas de propósito: a PRÉVIA precisa dizer
+   o que será criado sem criar nada. Até a v2.23 os advisors nasciam em
+   silêncio no momento da gravação, e o usuário só descobria depois, na
+   tela de sucesso.
    ========================================================================== */
 
-async function resolverApoio(db, linhas, usuario) {
-  // Só as etapas do funil COMERCIAL. A planilha traz o nome da etapa em
-  // texto, e sem o filtro por pipeline um "Encerrado" da jornada do
-  // cliente entraria no mapa — a importação de leads jogaria registros
-  // na trilha de CX. A etapa padrão tem o mesmo risco: a jornada também
-  // começa em ordem 1.
+/**
+ * Só as etapas do funil COMERCIAL. A planilha traz o nome da etapa em
+ * texto, e sem o filtro por pipeline um "Encerrado" da jornada do
+ * cliente entraria no mapa — a importação de leads jogaria registros na
+ * trilha de CX. A etapa padrão tem o mesmo risco: a jornada também
+ * começa em ordem 1.
+ */
+async function lerApoio(db) {
   const { results: etapas } = await db
     .prepare(`SELECT id, nome FROM etapas
               WHERE ativo = 1 AND pipeline = 'comercial' ORDER BY ordem`).all();
   const { results: advisors } = await db
     .prepare('SELECT id, nome FROM advisors WHERE ativo = 1').all();
 
-  const mapaEtapa = new Map((etapas || []).map((e) => [e.nome.toUpperCase(), e.id]));
-  const mapaAdvisor = new Map((advisors || []).map((a) => [a.nome.toUpperCase(), a.id]));
-  const etapaPadrao = etapas?.[0]?.id || null;
+  return {
+    etapas: etapas || [],
+    mapaEtapa: new Map((etapas || []).map((e) => [e.nome.toUpperCase(), e.id])),
+    mapaAdvisor: new Map((advisors || []).map((a) => [a.nome.toUpperCase(), a.id])),
+    etapaPadrao: etapas?.[0] || null
+  };
+}
 
-  // Advisors novos que a planilha trouxe
-  const novos = [...new Set(
-    linhas.map((l) => l.advisor).filter((n) => n && !mapaAdvisor.has(n.toUpperCase()))
-  )];
+/** Os nomes distintos que a planilha trouxe para um campo, com a contagem. */
+function distintos(linhas, campo) {
+  const contagem = new Map();
+  for (const l of linhas) {
+    const valor = l[campo];
+    if (!valor) continue;
+    contagem.set(valor, (contagem.get(valor) || 0) + 1);
+  }
+  return [...contagem].map(([nome, linhas]) => ({ nome, linhas }));
+}
 
-  const agora = new Date().toISOString();
-  for (const nome of novos) {
-    try {
-      const criado = await db
-        .prepare(`INSERT INTO advisors (nome, criado_por, criado_em, ativo)
-                  VALUES (?, ?, ?, 1) RETURNING id, nome`)
-        .bind(nome, usuario.email, agora)
-        .first();
-      if (criado) mapaAdvisor.set(criado.nome.toUpperCase(), criado.id);
-    } catch (e) {
-      // Corrida com outro import: busca o que já existe
-      const existente = await db
-        .prepare('SELECT id, nome FROM advisors WHERE nome = ? COLLATE NOCASE AND ativo = 1')
-        .bind(nome).first();
-      if (existente) mapaAdvisor.set(existente.nome.toUpperCase(), existente.id);
+/**
+ * O que a planilha pede que ainda não existe no CRM.
+ *
+ * Não escreve nada. É o que a prévia mostra para o usuário decidir.
+ */
+function examinarApoio(linhas, apoio) {
+  const etapas = distintos(linhas, 'etapa');
+  const advisors = distintos(linhas, 'advisor');
+
+  return {
+    etapasNovas: etapas.filter((e) => !apoio.mapaEtapa.has(e.nome.toUpperCase())),
+    etapasExistentes: etapas.filter((e) => apoio.mapaEtapa.has(e.nome.toUpperCase())),
+    advisorsNovos: advisors.filter((a) => !apoio.mapaAdvisor.has(a.nome.toUpperCase())),
+    etapasDisponiveis: apoio.etapas.map((e) => ({ id: e.id, nome: e.nome })),
+    etapaPadrao: apoio.etapaPadrao
+  };
+}
+
+/**
+ * Cria a etapa, ou devolve a que já existe com esse nome.
+ *
+ * A tabela `etapas` NÃO tem índice único no nome — diferente de
+ * `advisors` e `tags`. Nada no banco impede duas "Proposta", então a
+ * checagem tem que estar aqui. `pipeline` é obrigatório: sem ele a
+ * etapa nasceria no DEFAULT e poderia aparecer no quadro errado.
+ */
+async function criarEtapa(db, nome) {
+  const existente = await db
+    .prepare(`SELECT id FROM etapas
+              WHERE nome = ? COLLATE NOCASE AND ativo = 1 AND pipeline = 'comercial'`)
+    .bind(nome).first();
+  if (existente) return existente.id;
+
+  const { n } = await db
+    .prepare(`SELECT COALESCE(MAX(ordem), 0) AS n FROM etapas
+              WHERE ativo = 1 AND pipeline = 'comercial'`).first();
+
+  // Entra no fim do quadro e como etapa não-terminal. Reposicionar e
+  // marcar "encerra" é trabalho de um clique em Gerenciar etapas —
+  // adivinhar aqui erraria em silêncio.
+  const criada = await db
+    .prepare(`INSERT INTO etapas (nome, cor, ordem, encerra, pipeline, ativo)
+              VALUES (?, '#6e6e6e', ?, 0, 'comercial', 1) RETURNING id`)
+    .bind(nome, Number(n) + 1)
+    .first();
+
+  return criada?.id || null;
+}
+
+async function criarAdvisor(db, nome, usuario) {
+  try {
+    const criado = await db
+      .prepare(`INSERT INTO advisors (nome, criado_por, criado_em, ativo)
+                VALUES (?, ?, ?, 1) RETURNING id`)
+      .bind(nome, usuario.email, new Date().toISOString())
+      .first();
+    return criado?.id || null;
+  } catch (e) {
+    // Corrida com outro import: busca o que já existe
+    const existente = await db
+      .prepare('SELECT id FROM advisors WHERE nome = ? COLLATE NOCASE AND ativo = 1')
+      .bind(nome).first();
+    return existente?.id || null;
+  }
+}
+
+/**
+ * Aplica o que o usuário decidiu na prévia.
+ *
+ * `decisoesEtapa` é { "Captação": "criar" | "<id de etapa existente>" }.
+ * Decisão AUSENTE não cria nada: a etapa cai na padrão, que era o
+ * comportamento antes deste lote. Criar por omissão seria escrever no
+ * banco sem ninguém ter pedido.
+ */
+async function aplicarApoio(db, linhas, usuario, apoio, decisoesEtapa) {
+  const exame = examinarApoio(linhas, apoio);
+  const etapasCriadas = [];
+
+  for (const { nome } of exame.etapasNovas) {
+    const decisao = decisoesEtapa?.[nome];
+    if (!decisao) continue;
+
+    if (decisao === 'criar') {
+      const id = await criarEtapa(db, nome);
+      if (id) { apoio.mapaEtapa.set(nome.toUpperCase(), id); etapasCriadas.push(nome); }
+      continue;
     }
+
+    // Apontar para uma etapa que já existe. Só vale id do funil
+    // comercial — o que veio na prévia.
+    const escolhida = exame.etapasDisponiveis.find((e) => String(e.id) === String(decisao));
+    if (escolhida) apoio.mapaEtapa.set(nome.toUpperCase(), escolhida.id);
   }
 
-  return { mapaEtapa, mapaAdvisor, etapaPadrao, advisorsCriados: novos };
+  const advisorsCriados = [];
+  for (const { nome } of exame.advisorsNovos) {
+    const id = await criarAdvisor(db, nome, usuario);
+    if (id) { apoio.mapaAdvisor.set(nome.toUpperCase(), id); advisorsCriados.push(nome); }
+  }
+
+  return { etapasCriadas, advisorsCriados };
 }
 
 /* ==========================================================================
@@ -265,6 +383,8 @@ export async function onRequestPost(context) {
     const novos = linhas.filter((l) => !existentes.has(l.documento));
     const atualizados = linhas.filter((l) => existentes.has(l.documento));
 
+    const apoio = await lerApoio(db);
+
     // --- Prévia: nada é gravado ---
     if (!corpo.confirmar) {
       return json({
@@ -277,13 +397,17 @@ export async function onRequestPost(context) {
           documento: l.documento,
           nomeNoArquivo: l.nome,
           nomeNoSistema: existentes.get(l.documento).nome
-        }))
+        })),
+        apoio: examinarApoio(linhas, apoio)
       }, 200, cabecalhos);
     }
 
     // --- Gravação ---
-    const { mapaEtapa, mapaAdvisor, etapaPadrao, advisorsCriados } =
-      await resolverApoio(db, linhas, usuario);
+    const { etapasCriadas, advisorsCriados } =
+      await aplicarApoio(db, linhas, usuario, apoio, corpo.decisoesEtapa);
+
+    const { mapaEtapa, mapaAdvisor } = apoio;
+    const etapaPadrao = apoio.etapaPadrao?.id || null;
 
     const agora = new Date().toISOString();
     const comandos = [];
@@ -356,7 +480,8 @@ export async function onRequestPost(context) {
       total: linhas.length,
       novos: novos.length,
       atualizados: atualizados.length,
-      advisorsCriados
+      advisorsCriados,
+      etapasCriadas
     }, 201, cabecalhos);
 
   } catch (e) {

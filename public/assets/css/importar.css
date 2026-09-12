@@ -146,6 +146,64 @@
   font-size: .78rem;
 }
 
+/* --- Etapas e advisors que a planilha traz e o CRM ainda não tem --- */
+
+.imp-apoio-lista {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imp-apoio-lista li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 7px 0;
+  border-top: 1px solid rgba(255, 255, 255, .06);
+}
+
+.imp-apoio-lista li:first-child { border-top: 0; }
+
+.imp-apoio-nome {
+  font-weight: 600;
+  color: #fff;
+}
+
+.imp-apoio-qtd {
+  font-size: .75rem;
+  color: var(--text-muted, #9d9d9d);
+}
+
+/* Empurra o select para a direita; no celular ele cai para a linha de
+   baixo e ocupa a largura toda, em vez de espremer o nome da etapa. */
+.imp-apoio-select {
+  margin-left: auto;
+  min-width: 210px;
+  max-width: 100%;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: .78rem;
+  color: inherit;
+  background: rgba(0, 0, 0, .25);
+  border: 1px solid rgba(255, 255, 255, .14);
+}
+
+.imp-apoio-advisors {
+  margin: 12px 0 0;
+  font-size: .78rem;
+}
+
+.imp-apoio-advisors code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .07);
+}
+
+@media (max-width: 520px) {
+  .imp-apoio-select { margin-left: 0; width: 100%; }
+}
+
 /* --- Carregando --- */
 
 .imp-carregando {
