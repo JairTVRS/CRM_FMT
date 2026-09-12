@@ -55,3 +55,26 @@ desktop.ini
 Procedimento-Seguranca-CRM-FMT-*.md
 *.bundle
 .gitignore.utf8
+
+# ==========================================================
+# Material de trabalho com dado real de cliente
+#
+# A pasta docs/ guarda o que a equipe usa no dia a dia: planilhas
+# de proposta, contratos, apresentacoes. Hoje sao 98 clientes com
+# telefone, cidade e valor de contrato. Nada disso pertence ao
+# repositorio do sistema.
+#
+# Ate 11/09/2026 a pasta estava apenas NAO RASTREADA, que e
+# diferente de ignorada: um `git add .` levaria tudo junto. Nenhuma
+# planilha chegou a ser commitada -- isto e prevencao, nao conserto.
+#
+# Se algum arquivo de docs/ precisar ser versionado (material
+# institucional, por exemplo), libere so ele com uma excecao:
+#   !docs/nome-do-arquivo.pdf
+# ==========================================================
+docs/
+
+# Planilhas com dado de cliente, em qualquer lugar do projeto
+*.xlsx
+*.xlsb
+*.xls
