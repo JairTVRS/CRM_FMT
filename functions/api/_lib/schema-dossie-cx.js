@@ -171,11 +171,16 @@ export function analiseCxUtilizavel(analise) {
  * @param {Array}  stakeholders  já normalizados por `montarDossieCx`
  * @param {Array}  nucleos       os núcleos ATENDIDOS pelo cliente
  */
-export function resumirMapa(stakeholders, nucleos) {
+export function resumirMapa(stakeholders, nucleos, { ligacaoConhecida = true } = {}) {
   const pessoas = stakeholders || [];
   const atendidos = nucleos || [];
 
-  const nomesPorNucleo = new Map(atendidos.map((n) => [n.id, []]));
+  // O núcleo pode vir do CRM (id local) ou do ERP (ObjectId do Time).
+  // A mesma função serve aos dois porque o que ela precisa é uma chave
+  // estável, não saber de onde ela veio.
+  const chaveDe = (n) => n.erp_id || n.id;
+
+  const nomesPorNucleo = new Map(atendidos.map((n) => [chaveDe(n), []]));
   pessoas.forEach((p) => {
     (p.nucleoIds || []).forEach((id) => {
       if (nomesPorNucleo.has(id)) nomesPorNucleo.get(id).push(p.nome);
@@ -198,9 +203,17 @@ export function resumirMapa(stakeholders, nucleos) {
 
     // O buraco mais útil que o mapa revela: núcleo que a Formatar
     // atende e no qual a CX não conhece ninguém.
-    nucleosSemPessoa: atendidos
-      .filter((n) => (nomesPorNucleo.get(n.id) || []).length === 0)
-      .map((n) => n.nome),
+    //
+    // `null` quando NÃO DÁ PARA SABER — é o caso em que as pessoas vêm
+    // do ERP e a ligação delas com o núcleo não pôde ser derivada da
+    // presença nas reuniões. Devolver a lista cheia ali acusaria todo
+    // núcleo de estar órfão, que é o falso alarme mais caro possível:
+    // manda a CX procurar interlocutor para frente que já tem um.
+    nucleosSemPessoa: ligacaoConhecida
+      ? atendidos
+        .filter((n) => (nomesPorNucleo.get(chaveDe(n)) || []).length === 0)
+        .map((n) => n.nome)
+      : null,
 
     // Ninguém avaliado é diferente de ninguém cadastrado, e o documento
     // precisa saber distinguir os dois.
@@ -221,11 +234,20 @@ export function resumirMapa(stakeholders, nucleos) {
 
 export const PENDENCIAS = [
   {
-    chave: 'reunioes',
-    tema: 'Reuniões e atas',
+    // A Fase 2 do lote "o cliente é do ERP" trouxe QUAIS núcleos são
+    // atendidos, QUANTAS reuniões houve e QUANDO foi a última — tudo
+    // lido ao vivo do hub. O que continua faltando é o CONTEÚDO: o que
+    // foi tratado, o que ficou decidido, o plano de ação.
+    //
+    // Por isso os termos abaixo deixaram de pegar a palavra "reunião"
+    // solta: contar reunião virou fato conferido, e descartar um item
+    // por citá-lo seria jogar fora afirmação verdadeira. O que eles
+    // pegam agora é o que o CRM ainda não tem como sustentar.
+    chave: 'atas',
+    tema: 'O que foi tratado nas reuniões',
     lote: 'I',
-    texto: 'As reuniões e o plano de ação das atas ainda não chegam ao CRM. Nada neste documento se apoia no que foi tratado nos encontros.',
-    termos: /\b(reuni[õo]|reuni[ãa]o|atas?|encontros?|plano de a[çc][ãa]o)/i
+    texto: 'O CRM já sabe quais núcleos são atendidos e quantas reuniões houve, mas ainda não lê o conteúdo das atas. Nada neste documento se apoia no que foi tratado nos encontros, nem no plano de ação.',
+    termos: /\b(atas?|plano de a[çc][ãa]o|foi tratado|pauta|delibera|encaminhament|ficou (decidido|acordado))/i
   },
   {
     chave: 'indicadores',
@@ -246,7 +268,13 @@ export const PENDENCIAS = [
     tema: 'Percepção do cliente',
     lote: 'N',
     texto: 'Check-in, NPS e CSAT ainda não existem. A postura registrada é a leitura da CX, não a voz do cliente.',
-    termos: /\b(nps|csat|check-?in|satisfa[çc][ãa]o|insatisfa[çc][ãa]o)\b/i
+    // "percep" entrou em 15/09/2026. O termo já era proibido no prompt e
+    // vinha sendo barrado POR ACIDENTE, pelo regex largo de reuniões:
+    // o texto reprovado ("percepção de baixa entrega") caía porque
+    // mencionava reuniões junto, não porque falava de percepção.
+    // Ao estreitar aquele regex — contar reunião virou fato — o buraco
+    // apareceu. Aqui ele fica fechado pelo motivo certo.
+    termos: /\b(nps|csat|check-?in|satisfa[çc][ãa]o|insatisfa[çc][ãa]o|percep[çc][ãa]o|percebid[ao]s?)\b/i
   }
 ];
 
@@ -290,6 +318,59 @@ function tempoDeEtapaInventado(texto, sabeDesdeQuando) {
     : null;
 }
 
+/* --------------------------------------------------------------------------
+   AFIRMAR O VAZIO SEM TER OLHADO
+
+   O defeito de 15/09/2026, numa conta real: o dossiê escreveu "nenhuma
+   pessoa mapeada", "nenhum núcleo marcado" e "a conta é uma relação sem
+   rosto registrado" — e, na Recomendação, mandou a CX ir a campo
+   levantar interlocutores e marcar núcleos. As pessoas e os núcleos
+   estavam cadastrados no ERP o tempo todo. O documento não consultou.
+
+   A partir da Fase 2 o ERP é consultado. Mas consultar pode falhar: 403,
+   hub fora do ar, cliente sem vínculo. Nessas horas o modelo recebe
+   "não consultei" — e não pode transformar isso em "não existe".
+
+   O negativo é a afirmação mais cara deste documento, porque é a que
+   gera trabalho: manda alguém procurar o que já está achado. Então é a
+   que exige fonte. Sem fonte consultada, o item é descartado — e o
+   descarte aparece no documento.
+   -------------------------------------------------------------------------- */
+
+const RE_NEGATIVA_PESSOAS = new RegExp(
+  '(nenhum[ a]*(pessoa|contato|interlocutor|stakeholder)'
+  + '|n[ãa]o h[áa] (nenhum[a]? )?(pessoa|contato|interlocutor|ningu[ée]m)'
+  + '|sem (nenhum |registro de |ningu[ée]m )?(interlocutor|contato|pessoa|rosto)'
+  + '|ningu[ée]m (mapeado|cadastrado|registrado|identificado)'
+  + '|(pessoas?|contatos?|interlocutores?)[^.]{0,40}'
+    + 'n[ãa]o (foi|foram|est[áa]|est[ãa]o)? ?(registrad|mapead|cadastrad|identificad)'
+  + '|mapa (de (poder|pessoas) )?(n[ãa]o foi preenchido|est[áa] vazio|vazio))', 'i'
+);
+
+const RE_NEGATIVA_NUCLEOS = new RegExp(
+  '(nenhum n[úu]cleo|sem n[úu]cleo|n[ãa]o h[áa] n[úu]cleo'
+  + '|nenhuma frente|n[ãa]o h[áa] (indica[çc][ãa]o de )?frentes?'
+  + '|entrega (atual )?(invis[íi]vel|desconhecida)'
+  + '|n[úu]cleos?[^.]{0,40}n[ãa]o (foi|foram|est[áa]|est[ãa]o)? ?(registrad|marcad|mapead|identificad)'
+  + '|aus[êe]ncia de (marca[çc][ãa]o|mapeamento) de n[úu]cleos?)', 'i'
+);
+
+/**
+ * Afirma que não há pessoas (ou núcleos) sem que a fonte tenha sido
+ * consultada? Devolve o rótulo do que foi afirmado no escuro.
+ */
+function negativaSemFonte(texto, { pessoasConsultadas, nucleosConsultados }) {
+  const t = String(texto || '');
+
+  if (!pessoasConsultadas && RE_NEGATIVA_PESSOAS.test(t)) {
+    return 'ausência de pessoas que NÃO foi verificada no ERP';
+  }
+  if (!nucleosConsultados && RE_NEGATIVA_NUCLEOS.test(t)) {
+    return 'ausência de núcleos que NÃO foi verificada no ERP';
+  }
+  return null;
+}
+
 /**
  * Filtra os itens da análise que se apoiam no que o CRM não tem.
  *
@@ -301,8 +382,19 @@ function tempoDeEtapaInventado(texto, sabeDesdeQuando) {
  *
  * @param {Set<string>} presentes  chaves de PENDENCIAS que JÁ existem
  * @param {boolean} sabeEtapaDesde `etapa_desde` está preenchido?
+ * @param {boolean} pessoasConsultadas  o ERP respondeu sobre as pessoas?
+ * @param {boolean} nucleosConsultados  o ERP respondeu sobre os núcleos?
  */
-export function filtrarPorFontes(analise, { presentes = new Set(), sabeEtapaDesde = false } = {}) {
+export function filtrarPorFontes(analise, {
+  presentes = new Set(),
+  sabeEtapaDesde = false,
+  // O padrão é `false` de propósito: quem não declara que consultou não
+  // consultou. Errar para o lado de descartar um item verdadeiro custa
+  // um dossiê mais curto; errar para o outro lado manda gente procurar
+  // o que já está achado.
+  pessoasConsultadas = false,
+  nucleosConsultados = false
+} = {}) {
   if (!analise) return { analise, descartados: [], avisos: [] };
 
   const descartados = [];
@@ -310,7 +402,8 @@ export function filtrarPorFontes(analise, { presentes = new Set(), sabeEtapaDesd
 
   const passa = (texto, onde) => {
     const motivo = fonteInexistente(texto, presentes)
-      || tempoDeEtapaInventado(texto, sabeEtapaDesde);
+      || tempoDeEtapaInventado(texto, sabeEtapaDesde)
+      || negativaSemFonte(texto, { pessoasConsultadas, nucleosConsultados });
     if (motivo) {
       descartados.push({ onde, motivo, trecho: String(texto).slice(0, 120) });
       return false;
@@ -382,7 +475,17 @@ export function mesesDesde(dataIso, hoje = new Date()) {
  * nome: o documento é lido por gente, e um `papel_id` no papel impresso
  * não diz nada a ninguém.
  */
-export function montarDossieCx({ cliente, etapa, nucleos, stakeholders, analise, meta }) {
+export function montarDossieCx({ cliente, etapa, nucleos, stakeholders, analise, meta, fontes }) {
+  // O estado de cada fonte, com o padrão pessimista: quem não declarou
+  // que consultou, não consultou. O template imprime frase diferente
+  // para "não tem" e para "não perguntei", e é daqui que ele sabe qual.
+  const f = {
+    pessoas: { consultado: false, origem: null, motivo: null, ...(fontes?.pessoas || {}) },
+    nucleos: { consultado: false, origem: null, motivo: null, ...(fontes?.nucleos || {}) },
+    conta: { consultado: false, origem: null, motivo: null, ...(fontes?.conta || {}) },
+    ligacaoNucleoPessoaConhecida: !!fontes?.ligacaoNucleoPessoaConhecida
+  };
+
   const pessoas = (stakeholders || []).map((p) => ({
     nome: p.nome,
     papel: p.papel || null,
@@ -394,8 +497,19 @@ export function montarDossieCx({ cliente, etapa, nucleos, stakeholders, analise,
     patrocinador: !!p.patrocinador,
     nucleos: p.nucleos || [],
     nucleoIds: p.nucleoIds || [],
-    observacoes: p.observacoes || null
+    observacoes: p.observacoes || null,
+
+    // De onde veio a pessoa e o que se sabe dela. `principal` é null
+    // quando o ERP não marca ninguém — que não é o mesmo que "não é".
+    erpContatoId: p.erpContatoId || null,
+    principal: p.principal === undefined ? null : p.principal,
+    origem: p.origem || 'crm',
+    avaliada: p.avaliada !== false
   }));
+
+  // O contato principal é o que o ERP marcou. Só na falta dele vale o
+  // campo escrito à mão na ficha do CRM.
+  const principalDoErp = pessoas.find((p) => p.principal === true) || null;
 
   const atendidos = nucleos || [];
 
@@ -406,7 +520,8 @@ export function montarDossieCx({ cliente, etapa, nucleos, stakeholders, analise,
       documento: cliente?.documento || null,
       cidade: cliente?.cidade || null,
 
-      contatoNome: cliente?.contato_nome || null,
+      contatoNome: principalDoErp ? principalDoErp.nome : (cliente?.contato_nome || null),
+      contatoOrigem: principalDoErp ? 'erp' : (cliente?.contato_nome ? 'crm' : null),
       telefone: cliente?.telefone || null,
       email: cliente?.email || null,
 
@@ -423,7 +538,18 @@ export function montarDossieCx({ cliente, etapa, nucleos, stakeholders, analise,
       mesesNaEtapa: mesesDesde(cliente?.etapa_desde),
       classificacao: cliente?.classificacao ?? null,
 
-      nucleos: atendidos.map((n) => ({ nome: n.nome, cor: n.cor || null })),
+      // Cada núcleo leva junto os tipos de reunião que o compõem e o
+      // histórico de encontros. O nome sozinho não deixaria a CX
+      // reconciliar esta folha com o Plano de Ação, onde "núcleo" é o
+      // tipo de reunião e não o Time.
+      nucleos: atendidos.map((n) => ({
+        nome: n.nome,
+        cor: n.cor || null,
+        tiposDeReuniao: (n.tiposDeReuniao || []).map((t) => t.nome).filter(Boolean),
+        reunioesRealizadas: n.reunioesRealizadas ?? null,
+        reunioesPrevistas: n.reunioesPrevistas ?? null,
+        ultimaReuniao: n.ultimaReuniao || null
+      })),
 
       // Nulo aqui é "cadastro manual ainda não conferido", NÃO é
       // "cliente fora do ERP" — a distinção está no roadmap e o
@@ -434,7 +560,14 @@ export function montarDossieCx({ cliente, etapa, nucleos, stakeholders, analise,
     },
 
     stakeholders: pessoas,
-    mapa: resumirMapa(pessoas, atendidos),
+    mapa: resumirMapa(pessoas, atendidos, {
+      ligacaoConhecida: f.ligacaoNucleoPessoaConhecida
+    }),
+
+    // De onde veio cada bloco, e o que não deu para perguntar. É o que
+    // permite ao template dizer "o ERP não respondeu" em vez de "não
+    // há" — a diferença que custou um documento em 15/09/2026.
+    fontes: f,
 
     analise,
 

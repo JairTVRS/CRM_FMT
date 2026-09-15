@@ -211,11 +211,19 @@ conferir('o risco dos "83 meses estagnado" é DESCARTADO',
   !guardada.analise.riscos.some((r) => /83 meses/.test(r.risco)),
   JSON.stringify(guardada.analise.riscos.map((r) => r.risco)));
 
-conferir('o risco que cita "reuniões" é DESCARTADO — a fonte não existe',
-  !guardada.analise.riscos.some((r) => /reuni/i.test(`${r.risco} ${r.fundamento}`)));
+// Desde 15/09/2026 a razão deste descarte MUDOU, e isso importa: o
+// texto não cai mais por citar "reuniões" — contar reunião virou fato
+// lido do ERP. Cai por afirmar que NÃO HÁ pessoas, sem ter perguntado.
+conferir('o risco que afirma "sem registro de pessoas" é DESCARTADO',
+  !guardada.analise.riscos.some((r) => /sem registro de pessoas/i.test(r.fundamento)));
 
 conferir('o risco de "percepção de baixa entrega" é DESCARTADO',
   !guardada.analise.riscos.some((r) => /percep/i.test(r.risco)));
+
+conferir('e cai por PERCEPÇÃO, não mais de carona no regex de reuniões',
+  guardada.descartados.some((d) => /Percep/.test(d.trecho)
+    && /Percep[çc][ãa]o do cliente/.test(d.motivo)),
+  JSON.stringify(guardada.descartados.map((d) => d.motivo)));
 
 conferir('os três riscos do PDF real caíram; nenhum sobrou',
   guardada.analise.riscos.length === 0, `sobraram ${guardada.analise.riscos.length}`);
@@ -226,8 +234,34 @@ conferir('a oportunidade legítima SOBREVIVE — a guarda não é uma tesoura ce
 conferir('as perguntas legítimas sobrevivem',
   guardada.analise.perguntas.length === 2);
 
-conferir('as lacunas do mapa sobrevivem — falam do cadastro, não de fonte ausente',
-  guardada.analise.mapaPoder.lacunas.length === 2);
+// ESTA conferência inverteu em 15/09/2026, e é o coração do lote.
+//
+// Antes, núcleos e pessoas moravam na ficha do CRM: "nenhum contato
+// mapeado" era leitura verificável do próprio cadastro, e a lacuna
+// sobrevivia. Agora eles moram no ERP. Sem consultar o ERP, as duas
+// lacunas abaixo são afirmações sobre o que ninguém olhou — e foram
+// exatamente elas que, no PDF real, mandaram a CX levantar em campo
+// interlocutores já cadastrados.
+conferir('as lacunas que afirmam o vazio CAEM quando nada foi consultado',
+  guardada.analise.mapaPoder.lacunas.length === 0,
+  JSON.stringify(guardada.analise.mapaPoder.lacunas));
+
+{
+  // E voltam a valer assim que o ERP responde: aí o vazio é conclusão.
+  const comErp = filtrarPorFontes(analiseReal, {
+    presentes: new Set(),
+    sabeEtapaDesde: false,
+    pessoasConsultadas: true,
+    nucleosConsultados: true
+  });
+
+  conferir('com o ERP consultado, as MESMAS lacunas sobrevivem',
+    comErp.analise.mapaPoder.lacunas.length === 2,
+    JSON.stringify(comErp.analise.mapaPoder.lacunas));
+
+  conferir('a guarda não é uma tesoura cega: o que muda é ter olhado',
+    comErp.descartados.length < guardada.descartados.length);
+}
 
 conferir('o descarte é DECLARADO, nunca silencioso',
   guardada.avisos.some((a) => /descartados/.test(a)), JSON.stringify(guardada.avisos));
@@ -237,14 +271,17 @@ conferir('o panorama com "83 meses" vira aviso, não some',
     && guardada.avisos.some((a) => /panorama/.test(a)));
 
 conferir('cada descarte diz onde estava e por quê',
-  guardada.descartados.length === 3
-    && guardada.descartados.every((d) => d.onde && d.motivo && d.trecho));
+  guardada.descartados.length === 5
+    && guardada.descartados.every((d) => d.onde && d.motivo && d.trecho),
+  `${guardada.descartados.length} descartes`);
 
 /* --- A guarda solta o item quando a fonte PASSA a existir -------------- */
 
 const comAtas = filtrarPorFontes(analiseReal, {
-  presentes: new Set(['reunioes']),
-  sabeEtapaDesde: true
+  presentes: new Set(['atas']),
+  sabeEtapaDesde: true,
+  pessoasConsultadas: true,
+  nucleosConsultados: true
 });
 
 conferir('com as atas no CRM, o risco que cita reuniões PASSA',
@@ -253,8 +290,27 @@ conferir('com as atas no CRM, o risco que cita reuniões PASSA',
 conferir('sabendo o etapa_desde, o risco dos 83 meses PASSA',
   comAtas.analise.riscos.some((r) => /83 meses/.test(r.risco)));
 
-conferir('com as duas fontes, nada é descartado',
-  comAtas.descartados.length === 0);
+// O risco da PERCEPÇÃO continua caindo, e agora pelo motivo certo: a
+// voz do cliente é o Lote N e não chegou. Antes ele passava aqui por
+// acidente, porque o `presentes` liberava reuniões e era o regex de
+// reuniões que o segurava.
+conferir('mas a "percepção de baixa entrega" continua caindo — é o Lote N',
+  comAtas.descartados.length === 1
+    && /Percep[çc][ãa]o do cliente/.test(comAtas.descartados[0].motivo),
+  JSON.stringify(comAtas.descartados.map((d) => d.motivo)));
+
+{
+  const comTudo = filtrarPorFontes(analiseReal, {
+    presentes: new Set(['atas', 'percepcao']),
+    sabeEtapaDesde: true,
+    pessoasConsultadas: true,
+    nucleosConsultados: true
+  });
+
+  conferir('com TODAS as fontes e o ERP consultado, nada é descartado',
+    comTudo.descartados.length === 0,
+    JSON.stringify(comTudo.descartados.map((d) => d.motivo)));
+}
 
 /* --- Não descarta o que não deve --------------------------------------- */
 
@@ -263,7 +319,14 @@ const inocente = filtrarPorFontes({
   mapaPoder: { leitura: 'Duas pessoas mapeadas, uma delas patrocinadora.', lacunas: [] },
   riscos: [{ risco: 'Núcleo Financeiro sem ninguém mapeado', fundamento: 'O núcleo consta na ficha e não há pessoa vinculada a ele.', confianca: 'alta' }],
   oportunidades: [], perguntas: ['Quem responde pelo Financeiro?'], recomendacao: 'Mapear o Financeiro.'
-}, { presentes: new Set(), sabeEtapaDesde: false });
+}, {
+  presentes: new Set(),
+  sabeEtapaDesde: false,
+  // O ERP RESPONDEU: o núcleo existe e ninguém está nele. Aí "sem
+  // ninguém mapeado" é conclusão apurada, e tem que atravessar.
+  pessoasConsultadas: true,
+  nucleosConsultados: true
+});
 
 conferir('análise sem fonte inexistente atravessa intacta',
   inocente.descartados.length === 0 && inocente.avisos.length === 0

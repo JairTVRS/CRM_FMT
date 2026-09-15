@@ -164,16 +164,40 @@ export async function pedirAoHub(env, caminho, parametros = {}) {
    ========================================================================== */
 
 /**
- * Os campos que pedimos. `fields` é OBRIGATÓRIO no endpoint — sem ele o
+ * Os campos da LISTAGEM. `fields` é OBRIGATÓRIO no endpoint — sem ele o
  * hub responde 400.
  *
- * Pedimos só o que a Jornada mostra. Trazer `contacts` e `addresses`
- * multiplicaria o tamanho da resposta por nada: a ficha do CRM tem os
- * seus próprios, e o que ela precisa saber do ERP é quem é o cliente.
+ * `contacts` e `addresses` ficam de fora DAQUI, e só daqui: a Jornada
+ * lista a carteira inteira, e carregar as pessoas de cada conta para
+ * imprimir uma linha por cliente multiplicaria a resposta por nada.
+ *
+ * O comentário que estava aqui dizia outra coisa — que trazer `contacts`
+ * não valia porque "a ficha do CRM tem os seus próprios". A PREMISSA
+ * ESTAVA ERRADA, e foi corrigida em 15/09/2026: para cliente, o dono das
+ * pessoas é o ERP, como já valia para a lista de clientes e para as
+ * atas. O princípio "o CRM não replica o ERP" estava aplicado em todo
+ * lugar menos aqui, e o preço apareceu num documento real: o Dossiê de
+ * Experiência afirmou "nenhuma pessoa mapeada" sobre uma conta cujas
+ * pessoas estavam cadastradas no ERP o tempo todo.
+ *
+ * Quem precisa das pessoas é o detalhe de UMA conta. Para isso existe o
+ * `CAMPOS_CLIENTE_DETALHE`, logo abaixo.
  */
 export const CAMPOS_CLIENTE = [
   'id', 'nid', 'status', 'tradingName', 'companyName',
   'document', 'email', 'phone1', 'classification', 'contractedAt'
+].join(',');
+
+/**
+ * Os campos do DETALHE de uma conta — tudo da listagem, mais as pessoas
+ * e os endereços.
+ *
+ * Só é pedido quando o assunto é UM cliente: a ficha, o Dossiê de
+ * Experiência, o mapa de stakeholders. É a mesma API, com o custo
+ * proporcional ao que a tela realmente mostra.
+ */
+export const CAMPOS_CLIENTE_DETALHE = [
+  CAMPOS_CLIENTE, 'contacts', 'addresses'
 ].join(',');
 
 /** Os status que o hub reconhece, conforme a documentação. */
@@ -202,8 +226,25 @@ export function traduzirCliente(c) {
     email: c?.email || null,
     telefone: c?.phone1 || null,
 
-    // A escala 1–6 do ERP é a mesma do lead e da ficha do cliente.
-    classificacao: Number.isInteger(c?.classification) ? c.classification : null,
+    // A classificação do ERP vem COMO ELA É, sem conversão.
+    //
+    // Estava escrito aqui que era "a escala 1–6, a mesma do lead e da
+    // ficha do cliente". A documentação do `GET /customers/{id}`,
+    // conferida em 15/09/2026, mostra `"classification": "A"` — uma
+    // STRING. A premissa estava errada, e o custo dela era exatamente o
+    // defeito que este lote conserta: `Number.isInteger("A")` é falso,
+    // a classificação real virava `null`, e o dossiê continuava
+    // afirmando que o ERP não tem classificação nesta conta.
+    //
+    // Não convertemos "A" em número nem número em letra: são escalas de
+    // sistemas diferentes, e inventar a correspondência seria trocar um
+    // dado certo por um palpite. O documento imprime o que o ERP diz.
+    classificacao: (() => {
+      const v = c?.classification;
+      if (v === null || v === undefined || v === '') return null;
+      if (typeof v === 'string') return v.trim() || null;
+      return v;
+    })(),
 
     contratado_em: c?.contractedAt || null
   };
@@ -268,12 +309,24 @@ export async function listarClientesDoHub(env, {
  * CNPJ existe no ERP. Cliente `inactive` existe — e barrar a conversão
  * dizendo "não existe" seria mentira.
  */
-export async function buscarClientePorCnpj(env, cnpj) {
+export async function buscarClientePorCnpj(env, cnpj, { campos = CAMPOS_CLIENTE } = {}) {
+  const bruto = await acharClienteBrutoPorCnpj(env, cnpj, campos);
+  return bruto ? traduzirCliente(bruto) : null;
+}
+
+/**
+ * O mesmo caminho, devolvendo o objeto CRU do hub.
+ *
+ * Existe porque `contacts` e `addresses` não passam pelo
+ * `traduzirCliente` — são listas de outra natureza, com leitor próprio
+ * (`lerContatos`). Quem precisa delas precisa do bruto.
+ */
+async function acharClienteBrutoPorCnpj(env, cnpj, campos = CAMPOS_CLIENTE) {
   const limpo = String(cnpj || '').replace(/\D/g, '');
   if (limpo.length !== 14) return null;
 
   const corpo = await pedirAoHub(env, '/customers', {
-    fields: CAMPOS_CLIENTE,
+    fields: campos,
     document: limpo
   });
 
@@ -282,11 +335,9 @@ export async function buscarClientePorCnpj(env, cnpj) {
   // `document` é exato na doc, mas conferimos assim mesmo: um filtro que
   // silenciosamente virasse textual casaria o CNPJ errado, e o vínculo
   // com o ERP é justamente o que não pode estar errado.
-  const achado = lista.find(
+  return lista.find(
     (c) => String(c?.document || '').replace(/\D/g, '') === limpo
-  );
-
-  return achado ? traduzirCliente(achado) : null;
+  ) || null;
 }
 
 /* ==========================================================================
@@ -584,4 +635,423 @@ export async function listarReunioes(env, {
   }
 
   return { reunioes, total: total ?? reunioes.length, truncado };
+}
+
+/* ==========================================================================
+   CONSULTA COM ESTADO DECLARADO
+
+   Tudo daqui para baixo devolve TRÊS estados, nunca dois:
+
+     consultado: true,  dado cheio   → a fonte respondeu e tem conteúdo
+     consultado: true,  dado vazio   → a fonte respondeu e não tem nada
+     consultado: false               → a fonte NÃO respondeu
+
+   A distinção não é preciosismo. Em 15/09/2026 um Dossiê de Experiência
+   afirmou "nenhuma pessoa mapeada" e "nenhum núcleo marcado" sobre uma
+   conta real — e mandou a CX ir a campo levantar o que já estava
+   cadastrado no ERP. O documento não tinha como saber a diferença entre
+   "não existe" e "não perguntei", porque o código não a carregava.
+
+   Quem consome decide o que dizer; o que não pode é a informação se
+   perder no caminho. Uma lista vazia é indistinguível de um 403 — e é
+   por isso que nenhuma função abaixo devolve lista pelada.
+   ========================================================================== */
+
+/**
+ * Executa uma consulta ao hub e devolve o resultado COM o estado, em vez
+ * de lançar. Erro de permissão e hub fora do ar viram dado, não exceção:
+ * um dossiê tem que sair mesmo com o ERP mudo — só não pode mentir.
+ *
+ * @param {string}   rotulo    como a fonte se chama na tela, em português
+ * @param {Function} executar  a consulta em si
+ */
+export async function consultarHub(rotulo, executar) {
+  try {
+    return { rotulo, consultado: true, dado: await executar(), erro: null };
+  } catch (e) {
+    const erro = e instanceof ErroHub ? e : new ErroHub('HUB_FALHA', e?.message || String(e));
+    return {
+      rotulo,
+      consultado: false,
+      dado: null,
+      erro: { codigo: erro.codigo, mensagem: erro.message, status: erro.status ?? null }
+    };
+  }
+}
+
+/* ==========================================================================
+   AS PESSOAS DA CONTA (`contacts`)
+
+   O dono das pessoas de um cliente é o ERP. O CRM não cria e não
+   renomeia ninguém — ele anota POR CIMA: influência, postura,
+   patrocinador, e as observações da CX.
+
+   O FORMATO DO `contacts` NÃO ESTÁ NA DOCUMENTAÇÃO que temos, e não dá
+   para descobri-lo daqui: a chave do hub é Secret na Cloudflare e local
+   só existe o dublê. Então o tradutor abaixo não ADIVINHA um formato —
+   ele aceita os plausíveis, registra QUAL encontrou e deixa nulo o que
+   não achar. Nulo é "não sei", e quem imprime o documento sabe dizer
+   isso com todas as letras.
+
+   Quando a primeira conta real passar por aqui, `lerContatos` informa a
+   forma verdadeira e este mapa deixa de ser hipótese.
+   ========================================================================== */
+
+/**
+ * Os nomes que cada campo pode ter, em ordem de preferência.
+ *
+ * A API do hub é camelCase em inglês (`tradingName`, `phone1`,
+ * `isActive`), então as hipóteses seguem essa gramática.
+ */
+export const CHAVES_CONTATO = {
+  erp_id:    ['id', '_id'],
+  nome:      ['name', 'fullName', 'contactName'],
+  email:     ['email', 'mail'],
+  telefone:  ['phone', 'phone1', 'mobile', 'cellphone', 'telephone'],
+  cargo:     ['role', 'jobTitle', 'position', 'occupation', 'office'],
+  principal: ['isMain', 'isPrimary', 'isDefault', 'main', 'primary']
+};
+
+/** O primeiro nome de campo que existe no objeto, e o valor dele. */
+function primeiroPresente(obj, chaves) {
+  for (const chave of chaves) {
+    if (obj && Object.prototype.hasOwnProperty.call(obj, chave)
+        && obj[chave] !== null && obj[chave] !== '') {
+      return { chave, valor: obj[chave] };
+    }
+  }
+  return { chave: null, valor: null };
+}
+
+/**
+ * Um contato do ERP no vocabulário do CRM.
+ *
+ * `principal` merece atenção: fica `null` quando NENHUMA das chaves
+ * candidatas existe. Devolver `false` aí diria "esta pessoa não é a
+ * principal", quando a verdade é "este ERP não marca principal" — e a
+ * diferença vira uma frase errada no dossiê.
+ */
+export function traduzirContato(bruto) {
+  // `contacts` pode ser uma lista de ObjectId em vez de objetos: nesse
+  // caso a pessoa mora noutra coleção e o que temos é uma referência.
+  // Declarar isso é melhor que devolver um contato sem nome.
+  if (typeof bruto === 'string') {
+    return {
+      erp_id: bruto, nome: null, email: null, telefone: null, cargo: null,
+      principal: null, referencia: true, chavesVistas: []
+    };
+  }
+
+  if (!bruto || typeof bruto !== 'object') return null;
+
+  const campos = {};
+  const chavesVistas = [];
+
+  for (const [nosso, candidatas] of Object.entries(CHAVES_CONTATO)) {
+    const { chave, valor } = primeiroPresente(bruto, candidatas);
+    campos[nosso] = valor;
+    if (chave) chavesVistas.push(nosso + '=' + chave);
+  }
+
+  const marcado = campos.principal;
+
+  return {
+    erp_id: campos.erp_id ? String(campos.erp_id) : null,
+    nome: campos.nome ? String(campos.nome) : null,
+    email: campos.email ? String(campos.email) : null,
+    telefone: campos.telefone ? String(campos.telefone) : null,
+    cargo: campos.cargo ? String(campos.cargo) : null,
+
+    // Só vira booleano se houve marcação; senão continua "não sei".
+    principal: marcado === null
+      ? null
+      : (marcado === true || marcado === 'true' || marcado === 1),
+
+    referencia: false,
+    chavesVistas
+  };
+}
+
+/**
+ * Lê o `contacts` de um cliente bruto do hub e diz o que encontrou.
+ *
+ * O `formato` é o que transforma este leitor em diagnóstico: é ele que
+ * responde, na primeira conta real que passar, se as pessoas vêm
+ * embutidas, se vêm por referência, ou se o campo nem veio.
+ */
+export function lerContatos(brutoDoHub) {
+  const cru = brutoDoHub?.contacts;
+
+  if (cru === undefined || cru === null) {
+    return { contatos: [], formato: 'ausente', chavesVistas: [],
+             temIdEstavel: false, temMarcacaoPrincipal: false };
+  }
+
+  if (!Array.isArray(cru)) {
+    // Um objeto só, ou algo inesperado: tratamos como lista de um para
+    // não perder a pessoa, e o formato denuncia a surpresa.
+    const um = traduzirContato(cru);
+    return { contatos: um ? [um] : [], formato: 'inesperado',
+             chavesVistas: um?.chavesVistas || [],
+             temIdEstavel: !!um?.erp_id,
+             temMarcacaoPrincipal: !!um && um.principal !== null };
+  }
+
+  if (cru.length === 0) {
+    return { contatos: [], formato: 'vazio', chavesVistas: [],
+             temIdEstavel: false, temMarcacaoPrincipal: false };
+  }
+
+  const contatos = cru.map(traduzirContato).filter(Boolean);
+  const porReferencia = contatos.length > 0 && contatos.every((c) => c.referencia);
+
+  return {
+    contatos,
+    formato: porReferencia ? 'referencias' : 'objetos',
+
+    // A união do que foi visto em todos: contato incompleto não pode
+    // esconder um campo que existe nos outros.
+    chavesVistas: [...new Set(contatos.flatMap((c) => c.chavesVistas))].sort(),
+
+    // As duas perguntas que decidem a modelagem da Fase 3: dá para
+    // amarrar a avaliação da CX a um id, ou vai ter que ser pelo e-mail?
+    temIdEstavel: contatos.length > 0 && contatos.every((c) => !!c.erp_id),
+    temMarcacaoPrincipal: contatos.some((c) => c.principal !== null)
+  };
+}
+
+/* ==========================================================================
+   A CONTA INTEIRA — identidade, pessoas e endereço de UM cliente
+
+   `GET /customers/{id}` EXISTE — confirmado na documentação do hub em
+   15/09/2026, com `hub:customers:read` e `fields` obrigatório, os mesmos
+   da listagem. É o caminho principal.
+
+   O fallback pela listagem filtrada por `document` continua aqui de
+   propósito, e não é desperdício: é o caminho para o cliente que tem
+   CNPJ no CRM mas ainda não tem `erp_id` gravado, e é a rede de
+   segurança se a rota de detalhe mudar. `document` é correspondência
+   exata documentada e já roda em produção na trava da conversão.
+
+   O caminho usado vem no `via`, para que a escolha apareça em vez de
+   ficar escondida num catch.
+
+   CAMPOS DISPONÍVEIS, conforme a doc: id, nid, status, tradingName,
+   companyName, document, email, phone1, segment, branch, category,
+   classification, contacts, addresses, contractedAt, createdAt,
+   updatedAt. `segment`, `branch` e `category` são ObjectId de outras
+   coleções — ficam de fora até alguma tela precisar deles.
+   ========================================================================== */
+
+/**
+ * Uma conta do hub, com as pessoas junto.
+ *
+ * @param {object} env
+ * @param {{erpId?: string, documento?: string}} chaves
+ */
+export async function buscarContaDoHub(env, { erpId = null, documento = null } = {}) {
+  let bruto = null;
+  let via = null;
+
+  if (erpId) {
+    try {
+      const corpo = await pedirAoHub(env, '/customers/' + encodeURIComponent(erpId), {
+        fields: CAMPOS_CLIENTE_DETALHE
+      });
+
+      // A rota de detalhe pode devolver o objeto direto, ou embrulhado
+      // em `data` como a listagem. Aceitamos as duas formas.
+      const candidato = Array.isArray(corpo?.data) ? corpo.data[0] : (corpo?.data || corpo);
+      if (candidato && (candidato.id || candidato._id)) {
+        bruto = candidato;
+        via = 'detalhe';
+      }
+    } catch (e) {
+      // 404 é "esta rota não existe" e 400 é "não gostei destes
+      // parâmetros": os dois significam tentar o outro caminho. 401, 403
+      // e hub fora do ar são outra conversa e sobem — quem chama precisa
+      // saber que NÃO PERGUNTOU, em vez de receber null como se fosse
+      // "perguntei e não achei".
+      const tentarOutro = e instanceof ErroHub && (e.status === 404 || e.status === 400);
+      if (!tentarOutro) throw e;
+    }
+  }
+
+  if (!bruto && documento) {
+    bruto = await acharClienteBrutoPorCnpj(env, documento, CAMPOS_CLIENTE_DETALHE);
+    if (bruto) via = 'listagem-por-documento';
+  }
+
+  if (!bruto) return null;
+
+  return {
+    cliente: traduzirCliente(bruto),
+    contatos: lerContatos(bruto),
+    bruto,
+    via
+  };
+}
+
+/* ==========================================================================
+   OS NÚCLEOS ATENDIDOS
+
+   Decidido com o usuário em 15/09/2026: no Dossiê de Experiência,
+   núcleo é o TIME — o agrupamento interno da Formatar (Governança,
+   Operações).
+
+   ATENÇÃO, e o manual deste lote precisa repetir isto: no Plano de Ação,
+   na carteira e na numeração das ações, "núcleo" continua sendo o TIPO
+   DE REUNIÃO (Logística, Estoque, Conselho Gestor). São dois níveis
+   diferentes com o mesmo apelido em telas diferentes. Por isso cada
+   núcleo devolvido aqui carrega, junto, os tipos de reunião que o
+   compõem: é o que permite reconciliar as duas telas sem adivinhação.
+
+   O CAMINHO É PELAS REUNIÕES, não pelas carteiras. A carteira seria a
+   fonte canônica — ela é cliente + tipo de reunião, e existe mesmo antes
+   da primeira reunião acontecer —, mas hub:portfolios:read é justamente
+   a única permissão que ainda falta na chave. Reunião, tipo de reunião e
+   time já estão concedidos, então este caminho funciona HOJE. Quando a
+   carteira destravar, ela entra como acréscimo.
+   ========================================================================== */
+
+/**
+ * Os núcleos (Times) que a Formatar atende num cliente.
+ *
+ * Nunca devolve lista pelada: o `consultado` diz se dá para afirmar
+ * alguma coisa, e `fontes` diz qual das três consultas falhou quando não
+ * dá. Lista vazia com `consultado: true` é "este cliente não tem reunião
+ * nenhuma" — resposta legítima, e diferente de "não sei".
+ */
+export async function nucleosDoCliente(env, clienteErpId, { maxPaginas = 10 } = {}) {
+  const naoConsultado = (motivo, fontes = {}) => ({
+    consultado: false, motivo, nucleos: [], semTime: [],
+    totalReunioesRealizadas: null, registraParticipantes: false,
+    fontes, truncado: false
+  });
+
+  if (!clienteErpId) {
+    return naoConsultado('O cliente não tem vínculo com o ERP (sem erp_id).');
+  }
+
+  // As três em paralelo: uma falha não impede as outras de responderem,
+  // e é o conjunto que diz onde exatamente o caminho quebrou.
+  const [reunioes, tipos, times] = await Promise.all([
+    consultarHub('reuniões', () => listarReunioes(env, {
+      clienteErpId, status: null, maxPaginas
+    })),
+    consultarHub('tipos de reunião', () => mapaDeTiposDeReuniao(env)),
+    consultarHub('times', () => mapaDeTimes(env))
+  ]);
+
+  const fontes = { reunioes, tiposDeReuniao: tipos, times };
+
+  // Nomear um Time exige as três. Sem qualquer uma delas, a resposta
+  // honesta é "não consultei" — e NÃO uma lista parcial, que na tela
+  // seria lida como a lista inteira.
+  if (!reunioes.consultado || !tipos.consultado || !times.consultado) {
+    const quem = [reunioes, tipos, times].filter((f) => !f.consultado);
+    const lista = quem.map((f) => f.rotulo).join(', ');
+    return naoConsultado('Não foi possível ler ' + lista + ' no ERP.', fontes);
+  }
+
+  const todas = reunioes.dado.reunioes;
+  const naoCanceladas = todas.filter((r) => !STATUS_CANCELADA.includes(r.status));
+
+  const porTime = new Map();
+  const semTime = new Map();
+
+  for (const r of naoCanceladas) {
+    const tipo = r.nucleoErpId ? tipos.dado.get(r.nucleoErpId) : null;
+
+    // Tipo de reunião que saiu do cadastro do ERP, mas cujas reuniões
+    // continuam existindo. Fica declarado em vez de sumir.
+    if (!tipo || !tipo.timeErpId) {
+      const chave = r.nucleoErpId || 'sem-tipo';
+      if (!semTime.has(chave)) {
+        semTime.set(chave, {
+          erp_id: r.nucleoErpId || null, nome: tipo ? tipo.nome : null, reunioes: 0
+        });
+      }
+      semTime.get(chave).reunioes++;
+      continue;
+    }
+
+    const time = times.dado.get(tipo.timeErpId);
+    const chave = tipo.timeErpId;
+
+    if (!porTime.has(chave)) {
+      porTime.set(chave, {
+        erp_id: chave,
+        nome: time ? time.nome : null,
+        ativo: time ? time.ativo !== false : null,
+        tiposDeReuniao: new Map(),
+        participantesCliente: new Map(),
+        reunioesRealizadas: 0,
+        reunioesPrevistas: 0,
+        ultimaReuniao: null
+      });
+    }
+
+    const n = porTime.get(chave);
+    if (!n.tiposDeReuniao.has(tipo.erp_id)) {
+      n.tiposDeReuniao.set(tipo.erp_id, { erp_id: tipo.erp_id, nome: tipo.nome });
+    }
+
+    // Quem do lado do CLIENTE esteve nas reuniões deste núcleo.
+    //
+    // É daqui que sai a ligação pessoa × núcleo, e ela não existe em
+    // lugar nenhum do cadastro: o ERP não pergunta "de qual frente esta
+    // pessoa participa", mas registra quem sentou em cada reunião — que
+    // é a mesma informação, só que apurada em vez de declarada.
+    //
+    // `customerParticipants` tem forma desconhecida, como o `contacts`.
+    // Reusamos o mesmo tradutor tolerante em vez de inventar um segundo.
+    for (const bruto of r.participantesCliente) {
+      const pessoa = traduzirContato(bruto);
+      if (!pessoa) continue;
+      const id = pessoa.erp_id || pessoa.email || pessoa.nome;
+      if (id && !n.participantesCliente.has(id)) n.participantesCliente.set(id, pessoa);
+    }
+
+    if (r.status === STATUS_REALIZADA) {
+      n.reunioesRealizadas++;
+      // A listagem já vem em startDate descendente, mas não dependemos
+      // disso: comparar é barato e sobrevive a uma mudança no hub.
+      if (!n.ultimaReuniao || String(r.inicio) > String(n.ultimaReuniao)) {
+        n.ultimaReuniao = r.inicio;
+      }
+    } else {
+      n.reunioesPrevistas++;
+    }
+  }
+
+  const nucleos = [...porTime.values()]
+    .map((n) => ({
+      ...n,
+      tiposDeReuniao: [...n.tiposDeReuniao.values()],
+      participantesCliente: [...n.participantesCliente.values()]
+    }))
+    .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+
+  // O ERP REGISTRA participante de cliente, ou simplesmente não usa esse
+  // campo? A diferença decide se "núcleo sem ninguém" é uma conclusão ou
+  // um palpite: onde ninguém aparece em lugar nenhum, o vazio é do
+  // registro, não da relação. Uma ocorrência em qualquer núcleo já
+  // prova que o campo é usado — e aí o núcleo vazio passa a significar
+  // alguma coisa.
+  const registraParticipantes = nucleos.some((n) => n.participantesCliente.length > 0);
+
+  return {
+    consultado: true,
+    motivo: null,
+    nucleos,
+    semTime: [...semTime.values()],
+
+    // Um cliente pode ter carteira aberta e nenhuma reunião ainda. Quem
+    // imprime precisa distinguir isso de "não atendemos ninguém aqui".
+    totalReunioesRealizadas: todas.filter((r) => r.status === STATUS_REALIZADA).length,
+    registraParticipantes,
+    fontes,
+    truncado: !!reunioes.dado.truncado
+  };
 }

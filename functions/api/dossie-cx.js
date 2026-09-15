@@ -29,6 +29,7 @@ import {
 } from './_lib/schema-dossie-cx.js';
 import { renderizarDossieCx } from './_lib/dossie-cx-template.js';
 import { criarVersionador } from './_lib/versionamento.js';
+import { buscarContaDoHub, nucleosDoCliente, consultarHub } from './_lib/hub.js';
 
 const MAX_TOKENS_DOSSIE_CX = 3000;
 
@@ -59,19 +60,39 @@ complete com informação de memória, não suponha faturamento, porte, número 
 funcionários, resultados obtidos, reuniões realizadas ou satisfação medida.
 
 REGRA SOBRE PESSOAS — este documento fala de gente com nome.
-A influência e a postura de cada pessoa foram REGISTRADAS pela equipe de CX na
-ficha do cliente. Trabalhe com esses registros; não os redefina, não classifique
+Quem são elas, o cargo e o contato vêm do CADASTRO DO ERP; a Formatar não as
+inventa nem as renomeia aqui. A influência e a postura, quando existem, foram
+REGISTRADAS pela equipe de CX. Pessoa sem influência e sem postura é pessoa que
+o ERP conhece e que a CX ainda não avaliou — o que é uma lacuna do trabalho da
+CX, nunca um defeito da pessoa nem da conta.
+Trabalhe com esses registros; não os redefina, não classifique
 ninguém por conta própria e não emita juízo sobre caráter, competência,
 personalidade ou vida pessoal de quem quer que seja. Onde estiver escrito "não
 avaliada", trate como informação que falta — nunca como neutralidade.
 Suas observações devem ser sobre a RELAÇÃO (quem participa de quê, onde a
 Formatar não tem interlocutor, de quem a conta depende), não sobre a pessoa.
 
-O QUE VOCÊ NÃO PODE AFIRMAR nesta versão do sistema: nada sobre reuniões,
-atas, planos de ação, indicadores, saúde da carteira, NPS ou satisfação. Essas
-fontes ainda não chegam ao CRM. Não diga que estão bem nem que estão mal, e não
-as use como fundamento. Se a falta delas for relevante, isso já está declarado
-em uma seção própria do documento — não repita.
+REGRA ABSOLUTA — não afirme o vazio que você não conferiu.
+Cada bloco do contexto diz se a fonte foi CONSULTADA ou não. Onde estiver
+escrito que não foi, é PROIBIDO concluir que a coisa não existe. "Não há
+ninguém mapeado", "nenhum núcleo atendido", "a entrega é invisível" são
+afirmações que só podem sair de uma consulta que ACONTECEU e voltou vazia.
+
+Esta regra existe porque foi quebrada. Um dossiê real declarou uma conta
+"uma relação sem rosto registrado" e mandou a equipe levantar em campo os
+interlocutores e os núcleos — que estavam cadastrados no ERP o tempo todo.
+O documento não tinha consultado. Afirmar o vazio é a frase mais cara
+deste dossiê, porque manda gente procurar o que já está achado.
+
+O QUE VOCÊ NÃO PODE AFIRMAR nesta versão do sistema: nada sobre o CONTEÚDO
+das reuniões, das atas ou do plano de ação, e nada sobre indicadores, saúde
+da carteira, NPS ou satisfação. Essas fontes ainda não chegam ao CRM.
+
+Você PODE usar como fato, quando o contexto os trouxer: quais núcleos a
+Formatar atende nesta conta, quantas reuniões houve em cada um e quando foi
+a última. Isso é cadastro, foi lido do ERP e está conferido. O que não se
+pode é dizer como as reuniões foram, o que se tratou nelas, se o cliente
+ficou satisfeito ou se a conta está saudável. Contagem não é conteúdo.
 
 Sobre EXPANSÃO: na Formatar, expansão é acréscimo de produto ou serviço à
 entrega atual. Não gera contrato novo nem devolve o cliente ao funil comercial.
@@ -114,12 +135,26 @@ function tempoDeEtapa(cliente, etapa) {
     + (meses != null ? ` (${meses} meses nesta etapa)` : '');
 }
 
-function montarContexto({ cliente, etapa, nucleos, stakeholders, mapa }) {
+/*
+ * `reunirConta` e `montarContexto` são exportadas para a prova
+ * `dev/prova/dossie-conta.mjs`, e só por isso — nenhuma rota as importa.
+ *
+ * O motivo é a regra da casa: prova nunca importa cópia do código. As
+ * duas são o caminho inteiro entre o ERP e o que o modelo lê, e é
+ * justamente aí que mora a diferença entre "não há" e "não perguntei".
+ * Reescrevê-las na suíte provaria que a minha cópia concorda com a
+ * minha cópia.
+ */
+export function montarContexto({ cliente, etapa, nucleos, stakeholders, mapa, fontes }) {
   const partes = [];
 
   const meses = mesesDesde(cliente.data_inicio);
 
-  partes.push(`=== A CONTA (registro do CRM — FATO) ===
+  const origemConta = fontes.conta.consultado
+    ? 'lido AO VIVO do ERP no momento desta geração — FATO'
+    : `o ERP NÃO respondeu (${fontes.conta.motivo}); abaixo vai a cópia guardada no CRM`;
+
+  partes.push(`=== A CONTA (${origemConta}) ===
 Razão social: ${cliente.nome || '—'}
 Nome fantasia: ${cliente.nome_fantasia || '—'}
 Cidade: ${cliente.cidade || '—'}
@@ -129,10 +164,53 @@ Início da jornada: ${cliente.data_inicio || '—'}${meses != null ? ` (${meses}
 ATENÇÃO — as duas linhas acima são fatos SEPARADOS. O início da jornada é
 o começo do CONTRATO; não diz nada sobre há quanto tempo o cliente está
 na etapa atual. Não some, não subtraia e não conclua uma da outra.
-Classificação (escala 1–6 do ERP): ${cliente.classificacao ?? '—'}
-Contato principal: ${cliente.contato_nome || '—'}
-Vínculo com o ERP: ${cliente.erp_id ? `sim (ID ${cliente.erp_id})` : 'ainda não conferido — cadastro manual. Isto NÃO significa que o cliente esteja fora do ERP.'}
-Núcleos atendidos (tipos de reunião): ${nucleos.map((n) => n.nome).join(', ') || 'nenhum marcado'}`);
+Classificação no ERP (use o valor como está; NÃO o converta em nota,
+escala, percentual nem juízo de valor): ${cliente.classificacao ?? (fontes.conta.consultado
+    ? 'o ERP respondeu e esta conta NÃO tem classificação cadastrada'
+    : 'não sei — o ERP não foi consultado. NÃO afirme que ela não existe lá.')}
+Status no ERP: ${cliente.statusErp || '—'}
+Vínculo com o ERP: ${cliente.erp_id ? `sim (ID ${cliente.erp_id})` : 'ainda não conferido — cadastro manual. Isto NÃO significa que o cliente esteja fora do ERP.'}`);
+
+  /* ---------------------------------------------------------------
+     NÚCLEOS — e a diferença entre "não tem" e "não perguntei"
+     --------------------------------------------------------------- */
+
+  if (fontes.nucleos.consultado) {
+    partes.push(`
+=== NÚCLEOS ATENDIDOS (lido do ERP — FATO) ===
+Núcleo aqui é o TIME da Formatar. O tipo de reunião que o compõe vem
+entre parênteses, porque é assim que ele aparece no Plano de Ação.
+${nucleos.length
+  ? nucleos.map((n) => {
+    const tipos = (n.tiposDeReuniao || []).map((t) => t.nome).filter(Boolean).join(', ');
+    const hist = n.reunioesRealizadas
+      ? `${n.reunioesRealizadas} reunião(ões) realizada(s)${n.ultimaReuniao ? `, a última em ${String(n.ultimaReuniao).slice(0, 10)}` : ''}`
+      : 'nenhuma reunião realizada ainda';
+    const previstas = n.reunioesPrevistas ? `, ${n.reunioesPrevistas} agendada(s)` : '';
+    return `  - ${n.nome || '(time sem nome no ERP)'}${tipos ? ` (${tipos})` : ''} — ${hist}${previstas}`;
+  }).join('\n')
+  : `  O ERP respondeu e este cliente NÃO tem nenhuma reunião registrada.
+  Isso é um fato sobre o REGISTRO de reuniões, e não autoriza concluir
+  que a Formatar não entrega nada a esta conta.`}
+
+Você SABE quais núcleos são atendidos, QUANTAS reuniões houve e QUANDO
+foi a última. Você NÃO SABE o que foi tratado em nenhuma delas — as atas
+não chegam ao CRM nesta versão. Não caracterize o andamento, a qualidade
+nem o resultado dos encontros.`);
+  } else {
+    partes.push(`
+=== NÚCLEOS ATENDIDOS — NÃO CONSULTADOS ===
+${fontes.nucleos.motivo || 'A consulta ao ERP falhou.'}
+
+É PROIBIDO afirmar que este cliente não tem núcleo atendido, que a
+entrega é invisível, que não há frente de trabalho mapeada, ou pedir que
+alguém vá marcar núcleos. Nada disso foi verificado. Se a falta for
+relevante, trate-a como limitação DESTA CONSULTA, não como característica
+da conta.${fontes.nucleos.origem === 'crm' ? `
+
+Existe uma marcação manual antiga na ficha do CRM (${nucleos.map((n) => n.nome).join(', ')}).
+Ela não foi conferida contra o ERP e pode estar velha.` : ''}`);
+  }
 
   if (cliente.observacoes) {
     partes.push(`
@@ -140,37 +218,79 @@ Núcleos atendidos (tipos de reunião): ${nucleos.map((n) => n.nome).join(', ') 
 ${cliente.observacoes}`);
   }
 
-  if (stakeholders.length) {
+  /* ---------------------------------------------------------------
+     PESSOAS — a identidade é do ERP, a avaliação é da CX
+     --------------------------------------------------------------- */
+
+  const fp = fontes.pessoas;
+
+  if (!fp.consultado) {
     partes.push(`
-=== MAPA DE PESSOAS (registrado pela CX — FATO) ===
+=== MAPA DE PESSOAS — NÃO CONSULTADO ===
+${fp.motivo || 'A consulta ao ERP falhou.'}
+
+As pessoas desta conta são cadastradas NO ERP, e o ERP não respondeu
+agora. É PROIBIDO afirmar que não há pessoa mapeada, que a Formatar não
+tem interlocutor, que a conta é uma relação sem rosto, ou recomendar que
+alguém vá a campo levantar os interlocutores. Nada disso foi verificado.
+
+Se precisar citar, cite como limitação DESTA CONSULTA.`);
+  } else if (fp.formato === 'referencias') {
+    partes.push(`
+=== MAPA DE PESSOAS — EXISTEM, E NÃO SEI OS NOMES ===
+O ERP registra ${fp.totalNoErp} pessoa(s) nesta conta, mas devolveu apenas
+referências internas em vez dos dados. Ou seja: a conta TEM interlocutores
+registrados; este documento é que não consegue nomeá-los nesta versão.
+
+É PROIBIDO dizer que não há pessoas. Trate como limitação da leitura.`);
+  } else if (!stakeholders.length) {
+    partes.push(`
+=== MAPA DE PESSOAS ===
+O ERP foi consultado e NÃO há nenhuma pessoa cadastrada nesta conta.
+
+Este é um fato verificado, e é uma lacuna real do cadastro — vale citar.
+Mas é lacuna do REGISTRO, não prova de que a Formatar não tenha
+interlocutor no cliente. Não conclua nada sobre a relação a partir disso.`);
+  } else {
+    const avaliadas = stakeholders.filter((p) => p.avaliada).length;
+
+    partes.push(`
+=== MAPA DE PESSOAS ===
+Identidade, cargo e contato vêm do ERP (FATO). Influência, postura e
+patrocínio são a leitura registrada pela CX no CRM — e só existem onde
+alguém as registrou.
+
 ${stakeholders.map((p) => {
       const marcas = [
-        p.papel ? `papel: ${p.papel}` : null,
+        p.origem === 'crm' ? 'SÓ NO CRM, não existe no cadastro do ERP' : null,
+        p.principal === true ? 'CONTATO PRINCIPAL no ERP' : null,
         p.cargo ? `cargo: ${p.cargo}` : null,
+        p.papel ? `papel: ${p.papel}` : null,
         `influência: ${ROTULO_INFLUENCIA[p.influencia]}`,
         `postura: ${ROTULO_POSTURA[p.postura]}`,
         p.patrocinador ? 'PATROCINADOR DA CONTA' : null,
-        p.nucleos?.length ? `participa de: ${p.nucleos.join(', ')}` : 'não vinculada a nenhum núcleo'
+        p.nucleos?.length
+          ? `presente nas reuniões de: ${p.nucleos.join(', ')}`
+          : null
       ].filter(Boolean).join(' · ');
 
       return `  - ${p.nome} — ${marcas}${p.observacoes ? `\n      observação da CX: ${p.observacoes}` : ''}`;
     }).join('\n')}
 
 Resumo aritmético (já conferido, não recalcule):
-  Pessoas mapeadas: ${mapa.total}
+  Pessoas na conta: ${mapa.total}${fp.soNoCrm ? ` (${fp.soNoCrm} delas só no CRM)` : ''}
+  Avaliadas pela CX: ${avaliadas} de ${mapa.total}
   Patrocinadores: ${mapa.patrocinadores.join(', ') || 'nenhum indicado'}
   Influência alta: ${mapa.porInfluencia.alta} · média: ${mapa.porInfluencia.media} · baixa: ${mapa.porInfluencia.baixa} · não avaliada: ${mapa.porInfluencia.desconhecida}
   Postura promotor: ${mapa.porPostura.promotor} · neutro: ${mapa.porPostura.neutro} · resistente: ${mapa.porPostura.resistente} · não avaliada: ${mapa.porPostura.desconhecida}
-  Núcleos atendidos SEM ninguém mapeado: ${mapa.nucleosSemPessoa.join(', ') || 'nenhum'}`);
-  } else {
-    partes.push(`
-=== MAPA DE PESSOAS ===
-NENHUMA pessoa mapeada nesta conta.
-
-Isto significa apenas que o mapa não foi preenchido — NÃO significa que a
-Formatar não tenha interlocutores no cliente. Não afirme que a conta está
-sem contato nem trate isso como risco do cliente. Se citar, cite como
-lacuna do próprio registro, e apoie o resto da análise no cadastro.`);
+${fp.temMarcacaoPrincipal ? '' : `  O ERP não marca contato principal nesta conta. Isso é "não há marcação",
+  e NÃO é "não há contato principal" — não trate como lacuna do cliente.
+`}${mapa.nucleosSemPessoa === null
+  ? `  Cruzamento núcleo × pessoa: NÃO FOI POSSÍVEL FAZER. O ERP não registra
+  quem do cliente participa das reuniões, então não dá para saber se
+  algum núcleo está sem interlocutor. NÃO afirme que está nem que não
+  está.`
+  : `  Núcleos atendidos SEM ninguém presente nas reuniões: ${mapa.nucleosSemPessoa.join(', ') || 'nenhum'}`}`);
   }
 
   partes.push(`
@@ -190,7 +310,7 @@ material acima. Onde faltar base, escreva pouco ou omita o item.`);
  * pela prévia da tela: as duas precisam enxergar exatamente o mesmo
  * conjunto, ou a tela prometeria um documento diferente do que sai.
  */
-async function reunirConta(db, clienteId) {
+export async function reunirConta(db, clienteId, env) {
   const cliente = await db
     .prepare('SELECT * FROM clientes WHERE id = ?')
     .bind(clienteId)
@@ -223,11 +343,10 @@ async function reunirConta(db, clienteId) {
   const porId = new Map((listaNucleos.results || []).map((n) => [n.id, n]));
   const nomePapel = new Map((papeis.results || []).map((p) => [p.id, p.nome]));
 
-  // Só os núcleos que ainda existem: um núcleo excluído sai da lista
-  // atendida em vez de virar uma linha em branco no documento.
-  const nucleos = idsNucleos.map((id) => porId.get(id)).filter(Boolean);
-
-  const stakeholders = (pessoas.results || []).map((s) => {
+  // A camada de avaliação da CX, que é o que o CRM legitimamente tem de
+  // seu: influência, postura, patrocinador e observações. A identidade
+  // das pessoas vem do ERP, logo abaixo.
+  const avaliacoes = (pessoas.results || []).map((s) => {
     let ids = [];
     try { ids = JSON.parse(s.nucleos || '[]'); } catch (e) { ids = []; }
 
@@ -235,14 +354,195 @@ async function reunirConta(db, clienteId) {
       ...s,
       patrocinador: !!s.patrocinador,
       papel: s.papel_id ? (nomePapel.get(s.papel_id) || null) : null,
-      nucleoIds: ids,
-      nucleos: ids.map((id) => porId.get(id)?.nome).filter(Boolean)
+      nucleoIdsLocais: ids
     };
   });
 
+  /* ------------------------------------------------------------------
+     O ERP — dono da identidade, das pessoas e dos núcleos
+
+     As duas consultas são independentes e nenhuma das duas derruba a
+     geração: o dossiê sai mesmo com o hub mudo. O que ele não faz é
+     afirmar o vazio que não conferiu.
+     ------------------------------------------------------------------ */
+
+  const [conta, nuc] = await Promise.all([
+    consultarHub('a conta no ERP', () => buscarContaDoHub(env, {
+      erpId: cliente.erp_id,
+      documento: cliente.documento
+    })),
+    nucleosDoCliente(env, cliente.erp_id)
+  ]);
+
+  const doErp = conta.consultado ? conta.dado : null;
+  const idErp = doErp ? doErp.cliente : null;
+  const contatos = doErp ? doErp.contatos : null;
+
+  // A identidade do ERP vence a cópia local, campo a campo. Onde o ERP
+  // não respondeu, o cadastro do CRM segue valendo — é melhor que nada,
+  // e a folha declara a origem.
+  const clienteVivo = {
+    ...cliente,
+    nome: (idErp && idErp.nome) || cliente.nome,
+    nome_fantasia: (idErp && idErp.nome_fantasia) || cliente.nome_fantasia,
+    documento: (idErp && idErp.documento) || cliente.documento,
+    telefone: (idErp && idErp.telefone) || cliente.telefone,
+    email: (idErp && idErp.email) || cliente.email,
+    classificacao: idErp && idErp.classificacao != null
+      ? idErp.classificacao
+      : cliente.classificacao,
+    erp_id: cliente.erp_id || (idErp && idErp.erp_id) || null,
+    statusErp: idErp ? idErp.status : null
+  };
+
+  /* ---- as pessoas ---- */
+
+  // `ausente` fica de fora de propósito: o campo não ter voltado pode
+  // ser "esta conta não tem ninguém" ou "este ERP não expõe isso", e não
+  // dá para saber qual. Na dúvida, não consultamos.
+  const FORMATOS_UTEIS = ['objetos', 'inesperado', 'vazio', 'referencias'];
+  const pessoasConsultadas = !!contatos && FORMATOS_UTEIS.includes(contatos.formato);
+
+  // Referência é gente que existe e que não sabemos nomear. Não vira
+  // pessoa na tabela, mas prova que a conta TEM interlocutor — e é essa
+  // prova que impede o documento de dizer que não tem.
+  const nomeaveis = contatos && contatos.formato !== 'referencias'
+    ? contatos.contatos.filter((c) => c.nome)
+    : [];
+
+  const chavesDe = (p) => [
+    p.erp_id || null,
+    p.email ? String(p.email).trim().toLowerCase() : null,
+    p.nome ? `nome:${String(p.nome).trim().toLowerCase()}` : null
+  ].filter(Boolean);
+
+  // A avaliação da CX é casada por e-mail e, na falta dele, por nome.
+  // É junção de LEITURA, sem migração: a amarra durável pelo id do
+  // contato é a Fase 3, e depende de o ERP ter id estável.
+  const avaliacaoPor = new Map();
+  for (const a of avaliacoes) {
+    for (const k of chavesDe(a)) if (!avaliacaoPor.has(k)) avaliacaoPor.set(k, a);
+  }
+
+  // De quais núcleos cada pessoa participa — apurado pela presença nas
+  // reuniões, não declarado num cadastro.
+  const nucleosPorPessoa = new Map();
+  for (const n of nuc.nucleos) {
+    for (const p of n.participantesCliente) {
+      for (const k of chavesDe(p)) {
+        if (!nucleosPorPessoa.has(k)) nucleosPorPessoa.set(k, new Set());
+        nucleosPorPessoa.get(k).add(n.erp_id);
+      }
+    }
+  }
+
+  const nomeNucleo = new Map(nuc.nucleos.map((n) => [n.erp_id, n.nome]));
+  const usadas = new Set();
+
+  const stakeholders = nomeaveis.map((c) => {
+    const chaves = chavesDe(c);
+    const aval = chaves.map((k) => avaliacaoPor.get(k)).find(Boolean) || null;
+    if (aval) usadas.add(aval.id);
+
+    const ids = [...(chaves
+      .map((k) => nucleosPorPessoa.get(k))
+      .find(Boolean) || new Set())];
+
+    return {
+      nome: c.nome,
+      cargo: c.cargo || (aval ? aval.cargo : null),
+      email: c.email || (aval ? aval.email : null),
+      telefone: c.telefone || (aval ? aval.telefone : null),
+      erpContatoId: c.erp_id,
+      principal: c.principal,
+
+      // O juízo é do CRM, e só existe se alguém o registrou.
+      papel: aval ? aval.papel : null,
+      influencia: aval ? aval.influencia : 'desconhecida',
+      postura: aval ? aval.postura : 'desconhecida',
+      patrocinador: aval ? aval.patrocinador : false,
+      observacoes: aval ? aval.observacoes : null,
+      avaliada: !!aval,
+
+      nucleoIds: ids,
+      nucleos: ids.map((id) => nomeNucleo.get(id)).filter(Boolean),
+      origem: 'erp'
+    };
+  });
+
+  // Quem a CX registrou no CRM e o ERP não conhece. Não some da folha:
+  // ou é gente que saiu do cliente, ou é cadastro que nunca existiu lá —
+  // e as duas coisas a CX precisa ver para resolver.
+  const soNoCrm = avaliacoes
+    .filter((a) => !usadas.has(a.id))
+    .map((a) => ({
+      nome: a.nome,
+      cargo: a.cargo,
+      email: a.email,
+      telefone: a.telefone,
+      erpContatoId: null,
+      principal: null,
+      papel: a.papel,
+      influencia: a.influencia,
+      postura: a.postura,
+      patrocinador: a.patrocinador,
+      observacoes: a.observacoes,
+      avaliada: true,
+      nucleoIds: [],
+      nucleos: [],
+      origem: 'crm'
+    }));
+
+  const todasAsPessoas = [...stakeholders, ...soNoCrm];
+
+  /* ---- os núcleos ---- */
+
+  // Com o ERP mudo, a marcação manual da ficha é o que sobra. Vale mais
+  // que nada e a folha diz de onde veio — mas `nucleosConsultados`
+  // continua falso, porque a guarda não pode aceitar marcação manual
+  // como prova de que o ERP não tem mais nada.
+  const nucleosDaFicha = idsNucleos.map((id) => porId.get(id)).filter(Boolean);
+  const nucleos = nuc.consultado ? nuc.nucleos : nucleosDaFicha;
+
+  const fontes = {
+    conta: {
+      consultado: !!doErp,
+      origem: doErp ? 'erp' : 'crm',
+      via: doErp ? doErp.via : null,
+      motivo: doErp ? null : (conta.erro ? conta.erro.mensagem
+        : 'O cliente não tem vínculo com o ERP nem CNPJ para consultar.')
+    },
+    pessoas: {
+      consultado: pessoasConsultadas,
+      origem: pessoasConsultadas ? 'erp' : null,
+      formato: contatos ? contatos.formato : null,
+      // Quantas pessoas o ERP tem, mesmo quando não sabemos nomeá-las.
+      totalNoErp: contatos ? contatos.contatos.length : null,
+      temMarcacaoPrincipal: contatos ? contatos.temMarcacaoPrincipal : false,
+      soNoCrm: soNoCrm.length,
+      motivo: pessoasConsultadas ? null
+        : (conta.erro ? conta.erro.mensagem
+          : 'O ERP não devolveu a lista de pessoas desta conta.')
+    },
+    nucleos: {
+      consultado: nuc.consultado,
+      origem: nuc.consultado ? 'erp' : (nucleosDaFicha.length ? 'crm' : null),
+      motivo: nuc.motivo,
+      totalReunioesRealizadas: nuc.totalReunioesRealizadas,
+      semTime: nuc.semTime
+    },
+    ligacaoNucleoPessoaConhecida: nuc.consultado && nuc.registraParticipantes
+  };
+
   return {
-    cliente, etapa, nucleos, stakeholders,
-    mapa: resumirMapa(stakeholders, nucleos)
+    cliente: clienteVivo,
+    etapa,
+    nucleos,
+    stakeholders: todasAsPessoas,
+    fontes,
+    mapa: resumirMapa(todasAsPessoas, nucleos, {
+      ligacaoConhecida: fontes.ligacaoNucleoPessoaConhecida
+    })
   };
 }
 
@@ -312,7 +612,7 @@ export async function onRequestPost(context) {
     }, 400, cabecalhos);
   }
 
-  const conta = await reunirConta(db, clienteId);
+  const conta = await reunirConta(db, clienteId, env);
   if (!conta) {
     return json({ error: 'Cliente não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
   }
@@ -343,13 +643,19 @@ export async function onRequestPost(context) {
     // dossiê fraco, é um dossiê que não deveria existir. Melhor recusar
     // e dizer por quê do que imprimir a sobra.
     //
-    // `presentes` está vazio de propósito nesta versão: nenhuma das
-    // quatro fontes chegou ao CRM ainda. No lote que trouxer as atas,
-    // 'reunioes' entra no conjunto e os itens que falam delas passam a
-    // valer — sem tocar nesta função.
+    // `presentes` segue vazio: das quatro fontes, nenhuma chegou
+    // INTEIRA ao CRM. As reuniões chegaram só como contagem e núcleo —
+    // o conteúdo das atas, que é o que a pendência 'atas' guarda, é da
+    // 2.25.0. No lote que trouxer as atas, 'atas' entra no conjunto e os
+    // itens que falam delas passam a valer, sem tocar nesta função.
+    //
+    // As duas linhas novas são a guarda contra o defeito de 15/09/2026:
+    // afirmar que não há pessoas ou núcleos exige tê-los procurado.
     const guarda = filtrarPorFontes(bruta.analise, {
       presentes: new Set(),
-      sabeEtapaDesde: !!conta.cliente.etapa_desde
+      sabeEtapaDesde: !!conta.cliente.etapa_desde,
+      pessoasConsultadas: conta.fontes.pessoas.consultado,
+      nucleosConsultados: conta.fontes.nucleos.consultado
     });
 
     const analise = guarda.analise;

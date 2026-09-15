@@ -72,17 +72,46 @@ const CLIENTES = [
   { id: '507f1f77bcf86cd799439011', nid: 100, status: 'active',
     tradingName: 'Acme Indústria', companyName: 'Acme Indústria S.A.',
     document: '12345678000190', email: 'contato@acme.com.br', phone1: '31988888888',
-    classification: 3, contractedAt: '2024-05-02T00:00:00.000Z' },
+    // STRING, como o exemplo do `GET /customers/{id}` na doc do hub.
+    // O dublê dizia 3 e estava errado: ninguém tinha conferido o tipo.
+    classification: 'A', contractedAt: '2024-05-02T00:00:00.000Z',
+    // Pessoas embutidas, com marcação de principal e cargo: o formato
+    // que o `lerContatos` chama de 'objetos'.
+    contacts: [
+      { id: 'c07f1f77bcf86cd799439701', name: 'Tatiana Moraes',
+        email: 'tati@acme.com.br', phone: '31988887777',
+        jobTitle: 'Diretora de Operações', isMain: true },
+      { id: 'c07f1f77bcf86cd799439702', name: 'Bruno Carvalho',
+        email: 'bruno@acme.com.br', phone: null,
+        jobTitle: 'Gerente de Logística', isMain: false }
+    ] },
 
   { id: '507f1f77bcf86cd799439012', nid: 101, status: 'active',
     tradingName: 'Vale Verde', companyName: 'Comercial Vale Verde LTDA',
     document: '19131243000197', email: 'contato@valeverde.com.br', phone1: '34999990001',
-    classification: 5, contractedAt: '2023-11-20T00:00:00.000Z' },
+    classification: 'B', contractedAt: '2023-11-20T00:00:00.000Z',
+    // Sem marcação de principal e sem cargo em um deles: exercita o
+    // `principal: null`, que é "este ERP não marca", não "não é".
+    contacts: [
+      { id: 'c07f1f77bcf86cd799439703', name: 'Roberto Nunes',
+        email: 'roberto@valeverde.com.br', phone: '34999990002',
+        jobTitle: 'Sócio' },
+      { id: 'c07f1f77bcf86cd799439704', name: 'Tiago Nunes',
+        email: null, phone: '34999990003' }
+    ] },
 
   { id: '507f1f77bcf86cd799439013', nid: 102, status: 'active',
     tradingName: 'Formatar', companyName: 'FORMATAR CONSULTORIA EMPRESARIAL LTDA',
     document: '07091149000172', email: 'jair@formatar.com.br', phone1: '37991752215',
-    classification: 4, contractedAt: '2005-01-10T00:00:00.000Z' },
+    // Inteiro de propósito: a doc mostra string, mas nada garante que
+    // TODA conta use letra. O tradutor tem que sobreviver aos dois — o
+    // que ele não pode é devolver null e fazer o dossiê dizer que o ERP
+    // não tem classificação, que foi o defeito de 15/09/2026.
+    classification: 4, contractedAt: '2005-01-10T00:00:00.000Z',
+    // `contacts` como lista de ObjectId: a pessoa mora noutra coleção.
+    // Não sabemos se o hub real faz isso — o dublê cobre a hipótese para
+    // que o código não quebre no dia em que ela for verdade.
+    contacts: ['c07f1f77bcf86cd799439705', 'c07f1f77bcf86cd799439706'] },
 
   { id: '507f1f77bcf86cd799439014', nid: 103, status: 'inactive',
     tradingName: 'Saiu Fora', companyName: 'Saiu Fora ME',
@@ -170,6 +199,16 @@ const REUNIOES = [
     customerParticipants: [{ name: 'Roberto Nunes' }],
     notes: ATA_ANTIGA, technicalNotes: null },
 
+  // Agendada, ainda sem acontecer: o nucleo EXISTE e e atendido, mas
+  // nao tem reuniao realizada. E o caso que separa "sem nucleo" de
+  // "nucleo sem historico ainda".
+  { id: '907f1f77bcf86cd799439404', nid: 89, title: 'Reuniao inicial Acme',
+    status: 'scheduled', customer: '507f1f77bcf86cd799439011',
+    meetingType: '707f1f77bcf86cd799439202',
+    startDate: '2026-10-01T12:00:00.000Z', endDate: null,
+    durationInMinutes: null, isDelayed: false, rescheduled: false,
+    participants: [], customerParticipants: [], notes: null, technicalNotes: null },
+
   // Cancelada: nao tem ata e nao pode produzir acao.
   { id: '907f1f77bcf86cd799439403', nid: 86, title: 'Reuniao cancelada',
     status: 'canceled_by_customer', customer: '507f1f77bcf86cd799439012',
@@ -203,6 +242,9 @@ const semCadastro = process.argv.includes('--sem-cadastro');
 /** `--sem-permissao` imita a chave sem `hub:customers:read`. */
 const semPermissao = process.argv.includes('--sem-permissao');
 
+/** `--sem-detalhe` imita um hub SEM a rota `GET /customers/{id}`. */
+const semDetalhe = process.argv.includes('--sem-detalhe');
+
 const servidor = createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORTA}`);
 
@@ -215,15 +257,48 @@ const servidor = createServer((req, res) => {
 
   const ROTAS = ['/v1/users', '/v1/customers', '/v1/meetings',
                  '/v1/portfolios', '/v1/meeting-types', '/v1/teams'];
-  if (!ROTAS.includes(url.pathname)) {
+
+  // `GET /customers/{id}` — a rota de DETALHE, que a documentação que
+  // temos não registra. `--sem-detalhe` a desliga, para provar que o CRM
+  // cai na listagem por documento em vez de quebrar.
+  const detalhe = url.pathname.match(/^\/v1\/customers\/([^/]+)$/);
+
+  if (!ROTAS.includes(url.pathname) && !(detalhe && !semDetalhe)) {
     return responder(404, { error: 'Rota não coberta pelo dublê.' });
   }
+
+  /**
+   * O hub real devolve SÓ os campos pedidos em `fields`. O dublê fazia
+   * vista grossa e devolvia tudo — o que escondia justamente o que este
+   * lote precisa distinguir: a LISTAGEM não traz `contacts`, e o DETALHE
+   * traz. Sem a projeção, a prova passaria por acidente.
+   */
+  const projetar = (obj) => {
+    const pedidos = (url.searchParams.get('fields') || '').split(',').filter(Boolean);
+    if (!pedidos.length) return obj;
+    const saida = {};
+    for (const campo of pedidos) {
+      if (Object.prototype.hasOwnProperty.call(obj, campo)) saida[campo] = obj[campo];
+    }
+    return saida;
+  };
 
   // O hub real recusa sem Bearer. Manter a exigência aqui garante que um
   // erro de configuração do `.dev.vars` apareça como 401, e não como um
   // "funcionou" enganoso.
   if (!(req.headers.authorization || '').startsWith('Bearer ')) {
     return responder(401, { error: 'Sem credencial.' });
+  }
+
+  /* ---------------- Cliente, um só (detalhe) ---------------- */
+  if (detalhe) {
+    if (semPermissao) return responder(403, { error: 'Sem permissão para esta operação.' });
+    if (!url.searchParams.get('fields')) {
+      return responder(400, { error: 'API_FIELDS_VALIDATION: o parâmetro fields é obrigatório.' });
+    }
+    const achado = CLIENTES.find((c) => c.id === detalhe[1]);
+    if (!achado) return responder(404, { error: 'Cliente não encontrado.' });
+    return responder(200, { data: projetar(achado) });
   }
 
   /* ---------------- Clientes ---------------- */
@@ -257,7 +332,9 @@ const servidor = createServer((req, res) => {
     // O dublê devolve tudo na página 1; a página 2 vem vazia, que é o
     // sinal de fim que o `listarClientesDoHub` usa para parar.
     const pagina = Number(url.searchParams.get('page') || 1);
-    return responder(200, { size: lista.length, data: pagina > 1 ? [] : lista });
+    return responder(200, {
+      size: lista.length, data: pagina > 1 ? [] : lista.map(projetar)
+    });
   }
 
   /* ---------------- Tipos de reunião e times ---------------- */

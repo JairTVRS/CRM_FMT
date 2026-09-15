@@ -246,7 +246,10 @@ ok(bytes > 8000 && bytes < 700_000, 'tamanho dentro do limite do endpoint', `${M
 for (const [rotulo, agulha] of [
   ['a razão social', 'Comercial Vale Verde'],
   ['o patrocinador', 'Roberto Nunes'],
-  ['o papel resolvido em nome', 'Usuário-chave'],
+  // Desde 15/09/2026 a coluna é o CARGO, não o Papel: o cargo é o que o
+  // ERP tem sobre a pessoa, e o cadastro de Papéis do CRM está de saída.
+  // O papel só aparece onde não há cargo.
+  ['o cargo da pessoa', 'Coordenadora de Logística'],
   ['o tempo de relação por extenso', 'ano'],
   ['o rótulo "Não avaliada"', 'Não avaliada'],
   ['o aviso de documento interno', 'Documento interno'],
@@ -269,7 +272,33 @@ const htmlVazio = renderizarDossieCx(montarDossieCx({
   cliente, etapa, nucleos: nucleosAtendidos, stakeholders: [], analise,
   meta: { geradoPor: 'x', provider: 'deepseek', geradoEm: agora, versao: 1 }
 }));
-ok(htmlVazio.includes('Nenhuma pessoa mapeada'), 'conta sem mapa gera documento mesmo assim');
+// Os TRÊS estados da folha de pessoas, desde 15/09/2026.
+//
+// Antes havia dois — tinha gente ou "Nenhuma pessoa mapeada" — e foi
+// assim que um documento real mandou a CX levantar em campo pessoas que
+// estavam cadastradas no ERP. Afirmar o vazio agora exige ter olhado.
+ok(htmlVazio.includes('Não foi possível ler as pessoas'),
+   'sem consultar o ERP, a folha diz que NÃO PERGUNTOU');
+ok(!htmlVazio.includes('Nenhuma pessoa mapeada'),
+   'e não afirma que não há ninguém');
+
+const htmlSemNinguem = renderizarDossieCx(montarDossieCx({
+  cliente, etapa, nucleos: nucleosAtendidos, stakeholders: [], analise,
+  fontes: { pessoas: { consultado: true, formato: 'vazio', totalNoErp: 0 } },
+  meta: { geradoPor: 'x', provider: 'deepseek', geradoEm: agora, versao: 1 }
+}));
+ok(htmlSemNinguem.includes('não há nenhuma pessoa cadastrada'),
+   'com o ERP consultado e vazio, AÍ sim afirma que não há ninguém');
+
+const htmlPorReferencia = renderizarDossieCx(montarDossieCx({
+  cliente, etapa, nucleos: nucleosAtendidos, stakeholders: [], analise,
+  fontes: { pessoas: { consultado: true, formato: 'referencias', totalNoErp: 4 } },
+  meta: { geradoPor: 'x', provider: 'deepseek', geradoEm: agora, versao: 1 }
+}));
+ok(htmlPorReferencia.includes('registra 4 pessoa'),
+   'pessoas que existem e não sabemos nomear: o documento diz que EXISTEM');
+ok(!htmlPorReferencia.includes('não há nenhuma pessoa'),
+   'e nunca que não existem');
 
 // Análise minguada: seção sem conteúdo não é impressa.
 const htmlSeco = renderizarDossieCx(montarDossieCx({
@@ -278,7 +307,31 @@ const htmlSeco = renderizarDossieCx(montarDossieCx({
   meta: { geradoPor: 'x', provider: 'deepseek', geradoEm: agora, versao: 1 }
 }));
 ok(!htmlSeco.includes('Riscos de relacionamento'), 'seção sem conteúdo não é impressa');
-ok(htmlSeco.includes('Nenhum núcleo marcado'), 'ficha sem núcleo é dita, não omitida');
+ok(htmlSeco.includes('Não foi possível ler os núcleos'),
+   'núcleo não consultado é DITO, não omitido nem negado');
+
+const htmlSemNucleo = renderizarDossieCx(montarDossieCx({
+  cliente, etapa, nucleos: [], stakeholders,
+  analise, fontes: { nucleos: { consultado: true } },
+  meta: { geradoPor: 'x', provider: 'deepseek', geradoEm: agora, versao: 1 }
+}));
+ok(htmlSemNucleo.includes('não há nenhuma reunião registrada'),
+   'com o ERP consultado e sem reunião, o documento afirma o vazio');
+
+const htmlComNucleo = renderizarDossieCx(montarDossieCx({
+  cliente, etapa, stakeholders, analise,
+  nucleos: [{
+    nome: 'Operações', tiposDeReuniao: [{ nome: 'Logística' }],
+    reunioesRealizadas: 2, reunioesPrevistas: 0,
+    ultimaReuniao: '2026-09-03T12:00:00.000Z'
+  }],
+  fontes: { nucleos: { consultado: true } },
+  meta: { geradoPor: 'x', provider: 'deepseek', geradoEm: agora, versao: 1 }
+}));
+ok(htmlComNucleo.includes('Operações') && htmlComNucleo.includes('Logística'),
+   'o núcleo é o Time, com o tipo de reunião ao lado');
+ok(htmlComNucleo.includes('2 realizadas') && htmlComNucleo.includes('03/09/2026'),
+   'e o histórico de reuniões aparece na folha');
 
 /* ========================================================================== */
 console.log(`\n${falhas === 0 ? 'TUDO PASSOU' : `${falhas} FALHA(S)`}\n`);

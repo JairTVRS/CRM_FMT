@@ -95,11 +95,83 @@ function capa(d) {
    FOLHA 1 — A conta hoje
    ========================================================================== */
 
+/**
+ * Os núcleos atendidos, em três estados — e não em dois.
+ *
+ * "Não há núcleo" e "não consegui perguntar" produziam a mesma frase
+ * antes deste lote, e foi assim que um documento real mandou a CX ir
+ * marcar núcleos que já estavam no ERP. A folha agora diz qual dos dois
+ * aconteceu, sempre.
+ */
+function blocoNucleos(c, fontes) {
+  const f = fontes.nucleos || {};
+  const lista = c.nucleos || [];
+
+  if (!f.consultado) {
+    return `
+      <div class="bloco">
+        <p style="margin:0 0 6px">
+          <strong>Não foi possível ler os núcleos no ERP.</strong>
+          ${esc(f.motivo || '')}
+        </p>
+        <p style="margin:0">
+          Isto <strong>não</strong> significa que a conta não tenha núcleo atendido.
+          Significa que a verificação não pôde ser feita agora, e que nada neste
+          documento afirma coisa alguma sobre as frentes de trabalho desta conta.
+        </p>
+        ${lista.length ? `
+          <p style="margin:6px 0 0;font-size:8.5pt;color:${MARCA.cinza}">
+            Há uma marcação manual antiga na ficha do CRM
+            (${esc(lista.map((x) => x.nome).filter(Boolean).join(', '))}),
+            não conferida contra o ERP.
+          </p>` : ''}
+      </div>`;
+  }
+
+  if (!lista.length) {
+    return `
+      <div class="bloco">
+        <p style="margin:0">
+          O ERP foi consultado e <strong>não há nenhuma reunião registrada</strong>
+          para este cliente. É uma lacuna do registro de reuniões — não uma
+          conclusão sobre o que a Formatar entrega a esta conta.
+        </p>
+      </div>`;
+  }
+
+  return `
+    <table>
+      <tr><th>Núcleo (Time)</th><th>Tipos de reunião</th><th>Reuniões</th></tr>
+      ${lista.map((x) => {
+        const hist = x.reunioesRealizadas
+          ? `${x.reunioesRealizadas} realizada${x.reunioesRealizadas > 1 ? 's' : ''}`
+            + (x.ultimaReuniao ? `<br><span style="color:${MARCA.cinza};font-size:8.5pt">última em ${dataBr(String(x.ultimaReuniao).slice(0, 10))}</span>` : '')
+          : '<span class="ausente">nenhuma realizada ainda</span>';
+
+        const prev = x.reunioesPrevistas
+          ? `<br><span style="color:${MARCA.cinza};font-size:8.5pt">${x.reunioesPrevistas} agendada${x.reunioesPrevistas > 1 ? 's' : ''}</span>`
+          : '';
+
+        return `
+          <tr>
+            <td><strong>${esc(x.nome || '—')}</strong></td>
+            <td>${esc((x.tiposDeReuniao || []).join(', ') || '—')}</td>
+            <td>${hist}${prev}</td>
+          </tr>`;
+      }).join('')}
+    </table>
+    <p style="font-size:8.5pt;color:${MARCA.cinza}">
+      Núcleo, nesta folha, é o <strong>Time</strong> da Formatar, lido ao vivo do
+      ERP pelas reuniões da conta. O tipo de reunião aparece ao lado porque é
+      por ele que o <strong>Plano de Ação</strong> organiza a fila — cliente mais
+      tipo de reunião é o que forma a <strong>carteira</strong>.
+    </p>`;
+}
+
 function folhaConta(d, n, total) {
   const c = d.conta || {};
   const a = d.analise || {};
 
-  const nucleos = (c.nucleos || []).map((x) => x.nome).filter(Boolean);
   const tempo = tempoDeJornada(c.mesesDeJornada);
 
   return folha({
@@ -121,23 +193,31 @@ function folhaConta(d, n, total) {
             : '<span class="ausente">não registrado — o CRM só passou a guardar esta data depois</span>'
         }</td></tr>` : ''}
         ${c.dataInicio ? `<tr><td class="rotulo">Início da jornada</td><td class="valor">${dataBr(c.dataInicio)}${tempo ? ` (${esc(tempo)})` : ''}</td></tr>` : ''}
-        ${linha('Classificação', c.classificacao)}
-        ${linha('Contato principal', c.contatoNome)}
+        <tr>
+          <td class="rotulo">Classificação</td>
+          <td class="valor">${c.classificacao != null
+            ? esc(c.classificacao)
+            : ((d.fontes || {}).conta || {}).consultado
+              ? '<span class="ausente">o ERP não tem classificação nesta conta</span>'
+              : '<span class="ausente">não verificado — o ERP não foi consultado</span>'}</td>
+        </tr>
+        ${c.contatoNome ? `<tr>
+          <td class="rotulo">Contato principal</td>
+          <td class="valor">${esc(c.contatoNome)}${c.contatoOrigem === 'crm'
+            ? ` <span style="color:${MARCA.cinza};font-size:8.5pt">(anotado no CRM)</span>` : ''}</td>
+        </tr>` : ''}
         ${linha('Telefone', c.telefone)}
         ${linha('E-mail', c.email)}
       </table>
 
-      ${nucleos.length ? `
-        <h2>Núcleos atendidos</h2>
-        <ul>${nucleos.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-        <p style="font-size:8.5pt;color:${MARCA.cinza}">
-          Núcleo é o tipo de reunião. Cliente mais núcleo é o que forma a
-          <strong>carteira</strong>, que chega com as reuniões do hub.
-        </p>` : `
-        <h2>Núcleos atendidos</h2>
-        <div class="bloco">
-          <p style="margin:0">Nenhum núcleo marcado na ficha deste cliente.</p>
-        </div>`}
+      <p style="font-size:8.5pt;color:${MARCA.cinza}">
+        ${((d.fontes || {}).conta || {}).consultado
+          ? 'Identidade, contato e classificação lidos do ERP no momento desta geração. Etapa da jornada e observações são do CRM.'
+          : 'O ERP não respondeu nesta geração: os dados acima são a cópia guardada no CRM e podem estar desatualizados.'}
+      </p>
+
+      <h2>Núcleos atendidos</h2>
+      ${blocoNucleos(c, d.fontes || {})}
 
       ${c.erpId ? '' : `
         <div class="bloco">
@@ -160,34 +240,94 @@ function folhaConta(d, n, total) {
    FOLHA 2 — Mapa de stakeholders
    ========================================================================== */
 
+/**
+ * A folha sem tabela de pessoas — em três estados.
+ *
+ * Esta é a frase que custou caro em 15/09/2026. O documento dizia
+ * "Nenhuma pessoa mapeada" e a Recomendação mandava a CX levantar em
+ * campo os interlocutores da conta. As pessoas estavam no ERP; o dossiê
+ * é que lia a ficha do CRM e nunca tinha perguntado.
+ *
+ * Agora só existe uma situação em que se afirma que não há ninguém: o
+ * ERP respondeu, e respondeu vazio.
+ */
+function blocoSemPessoas(fp) {
+  if (!fp.consultado) {
+    return `
+      <div class="bloco">
+        <p style="margin:0 0 6px">
+          <strong>Não foi possível ler as pessoas desta conta no ERP.</strong>
+          ${esc(fp.motivo || '')}
+        </p>
+        <p style="margin:0">
+          As pessoas de um cliente são cadastradas no ERP, e a consulta não
+          voltou agora. <strong>Não conclua que a conta está sem interlocutor</strong>
+          — nada foi verificado, e este documento não afirma nada a respeito.
+        </p>
+      </div>`;
+  }
+
+  if (fp.formato === 'referencias') {
+    return `
+      <div class="bloco">
+        <p style="margin:0 0 6px">
+          <strong>O ERP registra ${fp.totalNoErp} pessoa(s) nesta conta</strong>, e
+          devolveu apenas referências internas em vez dos dados.
+        </p>
+        <p style="margin:0">
+          Ou seja: a conta <strong>tem</strong> interlocutores cadastrados. É este
+          documento que ainda não consegue nomeá-los — limitação da leitura, não
+          da relação.
+        </p>
+      </div>`;
+  }
+
+  return `
+    <div class="bloco">
+      <p style="margin:0">
+        <strong>O ERP foi consultado e não há nenhuma pessoa cadastrada nesta
+        conta.</strong> É uma lacuna real do cadastro, e vale resolver — mas é
+        lacuna do registro, não prova de que a Formatar não tenha interlocutor
+        no cliente.
+      </p>
+    </div>`;
+}
+
 function folhaMapa(d, n, total) {
   const pessoas = d.stakeholders || [];
   const m = d.mapa || {};
   const a = d.analise?.mapaPoder || {};
 
+  const fp = (d.fontes || {}).pessoas || {};
+
   const tabela = pessoas.length ? `
     <table>
       <tr>
-        <th>Pessoa</th><th>Papel</th><th>Influência</th><th>Postura</th><th>Núcleos</th>
+        <th>Pessoa</th><th>Cargo</th><th>Influência</th><th>Postura</th><th>Núcleos</th>
       </tr>
       ${pessoas.map((p) => `
         <tr>
           <td>
             <strong>${esc(p.nome)}</strong>${p.patrocinador ? ' &middot; patrocinador' : ''}
-            ${p.cargo ? `<br><span style="color:${MARCA.cinza};font-size:8.5pt">${esc(p.cargo)}</span>` : ''}
+            ${p.principal === true ? `<br><span style="color:${MARCA.cinza};font-size:8.5pt">contato principal</span>` : ''}
+            ${p.origem === 'crm' ? `<br><span class="ausente" style="font-size:8.5pt">só no CRM — não está no ERP</span>` : ''}
           </td>
-          <td>${esc(p.papel || '—')}</td>
-          <td>${esc(ROTULO_INFLUENCIA[p.influencia] || '—')}</td>
-          <td>${esc(ROTULO_POSTURA[p.postura] || '—')}</td>
+          <td>${esc(p.cargo || p.papel || '—')}</td>
+          <td>${p.avaliada === false
+            ? '<span class="ausente">não avaliada</span>'
+            : esc(ROTULO_INFLUENCIA[p.influencia] || '—')}</td>
+          <td>${p.avaliada === false
+            ? '<span class="ausente">não avaliada</span>'
+            : esc(ROTULO_POSTURA[p.postura] || '—')}</td>
           <td>${esc((p.nucleos || []).join(', ') || '—')}</td>
         </tr>`).join('')}
-    </table>` : `
-    <div class="bloco">
-      <p style="margin:0">
-        <strong>Nenhuma pessoa mapeada.</strong> Sem o mapa, a conta depende da
-        memória de quem a atende — e a leitura abaixo se apoia só no cadastro.
-      </p>
-    </div>`;
+    </table>
+    <p style="font-size:8.5pt;color:${MARCA.cinza}">
+      As pessoas e os cargos vêm do cadastro do ERP. Influência e postura são a
+      leitura registrada pela equipe da Formatar — onde estiver
+      <strong>não avaliada</strong>, é trabalho de CX que ainda não foi feito,
+      não característica da pessoa.
+    </p>` : blocoSemPessoas(fp);
 
   // Os números vêm da aritmética, não do modelo: contagem errada num
   // bloco factual desmoraliza o documento inteiro.
@@ -214,9 +354,15 @@ function folhaMapa(d, n, total) {
         </tr>` : ''}
     </table>
 
-    ${m.nucleosSemPessoa?.length ? `
+    ${m.nucleosSemPessoa === null ? `
+      <p style="font-size:8.5pt;color:${MARCA.cinza}">
+        Não foi possível cruzar núcleo com pessoa: o ERP não registra quem do
+        cliente participou das reuniões desta conta. O documento por isso
+        <strong>não afirma</strong> que algum núcleo esteja sem interlocutor —
+        nem que todos tenham.
+      </p>` : m.nucleosSemPessoa?.length ? `
       <div class="faixa-laranja">
-        <strong>Núcleo atendido sem ninguém mapeado:</strong>
+        <strong>Núcleo atendido sem ninguém presente nas reuniões:</strong>
         ${esc(m.nucleosSemPessoa.join(', '))}.
       </div>` : ''}` : '';
 

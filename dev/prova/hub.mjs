@@ -145,7 +145,12 @@ try {
   const valeVerde = porNome['Comercial Vale Verde LTDA'];
   ok(valeVerde?.semJornada === true && valeVerde?.id === null,
     'quem só está no ERP vem como "sem jornada"');
-  ok(valeVerde?.classificacao === 5, 'a classificação 1–6 vem do ERP', `c=${valeVerde?.classificacao}`);
+  // Era `=== 5`, escrito quando se acreditava que o ERP usava a escala
+  // 1–6 do lead. A doc do `GET /customers/{id}`, lida em 15/09/2026,
+  // mostra `"classification": "A"` — string. O valor do ERP chega
+  // inteiro ao CRM, seja letra ou número; o que não pode é virar null.
+  ok(valeVerde?.classificacao === 'B', 'a classificação vem do ERP como ela é',
+    `c=${valeVerde?.classificacao}`);
 
   ok(porNome['Só No CRM LTDA']?.origem === 'crm', 'quem só está no CRM não some da lista');
 

@@ -1,17 +1,19 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 07/09/2026
-**Versão no ar:** 2.23.0
+**Atualizado em:** 15/09/2026
+**Versão no ar:** 2.23.2 · **pronta para subir:** 2.24.0
 
 **Migrações:** 008, 009 e 010 aplicadas e conferidas no D1 remoto. **A
 011 está PENDENTE** — o token `wrangler` desta máquina não tem escopo de
 D1 (erro 7403). A 2.23.0 é segura sem ela: sem a coluna, o dossiê trata
-como "o CRM não sabe", que é a verdade de hoje.
+como "o CRM não sabe", que é a verdade de hoje. **A 2.24.0 não tem
+migração** — a 012, da Fase 3, entra na mesma fila da 011.
 
-**A chave do hub tem `hub:customers:read`** — confirmado em 06/09/2026,
-com os clientes do ERP listando na Jornada. **Faltam os quatro escopos do
-Lote I** (`portfolios`, `meetings`, `meeting-types`, `teams`): desde a
-2.22.0 o Plano de Ação nomeia os quatro de uma vez, numa tela só.
+**Da chave do hub falta UMA permissão: `hub:portfolios:read`.** As outras
+quatro (`customers`, `meetings`, `meeting-types`, `teams`) foram
+concedidas e estão provadas em produção. A que falta bloqueia só o Plano
+de Ação — e **não é tarefa na Cloudflare**: a chave está lá e funciona, o
+que falta é a permissão concedida a ela no hub.
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -48,6 +50,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.22.0** | **As permissões do hub todas de uma vez**, filtros do Plano de Ação nunca vazios e o nome padrão dos documentos (`Dossie_Prospeccao_Cliente_2026_09`) |
 | — | **2.23.0** | **A sessão para de cair** (403 do hub não é mais expulsão), guarda contra afirmação sem fonte no dossiê, `etapa_desde` (migração 011) e nome de arquivo pelo fantasia |
 | — | **2.23.2** | **A importação lê a planilha que existe** — uma aba só com aviso que ensina a reexibir a oculta, cabeçalho procurado em vez de assumido na linha 1, `.xls`/`.xlsb`, modelo gerado no navegador, etapa vinda do `Status2` e etapas novas confirmadas na prévia |
+| — | **2.24.0** | **A conta é do ERP, o CRM anota por cima** — identidade, classificação, pessoas e núcleos lidos ao vivo do hub no Dossiê de Experiência; três estados em vez de dois (tem / não tem / **não perguntei**) e guarda em código contra afirmar o vazio não conferido |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -65,7 +68,8 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 
 | Versao | Entrega | Depende de |
 |---|---|---|
-| **2.24.0** | **Identidade do ERP, avaliacao do CRM** — os stakeholders vem de `GET /customers/{id}` (`contacts`) e do `customerParticipants` das carteiras; o CRM nao cria nem renomeia pessoa. Influencia, postura e patrocinador ficam no CRM, amarrados ao id do contato. O cadastro de **Papeis** sai: vale o Cargo do ERP | a estrutura do `contacts`, que o proprio lote descobre por diagnostico |
+| **2.24.0 — ENTREGUE em 15/09/2026, Fases 1 e 2** | **Identidade do ERP, avaliacao do CRM** — as pessoas vem do `contacts` de `/customers` e a ligacao delas com o nucleo sai do `customerParticipants` das reunioes; o CRM nao cria nem renomeia pessoa. Nucleo, no dossie, e o **Time** | nada — as quatro permissoes ja estavam na chave |
+| **Fase 3 (proxima versao)** | **Migracao 012** — aposentar o campo de nucleos da ficha e o cadastro de **Papeis** (vale o Cargo do ERP), e amarrar influencia/postura ao id do contato do ERP em vez de casar por e-mail em tempo de leitura | escopo de D1 no `wrangler`, e o `contacts` ter id estavel — que a primeira geracao real responde |
 | **2.25.0** | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
 
 A 2.25.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
