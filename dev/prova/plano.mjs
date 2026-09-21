@@ -108,6 +108,7 @@ bd.exec(`INSERT INTO acoes_cx (cliente_erp_id, carteira_erp_id, acao_numero, num
 
 bd.exec(readFileSync(`${RAIZ}/db/migracao-012-plano-gravado.sql`, 'utf8'));
 bd.exec(readFileSync(`${RAIZ}/db/migracao-014-tipo-de-acao.sql`, 'utf8'));
+bd.exec(readFileSync(`${RAIZ}/db/migracao-015-status-do-cliente.sql`, 'utf8'));
 
 let duble = await subirDuble();
 
@@ -392,6 +393,64 @@ Status: Nova`
   ok((await plano()).acoes.find((a) => a.id === idB).tipoAcao === null,
     'a carga nunca classifica: tipo de ação é só da CX');
 
+  console.log('\n=== 14d. Cabeçalho do ERP, responsável da reunião, status do cliente (2.30.0) ===');
+  const doisDias = new Date(Date.now() - 2 * 86400000).toISOString();
+  await fetch('http://127.0.0.1:8787/__reuniao', {
+    method: 'POST',
+    body: JSON.stringify({
+      id: '907f1f77bcf86cd799439498', nid: 91, title: 'Reuniao mensal Vale Verde',
+      status: 'finished', customer: '507f1f77bcf86cd799439012',
+      meetingType: '707f1f77bcf86cd799439201', startDate: doisDias,
+      participants: [{ user: 'u2' }, { room: 'sala-1' }],
+      customerParticipants: [{ name: 'Roberto Nunes' }],
+      // Cabeçalho torto de propósito, nas quatro linhas que o manual
+      // reserva: sem hífen, sem data, sem participantes do cliente.
+      notes: `Ata Vale Verde
+reuniao de setembro
+Formatar: Jair Tavares
+[A CONFIRMAR]
+
+Plano de acao:
+
+ACAO 2: Revisar politica de estoque minimo
+Resp.: Marina Alves
+Prazo: 15/08/26
+Status: Pendente desde 08/06/26
+
+ACAO 3: Contratar operador para o turno da noite
+Resp.: Carla Souza
+Prazo: 10/10/26
+Status: Repactuado em 20/08/26
+
+ACAO 4: Treinar a equipe no novo WMS
+Resp.: Tiago Nunes
+Prazo: 30/10/26
+Status: Nova
+
+ACAO 5: Mapear os fornecedores de embalagem
+Prazo: 30/11/26
+Status: Nova`
+    })
+  });
+  const r91 = await carga();
+  const avisos91 = (r91.corpo.avisos || []).filter((a) => a.reuniao === 91).map((a) => a.aviso);
+  ok(!avisos91.some((a) => /data da reunião|núcleo depois do hífen|cliente na primeira linha|participante do cliente/i.test(a)),
+    'cliente, núcleo, data e participantes vêm do ERP: o cabeçalho torto da ata não gera aviso', avisos91.join(' | ') || 'nenhum');
+
+  const a5 = (await plano()).acoes.find((a) => a.numero === 5);
+  ok(a5 && a5.responsavel === 'Paulo Reis',
+    'ação sem "Resp.:" fica com quem conduziu a reunião (participants.user)', a5?.responsavel);
+  ok((await historico(a5.id)).some((l) => l.campo === 'criada'), 'e nasce no histórico como qualquer outra');
+  ok((await plano()).acoes.find((a) => a.numero === 3).responsavel === 'Carla Souza',
+    'quem a ata nomeia continua valendo — o participante é só a reserva');
+
+  ok(a5.clienteStatus === 'active', 'o status do cliente vem do ERP e fica gravado', a5.clienteStatus);
+  bd.exec("UPDATE acoes_cx SET cliente_status = 'inactive' WHERE cliente_erp_id = '507f1f77bcf86cd799439012'");
+  const reStatus = await carga();
+  ok(reStatus.corpo.passo.clientesAtualizados > 0 && (await plano()).acoes.every((a) => a.clienteStatus === 'active'),
+    'e é conferido a cada carga, em todas as ações — sem precisar de reunião nova',
+    `atualizados=${reStatus.corpo.passo.clientesAtualizados}`);
+
   console.log('\n=== 15. Permissões faltantes, TODAS de uma vez ===');
   duble.kill();
   await new Promise((r) => setTimeout(r, 400));
@@ -408,7 +467,7 @@ Status: Nova`
   }
   ok(bd.prepare('SELECT travado_em FROM plano_carga').get().travado_em === null,
     'a trava é solta mesmo quando o hub falha');
-  ok((await plano()).acoes.length === 4, 'e o plano gravado continua legível com o hub fora');
+  ok((await plano()).acoes.length === 5, 'e o plano gravado continua legível com o hub fora');
 
   console.log('\n=== 16. O hub pede pausa (429) ===');
   duble.kill();

@@ -46,7 +46,7 @@
 
 import {
   listarCarteiras, listarReunioes, listarClientesDoHub,
-  mapaDeTiposDeReuniao, mapaDeTimes, ErroHub, memorizar
+  mapaDeTiposDeReuniao, mapaDeTimes, mapaDeUsuarios, ErroHub, memorizar
 } from './_lib/hub.js';
 import {
   aplicarReunioes, linhaParaTela, validarCampo, COLUNAS_DA_CARGA
@@ -79,7 +79,7 @@ function erroDoHub(e, cabecalhos) {
 }
 
 /* Na mesma ordem das consultas, para nomear qual falhou. */
-const NOMES_DAS_FONTES = ['carteiras', 'reuniões', 'clientes', 'tipos de reunião', 'times'];
+const NOMES_DAS_FONTES = ['carteiras', 'reuniões', 'clientes', 'tipos de reunião', 'times', 'usuários'];
 
 /**
  * Reúne TODAS as fontes que falharam numa resposta só.
@@ -284,9 +284,14 @@ async function passoDaCarga(env, db, usuario, cabecalhos, agora) {
     // pedidas de novo.
     memorizar('plano:carteiras', REFERENCIA_MS, () => listarCarteiras(env)),
     reunioesDaJanela(env, desde, ate),
-    memorizar('plano:clientes', REFERENCIA_MS, () => listarClientesDoHub(env, { status: 'active' })),
+    // TODOS os status (2.30.0): o plano mostra o status do cliente e
+    // filtra por ele — pedir só os ativos deixava o inativo sem nome.
+    memorizar('plano:clientes', REFERENCIA_MS, () => listarClientesDoHub(env, { status: null })),
     memorizar('plano:tipos', REFERENCIA_MS, () => mapaDeTiposDeReuniao(env)),
-    memorizar('plano:times', REFERENCIA_MS, () => mapaDeTimes(env))
+    memorizar('plano:times', REFERENCIA_MS, () => mapaDeTimes(env)),
+    // Complemento, não fonte: sem a lista de usuários, a ação sem
+    // "Resp.:" só continua sem responsável — a carga não para por isso.
+    memorizar('plano:usuarios', REFERENCIA_MS, () => mapaDeUsuarios(env)).catch(() => new Map())
   ]);
 
   const falhas = fontes
@@ -294,7 +299,7 @@ async function passoDaCarga(env, db, usuario, cabecalhos, agora) {
     .filter(Boolean);
   if (falhas.length) return erroDasFontes(falhas, cabecalhos);
 
-  const [{ carteiras }, janela, { clientes }, tiposDeReuniao, times] = fontes.map((f) => f.value);
+  const [{ carteiras }, janela, { clientes }, tiposDeReuniao, times, usuarios] = fontes.map((f) => f.value);
 
   const { results: gravadas } = await db.prepare('SELECT * FROM acoes_cx').all();
   const { results: jaAplicadas } = await db.prepare('SELECT * FROM plano_carteiras').all();
@@ -307,7 +312,8 @@ async function passoDaCarga(env, db, usuario, cabecalhos, agora) {
       carteiraDe: new Map(carteiras.map((c) => [`${c.clienteErpId}::${c.nucleoErpId}`, c])),
       nomeDoCliente: new Map(clientes.map((c) => [c.erp_id, c.nome])),
       tiposDeReuniao,
-      times
+      times,
+      usuarios
     }
   );
 
@@ -349,6 +355,27 @@ async function passoDaCarga(env, db, usuario, cabecalhos, agora) {
       )
       .bind(JSON.stringify(lote.map((l) => ({ ...l, versao })))));
   }
+
+  // O status do cliente, de TODAS as ações, a cada passo: o cliente que
+  // foi inativado no ERP muda aqui mesmo sem reunião nova. Não mexe na
+  // versão — não é campo que a CX edita.
+  const statusDoCliente = clientes
+    .filter((c) => c.erp_id && c.status)
+    .map((c) => ({ id: c.erp_id, s: c.status }));
+  for (const lote of emLotes(statusDoCliente, 500)) {
+    comandos.push(db
+      .prepare(
+        `UPDATE acoes_cx
+            SET cliente_status = ${ext('s', 'j.value')}
+           FROM json_each(?) AS j
+          WHERE acoes_cx.cliente_erp_id = ${ext('id', 'j.value')}
+            AND acoes_cx.cliente_status IS NOT ${ext('s', 'j.value')}`
+      )
+      .bind(JSON.stringify(lote)));
+  }
+  const statusPorCliente = new Map(statusDoCliente.map((c) => [c.id, c.s]));
+  const statusMudou = (gravadas || []).filter((g) =>
+    statusPorCliente.has(g.cliente_erp_id) && statusPorCliente.get(g.cliente_erp_id) !== g.cliente_status).length;
 
   for (const lote of emLotes(r.logs)) {
     comandos.push(db
@@ -400,6 +427,8 @@ async function passoDaCarga(env, db, usuario, cabecalhos, agora) {
       novas: r.novas.length,
       alteradas: r.alteradas.length,
       registros: r.logs.length,
+      // Ações cujo status de cliente mudou: a tela relê o plano.
+      clientesAtualizados: statusMudou,
       semCarteira: r.semCarteira,
       // Mesmo encolhida a um dia, a janela estourou o teto de páginas.
       truncado: !!janela.truncado

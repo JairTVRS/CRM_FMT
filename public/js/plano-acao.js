@@ -35,7 +35,13 @@ const Plano = (() => {
   let debounce = null;
 
 
-  const filtros = { busca: '', cliente: '', nucleo: '', situacao: 'abertas' };
+  // `statusCliente` (2.30.0): o status do cliente no ERP. O padrão é só
+  // os ativos — a escolha de cada um fica salva na preferência dele.
+  const filtros = { busca: '', cliente: '', nucleo: '', situacao: 'abertas', statusCliente: 'active' };
+
+  const ROTULO_STATUS_CLIENTE = {
+    active: 'Ativo', inactive: 'Inativo', prospect: 'Prospect', ad_hoc: 'Avulso'
+  };
 
   /** Coluna e sentido da ordenação. Sem coluna, vale a ordem do servidor: atrasadas primeiro. */
   const ordem = { chave: null, sentido: 1 };
@@ -90,7 +96,9 @@ const Plano = (() => {
   const COLUNAS = [
     { chave: 'acao', rotulo: 'Ação', classe: 'c-acao' },
     { chave: 'cliente', rotulo: 'Cliente', classe: 'c-cliente' },
+    { chave: 'clienteStatus', rotulo: 'Status do cliente', classe: 'c-stcliente' },
     { chave: 'tipoReuniao', rotulo: 'Tipo de reunião', classe: 'c-tipo' },
+    { chave: 'reuniaoEm', rotulo: 'Data da reunião', classe: 'c-reuniao' },
     { chave: 'nucleo', rotulo: 'Núcleo', classe: 'c-nucleo' },
     { chave: 'descricao', rotulo: 'Descrição', classe: 'c-descricao', campo: 'descricao', tipo: 'longo' },
     { chave: 'responsavel', rotulo: 'Responsável', classe: 'c-resp', campo: 'responsavel', tipo: 'texto' },
@@ -141,6 +149,11 @@ const Plano = (() => {
 
     layout.semGraficos = v.semGraficos === true;
 
+    if (typeof v.statusCliente === 'string'
+        && (v.statusCliente === '' || ROTULO_STATUS_CLIENTE[v.statusCliente])) {
+      filtros.statusCliente = v.statusCliente;
+    }
+
     if (OPCOES_POR_PAGINA.includes(Number(v.porPagina))) {
       porPagina = Number(v.porPagina);
       limite = porPagina;
@@ -174,6 +187,7 @@ const Plano = (() => {
               ocultas: [...layout.ocultas],
               porPagina,
               semGraficos: layout.semGraficos,
+              statusCliente: filtros.statusCliente,
               ordem: ordem.chave ? { chave: ordem.chave, sentido: ordem.sentido } : null
             }
           })
@@ -449,7 +463,7 @@ const Plano = (() => {
 
         carga = d.carga;
         avisos.push(...(d.avisos || []));
-        if (d.passo.novas || d.passo.alteradas) mudou = true;
+        if (d.passo.novas || d.passo.alteradas || d.passo.clientesAtualizados) mudou = true;
         if (d.passo.truncado) {
           avisoHub = 'Um dia de reuniões passou do teto de páginas do ERP; alguma ata desse dia pode ter ficado de fora.';
         }
@@ -493,7 +507,8 @@ const Plano = (() => {
     if (!select) return;
 
     const escolhido = select.value;
-    const nomes = [...new Set(acoes.map((a) => a[campo]).filter(Boolean))]
+    const base = acoes.filter((a) => !filtros.statusCliente || !a.clienteStatus || a.clienteStatus === filtros.statusCliente);
+    const nomes = [...new Set(base.map((a) => a[campo]).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
     select.innerHTML = `<option value="">${rotuloTodos}</option>`
@@ -527,6 +542,9 @@ const Plano = (() => {
     return acoes.filter((a) => {
       if (filtros.cliente && a.cliente !== filtros.cliente) return false;
       if (filtros.nucleo && a.nucleo !== filtros.nucleo) return false;
+      // Sem status gravado ainda (antes da primeira carga da 2.30.0) a ação
+      // aparece: esconder o que não se sabe seria afirmar que não é ativo.
+      if (filtros.statusCliente && a.clienteStatus && a.clienteStatus !== filtros.statusCliente) return false;
 
       switch (comSituacao ? filtros.situacao : '') {
         case 'abertas': if (!a.aberta) return false; break;
@@ -712,6 +730,7 @@ const Plano = (() => {
     if (chave === 'acao') return a.numeroCliente != null ? a.numeroCliente * 10000 + a.numero : null;
     if (chave === 'status') return ROTULO_STATUS[a.status] || a.status || null;
     if (chave === 'tipoAcao') return ROTULO_TIPO_ACAO[a.tipoAcao] || null;
+    if (chave === 'clienteStatus') return ROTULO_STATUS_CLIENTE[a.clienteStatus] || null;
     const v = a[chave];
     return v == null || v === '' ? null : v;
   }
@@ -762,6 +781,16 @@ const Plano = (() => {
         return a.atrasada
           ? `<span class="p-atraso" title="${a.diasDeAtraso} dia(s) de atraso${a.prazo ? ` · na ata: ${esc(a.prazo)}` : ''}">${d}<small>${a.diasDeAtraso}d</small></span>`
           : `<span${naAta}>${d}</span>`;
+      }
+
+      case 'clienteStatus': {
+        const r = ROTULO_STATUS_CLIENTE[a.clienteStatus];
+        return r ? `<span class="p-stcliente sc-${esc(a.clienteStatus)}">${r}</span>` : vazio;
+      }
+
+      case 'reuniaoEm': {
+        const d = dataBr(a.reuniaoEm);
+        return d ? `<span title="Data da reunião no ERP${a.reuniaoNid != null ? ` · reunião ${a.reuniaoNid}` : ''}">${d}</span>` : vazio;
       }
 
       case 'tipoAcao': {
@@ -825,6 +854,8 @@ const Plano = (() => {
   function renderizar() {
     mostrarAviso();
     mostrarCarga();
+    const seletorStatus = el('plano-status-cliente');
+    if (seletorStatus) seletorStatus.value = filtros.statusCliente;
     montarSelect('plano-cliente', 'cliente', 'Todos os clientes');
     montarSelect('plano-nucleo', 'nucleo', 'Todos os núcleos');
 
@@ -1051,6 +1082,13 @@ const Plano = (() => {
 
     el('plano-nucleo')?.addEventListener('change', (ev) => {
       filtros.nucleo = ev.target.value; limite = porPagina; renderizar();
+    });
+
+    el('plano-status-cliente')?.addEventListener('change', (ev) => {
+      filtros.statusCliente = ev.target.value;
+      limite = porPagina;
+      renderizar();
+      salvarLayout();
     });
 
     el('plano-situacao')?.addEventListener('change', (ev) => {

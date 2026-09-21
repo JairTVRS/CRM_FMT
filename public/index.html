@@ -353,6 +353,15 @@
         <div class="filtros-linha">
           <input type="text" id="plano-busca" class="form-control"
                  placeholder="Buscar por cliente, tipo de reunião, núcleo, ação ou responsável...">
+          <!-- Status do cliente no ERP. Padrao: so os ativos; a escolha
+               fica salva por usuario (2.30.0). -->
+          <select id="plano-status-cliente" class="form-control" title="Status do cliente no ERP">
+            <option value="active">Clientes ativos</option>
+            <option value="inactive">Clientes inativos</option>
+            <option value="prospect">Prospects</option>
+            <option value="ad_hoc">Avulsos</option>
+            <option value="">Todos os status</option>
+          </select>
           <select id="plano-cliente" class="form-control"></select>
           <!-- Nucleo, nesta tela, e o Time da Formatar (Governanca,
                Operacoes); o tipo de reuniao tem coluna propria. -->

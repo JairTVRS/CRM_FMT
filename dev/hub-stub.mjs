@@ -56,7 +56,11 @@ const PORTA = 8787;
  * fielmente o comportamento do hub.
  */
 const USUARIOS = [
-  { id: 1, name: 'Jair Tavares', email: 'jairdasilvatj@gmail.com', isActive: true }
+  { id: 1, name: 'Jair Tavares', email: 'jairdasilvatj@gmail.com', isActive: true },
+  // Os `participants` das reuniões apontam para estes (2.30.0): é assim
+  // que a ação sem "Resp.:" ganha o responsável da reunião.
+  { id: 'u1', name: 'Marina Alves', email: 'marina@formatar.com.br', isActive: true },
+  { id: 'u2', name: 'Paulo Reis', email: 'paulo@formatar.com.br', isActive: true }
 ];
 
 /**

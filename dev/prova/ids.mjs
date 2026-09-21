@@ -49,7 +49,7 @@ const classes = [
   'pn-fatia', 'pn-legenda', 'pn-garg', 'pn-barra', 'pn-colunas', 'pn-col', 'pn-col-barra', 'p-ordenavel', 'p-seta',
   'btn-engrenagem', 'plano-config', 'plano-config-fundo', 'pc-topo', 'pc-corpo', 'pc-pagina', 'pc-titulo',
   'pc-restaurar', 'pc-lista', 'pc-item', 'pc-alca', 'pc-nome', 'pc-botao', 'pc-nota',
-  'p-prazo-ata', 'p-tipo', 'tp-estrategica',
+  'p-prazo-ata', 'p-tipo', 'tp-estrategica', 'c-stcliente', 'c-reuniao', 'p-stcliente', 'sc-inactive',
   'dossie-modal', 'dossie-selo-versao', 'anel-preenchimento', 'dossie-etapa-nota',
   'dossie-avisos', 'dossie-erro-codigo', 'espaco', 'hidden'
 ];

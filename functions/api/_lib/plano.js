@@ -25,6 +25,7 @@
  */
 
 import { lerAta, diasDesde } from './ata.js';
+import { nomesDosParticipantes } from './hub.js';
 
 export const SAIU_DA_ATA = 'saiu_da_ata';
 
@@ -131,11 +132,18 @@ export function dataPrevistaDoPrazo(texto, referencia = null) {
   return null;
 }
 
-/** O que a ata diz de uma ação, nos nomes das colunas. */
-export function valoresDaAta(acao, reuniaoEm = null) {
+/**
+ * O que a ata diz de uma ação, nos nomes das colunas.
+ *
+ * `responsavelDaReuniao` (2.30.0): ação sem `Resp.:` fica com quem
+ * conduziu a reunião — os participantes da Formatar, do ERP. Pedido de
+ * 21/09/2026. Entra como valor "da ata" (sombra incluída): a CX pode
+ * trocar, e a troca dela vale até a ata mudar.
+ */
+export function valoresDaAta(acao, reuniaoEm = null, responsavelDaReuniao = null) {
   return {
     descricao: nulo(acao.descricao),
-    responsavel: nulo(acao.responsavel),
+    responsavel: nulo(acao.responsavel) || nulo(responsavelDaReuniao),
     prazo: nulo(acao.prazoBruto),
     data_prevista: nulo(acao.prazo) || dataPrevistaDoPrazo(acao.prazoBruto, reuniaoEm),
     status: nulo(acao.statusTipo) || 'desconhecido',
@@ -209,7 +217,7 @@ export function mesclar(atual, ata) {
  * }
  */
 export function aplicarReunioes(gravadas, aplicadas, reunioes, contexto) {
-  const { carteiraDe, nomeDoCliente, tiposDeReuniao, times } = contexto;
+  const { carteiraDe, nomeDoCliente, tiposDeReuniao, times, usuarios = new Map() } = contexto;
 
   // O estado de trabalho: começa no banco e acumula as reuniões do lote,
   // da mais velha para a mais nova.
@@ -267,7 +275,17 @@ export function aplicarReunioes(gravadas, aplicadas, reunioes, contexto) {
       const ja = carteirasAplicadas.get(carteiraId) || aplicadas.get(carteiraId);
       if (ja && String(r.inicio) < String(ja.reuniao_em)) continue;
 
-      const lida = lerAta(r.ata);
+      // O cabeçalho é do ERP: cliente, tipo, data e participantes vêm da
+      // reunião, não do texto. A ata só é conferida no que o ERP não deu.
+      const lida = lerAta(r.ata, {
+        cabecalhoDoErp: {
+          cliente: !!r.clienteErpId,
+          nucleo: !!r.nucleoErpId,
+          data: !!r.inicio,
+          participantesCliente: (r.participantesCliente || []).length > 0
+        }
+      });
+      const conduziu = nomesDosParticipantes(r.participantesFormatar, usuarios).join(' / ') || null;
       const cliente = nomeDoCliente.get(r.clienteErpId) || lida.cabecalho.cliente || null;
       const tipo = tiposDeReuniao.get(r.nucleoErpId);
 
@@ -291,7 +309,7 @@ export function aplicarReunioes(gravadas, aplicadas, reunioes, contexto) {
         vistas.add(k);
 
         const atual = porChave.get(k) || null;
-        const { linha, mudancas } = mesclar(atual, valoresDaAta(acao, r.inicio));
+        const { linha, mudancas } = mesclar(atual, valoresDaAta(acao, r.inicio, conduziu));
 
         let numero = atual?.numero_cliente;
         if (numero == null) {
@@ -383,6 +401,7 @@ export function linhaParaTela(l, hoje = new Date()) {
     numeroCliente: l.numero_cliente,
     clienteErpId: l.cliente_erp_id,
     cliente: l.cliente_nome,
+    clienteStatus: l.cliente_status ?? null,
     tipoReuniao: l.tipo_reuniao,
     nucleo: l.time_nome,
 

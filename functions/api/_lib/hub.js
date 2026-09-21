@@ -191,6 +191,56 @@ export async function pedirAoHub(env, caminho, parametros = {}) {
 }
 
 /* ==========================================================================
+   USUÁRIOS DA FORMATAR (2.30.0)
+
+   Os `participants` de uma reunião são funcionários da Formatar, e cada um
+   aponta para um usuário. O plano de ação usa isso para o responsável da
+   ação que a ata deixou sem `Resp.:`.
+
+   Usa `hub:users:read`, a mesma permissão com que o middleware confere o
+   login — nenhuma permissão nova.
+   ========================================================================== */
+
+/** Id → nome, de todos os usuários do hub. */
+export async function mapaDeUsuarios(env, { maxPaginas = 20 } = {}) {
+  const mapa = new Map();
+  let total = null;
+
+  for (let pagina = 1; pagina <= maxPaginas; pagina++) {
+    const corpo = await pedirAoHub(env, '/users', { fields: 'id,name,email', page: pagina });
+    const lote = Array.isArray(corpo?.data) ? corpo.data : [];
+    if (total == null) total = Number(corpo?.size ?? lote.length);
+
+    for (const u of lote) {
+      if (u?.id != null) mapa.set(String(u.id), u.name || u.email || null);
+    }
+    if (lote.length === 0 || mapa.size >= total) break;
+  }
+  return mapa;
+}
+
+/**
+ * Os nomes dos participantes da Formatar numa reunião.
+ *
+ * O formato exato de `participants` não foi confirmado com uma resposta
+ * real — a doc não traz exemplo. O tradutor aceita as variantes
+ * plausíveis: `{ user: 'id' }`, `{ user: { id, name } }`, `'id'` solto,
+ * `{ name }`. Entrada sem usuário (uma sala) é ignorada.
+ */
+export function nomesDosParticipantes(participantes, usuarios = new Map()) {
+  const nomes = [];
+  for (const p of Array.isArray(participantes) ? participantes : []) {
+    const u = p && typeof p === 'object' && 'user' in p ? p.user : p;
+    let nome = null;
+    if (u && typeof u === 'object') nome = u.name || usuarios.get(String(u.id ?? u._id)) || null;
+    else if (u != null && u !== '') nome = usuarios.get(String(u)) || null;
+    if (!nome && p && typeof p === 'object' && !('user' in p)) nome = p.name || null;
+    if (nome && !nomes.includes(nome)) nomes.push(nome);
+  }
+  return nomes;
+}
+
+/* ==========================================================================
    CLIENTES
    ========================================================================== */
 

@@ -821,6 +821,8 @@
 .c-5w        { width: 9.5rem; }
 .c-onde      { width: 6.5rem; }
 .c-tipoacao  { width: 6.6rem; }
+.c-stcliente { width: 6.2rem; }
+.c-reuniao   { width: 6.4rem; white-space: nowrap; }
 .c-data      { width: 6.3rem; white-space: nowrap; }
 .c-status    { width: 7rem; }
 .c-log       { width: 2rem; text-align: center; }
@@ -853,6 +855,20 @@
 }
 
 .p-atraso { color: var(--danger-color); font-weight: 600; }
+
+/* Status do cliente no ERP. Inativo apagado e tracejado: a ação existe,
+   mas o cliente saiu. Ativo é o normal e não pede atenção. */
+.p-stcliente {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.sc-inactive { color: var(--text-subtle); border-style: dashed; }
+.sc-prospect, .sc-ad_hoc { color: var(--text-color); border-color: var(--text-subtle); }
 
 /* O prazo da ata que não virou data: dica, não valor. */
 .p-prazo-ata { color: var(--text-subtle); font-style: italic; }

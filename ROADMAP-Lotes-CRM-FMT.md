@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 21/09/2026
-**Versão no ar:** 2.29.0 (desde 21/09/2026; migrações 012, 013 e 014 e `SESSAO_SECRET` aplicados)
+**Versão no ar:** 2.29.0 (desde 21/09/2026; migrações 012, 013 e 014 e `SESSAO_SECRET` aplicados) · **pronta para subir:** 2.30.0 (exige a migração 015, que volta o cursor da carga)
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -65,6 +65,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.28.0** | **Colunas do plano por usuário** — engrenagem com arrastar, mostrar/esconder, ordenar e linhas por página, salvas no servidor por e-mail (migração 013) |
 | — | **2.28.1** | **Uma rolagem só** — a tela do plano cabe na janela, só a tabela rola, painel mais baixo e recolhível |
 | — | **2.29.0** | **Datas e tipo de ação** — prazo da ata lido em 01/01/2026 ("dez/26" = último dia do mês), "Quando" e "Data prevista" numa coluna só, e Tipo de ação Operacional/Tática/Estratégica (migração 014) |
+| — | **2.30.0** | **A reunião é do ERP** — cabeçalho da ata não é mais conferido onde o ERP já deu a informação, responsável = participantes da reunião quando a ata não nomeia, status do cliente em coluna e filtro (padrão: ativos) (migração 015) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -83,10 +84,10 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 | Versao | Entrega | Depende de |
 |---|---|---|
 | **2.24.0 — ENTREGUE em 15/09/2026, Fases 1 e 2** | **Identidade do ERP, avaliacao do CRM** — as pessoas vem do `contacts` de `/customers` e a ligacao delas com o nucleo sai do `customerParticipants` das reunioes; o CRM nao cria nem renomeia pessoa. Nucleo, no dossie, e o **Time** | nada — as quatro permissoes ja estavam na chave |
-| **Fase 3 (proxima versao)** | **Migracao 015** (era 012; a 2.25.0, a 2.28.0 e a 2.29.0 tomaram os números) — aposentar o campo de nucleos da ficha e o cadastro de **Papeis** (vale o Cargo do ERP), e amarrar influencia/postura ao id do contato do ERP em vez de casar por e-mail em tempo de leitura | escopo de D1 no `wrangler`, e o `contacts` ter id estavel — que a primeira geracao real responde |
-| **2.30.0** (era 2.25.0) | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
+| **Fase 3 (proxima versao)** | **Migracao 016** (era 012; a 2.25.0, a 2.28.0, a 2.29.0 e a 2.30.0 tomaram os números) — aposentar o campo de nucleos da ficha e o cadastro de **Papeis** (vale o Cargo do ERP), e amarrar influencia/postura ao id do contato do ERP em vez de casar por e-mail em tempo de leitura | escopo de D1 no `wrangler`, e o `contacts` ter id estavel — que a primeira geracao real responde |
+| **2.31.0** (era 2.25.0) | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
 
-A 2.30.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
+A 2.31.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
 inverte. Com o plano gravado (2.25.0), ela pode ler as acoes do banco em
 vez de reler as atas.
 

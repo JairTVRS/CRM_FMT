@@ -41,6 +41,7 @@ o que já saiu e o que vem. Estes manuais são o detalhe de cada linha dele.
 | 2.28.0 | [Colunas do plano](Manual-Colunas-Plano-CRM-FMT-v1.0.md) | Engrenagem: ordem, exibição e ordenação das colunas, salvas por usuário |
 | 2.28.1 | [Colunas do plano, seção 5](Manual-Colunas-Plano-CRM-FMT-v1.0.md) | Uma rolagem só: a tela cabe na janela e os gráficos se recolhem |
 | 2.29.0 | [Datas e tipo de ação](Manual-Datas-Tipo-Acao-CRM-FMT-v1.0.md) | Datas em 01/01/2026, uma coluna de data só, e Operacional/Tática/Estratégica |
+| 2.30.0 | [A reunião é do ERP](Manual-Reuniao-ERP-CRM-FMT-v1.0.md) | Cabeçalho da ata não gera mais aviso, responsável da reunião como reserva, status do cliente com filtro |
 
 Os quatro primeiros são anteriores à convenção de registrar a versão do
 sistema no cabeçalho — estão na ordem de data.

@@ -244,14 +244,20 @@ export function lerStatus(texto) {
  * Lê uma ata inteira.
  *
  * @param {string} texto  o conteúdo do campo `notes` da reunião
- * @param {object} opcoes `hoje` permite prova determinística
+ * @param {object} opcoes `hoje` permite prova determinística.
+ *   `cabecalhoDoErp` (2.30.0): quais partes do cabeçalho o ERP já
+ *   entregou — { cliente, nucleo, data, participantesCliente }, cada uma
+ *   `true` ou `false`. Onde o ERP entregou, a linha da ata não é
+ *   conferida e não gera aviso: a data da reunião é a do ERP, não a que
+ *   o consultor digitou. Sem a opção, tudo é conferido, como antes — é o
+ *   que o dossiê usa.
  *
  * @returns {{
  *   cabecalho: object, contexto: Array, acoes: Array,
  *   notasPrivadas: string[], avisos: string[], resumo: object
  * }}
  */
-export function lerAta(texto, { hoje = new Date() } = {}) {
+export function lerAta(texto, { hoje = new Date(), cabecalhoDoErp = {} } = {}) {
   const avisos = [];
 
   const bruto = String(texto || '');
@@ -293,14 +299,15 @@ export function lerAta(texto, { hoje = new Date() } = {}) {
   const titulo = lerTitulo(naoVazias[0]?.l);
   const dataHora = lerDataHora(naoVazias[1]?.l);
 
-  if (!titulo.cliente) avisos.push('Não foi possível ler o cliente na primeira linha.');
-  if (!titulo.nucleo) avisos.push('A primeira linha não traz o núcleo depois do hífen — a carteira fica incompleta.');
-  if (!dataHora.data) avisos.push('Não foi possível ler a data da reunião na segunda linha.');
+  const doErp = cabecalhoDoErp || {};
+  if (!titulo.cliente && !doErp.cliente) avisos.push('Não foi possível ler o cliente na primeira linha.');
+  if (!titulo.nucleo && !doErp.nucleo) avisos.push('A primeira linha não traz o núcleo depois do hífen — a carteira fica incompleta.');
+  if (!dataHora.data && !doErp.data) avisos.push('Não foi possível ler a data da reunião na segunda linha.');
 
   const participantesFormatar = lerParticipantes(naoVazias[2]?.l);
   const participantesCliente = lerParticipantes(naoVazias[3]?.l);
 
-  if (participantesCliente.length === 0) {
+  if (participantesCliente.length === 0 && !doErp.participantesCliente) {
     avisos.push('Nenhum participante do cliente identificado na quarta linha.');
   }
 
