@@ -7,12 +7,25 @@
  *   3. Consulta o hub da Formatar: o e-mail existe e está com isActive=true?
  *   4. Só então entrega a requisição ao endpoint, com o usuário em context.data.
  *
- * Rotas públicas (sem token): OPTIONS (preflight) e GET /api/config.
+ * Rotas públicas (sem token): OPTIONS (preflight), GET /api/config e
+ * POST /api/sair.
+ *
+ * SESSÃO DE 7 DIAS (2.27.0): depois do primeiro login com o Google, o
+ * servidor emite um cookie assinado (`_lib/sessao.js`). Requisição sem
+ * token do Google mas com cookie válido passa pelo passo 2 com o e-mail
+ * do cookie — e o passo 3, o hub, continua valendo igual: desativar
+ * alguém no ERP derruba a sessão em até 5 minutos.
  *
  * Variáveis de ambiente necessárias (Cloudflare Pages > Settings > Environment variables):
  *   GOOGLE_CLIENT_ID  - ID do cliente OAuth (público, mas fica em env por conveniência)
  *   HUB_API_KEY       - Secret Key do hub com permissão hub:users:read  [SECRET]
+ *   SESSAO_SECRET     - assina o cookie da sessão de 7 dias. Sem ela, o CRM
+ *                       volta a pedir login a cada recarga.            [SECRET]
  */
+
+import {
+  NOME_COOKIE, lerCookie, lerSessao, assinarSessao, cabecalhoDeSessao
+} from './_lib/sessao.js';
 
 const ORIGENS_PERMITIDAS = [
   "https://crm-fmt.pages.dev",
@@ -46,7 +59,7 @@ const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
 const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 
 // Rotas liberadas sem autenticação
-const ROTAS_PUBLICAS = ["/api/config"];
+const ROTAS_PUBLICAS = ["/api/config", "/api/sair"];
 
 // Caches em memória do isolate. Não são compartilhados entre instâncias,
 // mas cortam a esmagadora maioria das chamadas repetidas.
@@ -68,7 +81,7 @@ function montarCabecalhos(request) {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": permitida,
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Max-Age": "86400",
     "Vary": "Origin"
   };
@@ -230,19 +243,29 @@ export async function onRequest(context) {
     return erro("Servidor sem HUB_API_KEY configurada.", 500, cabecalhos, "CONFIG_AUSENTE");
   }
 
-  // 4. Token presente?
+  // 4. Quem é: o token do Google, ou — sem ele — o cookie da sessão.
   const autorizacao = request.headers.get("Authorization") || "";
-  if (!autorizacao.startsWith("Bearer ")) {
-    return erro("Autenticação necessária.", 401, cabecalhos, "TOKEN_AUSENTE");
-  }
-  const token = autorizacao.slice(7).trim();
-
-  // 5. Token válido?
   let payload;
-  try {
-    payload = await validarTokenGoogle(token, env.GOOGLE_CLIENT_ID);
-  } catch (e) {
-    return erro(`Sessão inválida: ${e.message}`, 401, cabecalhos, "TOKEN_INVALIDO");
+
+  if (autorizacao.startsWith("Bearer ")) {
+    // 5a. Token do Google válido?
+    try {
+      payload = await validarTokenGoogle(autorizacao.slice(7).trim(), env.GOOGLE_CLIENT_ID);
+    } catch (e) {
+      return erro(`Sessão inválida: ${e.message}`, 401, cabecalhos, "TOKEN_INVALIDO");
+    }
+  } else {
+    // 5b. Cookie assinado e dentro dos 7 dias? Sem SESSAO_SECRET nenhum
+    // cookie vale, e o comportamento é o de antes da 2.27.0.
+    const cookie = lerCookie(request.headers.get("Cookie"), NOME_COOKIE);
+    if (!cookie || !env.SESSAO_SECRET) {
+      return erro("Autenticação necessária.", 401, cabecalhos, "TOKEN_AUSENTE");
+    }
+    const sessao = await lerSessao(cookie, env.SESSAO_SECRET);
+    if (!sessao) {
+      return erro("Sua sessão expirou. Entre novamente.", 401, cabecalhos, "TOKEN_INVALIDO");
+    }
+    payload = { email: sessao.email, name: sessao.nome, picture: sessao.foto };
   }
 
   // 6. Usuário cadastrado e ativo no hub?
@@ -278,5 +301,16 @@ export async function onRequest(context) {
   };
   context.data.cabecalhos = cabecalhos;
 
-  return next();
+  // 8. A sessão de 7 dias nasce — e se renova — no /api/me, que a página
+  // chama a cada abertura. Renovar em toda requisição seria reassinar à
+  // toa; renovar só aqui já faz "quem usa todo dia não sai nunca".
+  if (caminho !== "/api/me" || !env.SESSAO_SECRET) return next();
+
+  const valor = await assinarSessao(context.data.usuario, env.SESSAO_SECRET);
+  context.data.sessaoAte = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const resposta = await next();
+  const comCookie = new Response(resposta.body, resposta);
+  comCookie.headers.append("Set-Cookie", cabecalhoDeSessao(valor));
+  return comCookie;
 }

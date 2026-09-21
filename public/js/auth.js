@@ -9,6 +9,11 @@
  *   3. Guarda o ID token e injeta "Authorization: Bearer <token>" em toda
  *      chamada para /api/* — por isso nenhum outro arquivo precisou mudar.
  *   4. O token do Google dura ~1h; renova sozinho antes de expirar.
+ *   5. Desde a 2.27.0, o /api/me devolve também um cookie de sessão de 7
+ *      dias (HttpOnly, assinado pelo servidor). Ao recarregar a página, o
+ *      primeiro passo é perguntar ao /api/me SEM token: se o cookie vale,
+ *      o app abre direto, sem passar pelo Google. Sem cookie — ou com o
+ *      servidor sem SESSAO_SECRET — tudo segue como antes.
  *
  * IMPORTANTE: esconder a tela é só conforto visual. Quem realmente barra o
  * acesso é o _middleware.js no servidor, que revalida o token e o cadastro
@@ -21,6 +26,8 @@ const Auth = (() => {
   let usuario = null;
   let clientId = null;
   let renovando = false;
+  let sessaoAte = 0;         // epoch em ms; 0 = sem sessão de cookie
+  let googleIniciado = false;
 
   const MARGEM_RENOVACAO_MS = 5 * 60 * 1000; // renova 5 min antes de expirar
 
@@ -43,6 +50,12 @@ const Auth = (() => {
 
   function tokenValido() {
     return idToken && Date.now() < expiraEm - MARGEM_RENOVACAO_MS;
+  }
+
+  /** O cookie de 7 dias está valendo? A página não lê o cookie (HttpOnly):
+   *  sabe da validade pelo que o /api/me respondeu. */
+  function sessaoPorCookie() {
+    return sessaoAte > Date.now();
   }
 
   /* ----------------------------------------------------------------
@@ -117,6 +130,34 @@ const Auth = (() => {
     if (config.commit) alvo.title = `commit ${config.commit}`;
   }
 
+  /** Mostra a tela de login E garante o botão do Google nela. */
+  function pedirLogin(mensagem) {
+    mostrarLogin(mensagem);
+    garantirGoogle();
+  }
+
+  function garantirGoogle() {
+    if (googleIniciado || !clientId) return;
+    if (window.google && window.google.accounts) iniciarGoogle();
+    else window.addEventListener('load', iniciarGoogle, { once: true });
+  }
+
+  /** A resposta do /api/me vira sessão aberta, venha do Google ou do cookie. */
+  function aceitarSessao(dados) {
+    usuario = dados.usuario;
+    const ate = dados.sessao && dados.sessao.ate ? Date.parse(dados.sessao.ate) : 0;
+    sessaoAte = Number.isFinite(ate) ? ate : 0;
+    mostrarApp();
+
+    // Avisa o resto do app que a sessao esta valida.
+    // Sem isto, modulos que carregam dados no DOMContentLoaded
+    // disparam suas requisicoes ANTES de existir token, recebem
+    // 401 e ficam presos numa mensagem de erro para sempre.
+    document.dispatchEvent(new CustomEvent('crm:autenticado', {
+      detail: { usuario }
+    }));
+  }
+
   function aoReceberCredencial(resposta) {
     idToken = resposta.credential;
     const payload = decodificarPayload(idToken);
@@ -126,11 +167,13 @@ const Auth = (() => {
   }
 
   function iniciarGoogle() {
+    if (googleIniciado) return;
     if (!window.google || !window.google.accounts) {
       mostrarLogin('Não foi possível carregar o Login do Google. Verifique sua conexão.');
       return;
     }
 
+    googleIniciado = true;
     google.accounts.id.initialize({
       client_id: clientId,
       callback: aoReceberCredencial,
@@ -154,9 +197,15 @@ const Auth = (() => {
   }
 
   function renovarToken() {
-    if (renovando || !window.google) return;
+    if (renovando || !window.google || !googleIniciado) return;
     renovando = true;
-    google.accounts.id.prompt();
+    // Se o One Tap não aparecer (cooldown do Google, janela fechada), o
+    // `renovando` ficava `true` para sempre e nunca mais se tentava.
+    google.accounts.id.prompt((aviso) => {
+      if (aviso.isNotDisplayed() || aviso.isSkippedMoment() || aviso.isDismissedMoment()) {
+        renovando = false;
+      }
+    });
   }
 
   /* ----------------------------------------------------------------
@@ -170,18 +219,7 @@ const Auth = (() => {
       });
 
       if (resposta.ok) {
-        const dados = await resposta.json();
-        usuario = dados.usuario;
-        mostrarApp();
-
-        // Avisa o resto do app que a sessao esta valida.
-        // Sem isto, modulos que carregam dados no DOMContentLoaded
-        // disparam suas requisicoes ANTES de existir token, recebem
-        // 401 e ficam presos numa mensagem de erro para sempre.
-        document.dispatchEvent(new CustomEvent('crm:autenticado', {
-          detail: { usuario }
-        }));
-
+        aceitarSessao(await resposta.json());
         return true;
       }
 
@@ -210,8 +248,11 @@ const Auth = (() => {
     idToken = null;
     usuario = null;
     expiraEm = 0;
+    sessaoAte = 0;
+    // O cookie é HttpOnly: só o servidor consegue apagá-lo.
+    fetchOriginal('/api/sair', { method: 'POST' }).catch(() => {});
     if (window.google) google.accounts.id.disableAutoSelect();
-    mostrarLogin('Sessão encerrada.');
+    pedirLogin('Sessão encerrada.');
   }
 
   /* ----------------------------------------------------------------
@@ -243,25 +284,30 @@ const Auth = (() => {
   window.fetch = async function (recurso, opcoes = {}) {
     const url = typeof recurso === 'string' ? recurso : (recurso && recurso.url) || '';
     const ehApiInterna = url.startsWith('/api/') || url.includes('/api/');
-    const ehRotaPublica = url.includes('/api/config');
+    const ehRotaPublica = url.includes('/api/config') || url.includes('/api/sair');
 
     if (!ehApiInterna || ehRotaPublica) {
       return fetchOriginal(recurso, opcoes);
     }
 
-    // Token perto de expirar: tenta renovar antes de seguir
-    if (idToken && !tokenValido()) renovarToken();
+    // Token perto de expirar: tenta renovar antes de seguir. Com o cookie
+    // de 7 dias valendo, não há o que renovar — ele cobre a requisição.
+    if (idToken && !tokenValido() && !sessaoPorCookie()) renovarToken();
 
-    if (!idToken) {
-      mostrarLogin('Faça login para continuar.');
+    const usarToken = idToken && Date.now() < expiraEm;
+
+    if (!usarToken && !sessaoPorCookie()) {
+      pedirLogin('Faça login para continuar.');
       return new Response(
         JSON.stringify({ error: 'Sessão não iniciada.' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
+    // Sem token, a requisição segue sem Authorization e o cookie (mesma
+    // origem, Path=/api) leva a sessão.
     const cabecalhos = new Headers(opcoes.headers || {});
-    cabecalhos.set('Authorization', `Bearer ${idToken}`);
+    if (usarToken) cabecalhos.set('Authorization', `Bearer ${idToken}`);
 
     const resposta = await fetchOriginal(recurso, { ...opcoes, headers: cabecalhos });
 
@@ -280,7 +326,8 @@ const Auth = (() => {
 
       if (ehSessao) {
         idToken = null;
-        mostrarLogin(erro.error || 'Sua sessão expirou. Entre novamente.');
+        sessaoAte = 0;
+        pedirLogin(erro.error || 'Sua sessão expirou. Entre novamente.');
       }
     }
 
@@ -300,18 +347,25 @@ const Auth = (() => {
       return;
     }
 
-    if (window.google && window.google.accounts) {
-      iniciarGoogle();
-    } else {
-      window.addEventListener('load', iniciarGoogle, { once: true });
-    }
+    // Primeiro, a sessão de 7 dias: o /api/me sem token, só com o cookie.
+    // Se valer, o app abre sem passar pelo Google — é o que faz o F5 não
+    // derrubar mais ninguém.
+    try {
+      const resposta = await fetchOriginal('/api/me');
+      if (resposta.ok) {
+        aceitarSessao(await resposta.json());
+        return;
+      }
+    } catch (e) { /* sem rede: cai no login, que explica */ }
+
+    garantirGoogle();
   }
 
   document.addEventListener('DOMContentLoaded', iniciar);
 
   return {
     get usuario() { return usuario; },
-    get autenticado() { return !!idToken; },
+    get autenticado() { return !!idToken || sessaoPorCookie(); },
     sair
   };
 })();

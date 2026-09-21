@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 21/09/2026
-**Versão no ar:** 2.25.0 (desde 21/09/2026, migração 012 aplicada) · **pronta para subir:** 2.26.0
+**Versão no ar:** 2.26.0 (desde 21/09/2026, migração 012 aplicada) · **pronta para subir:** 2.27.0 (exige o Secret `SESSAO_SECRET`)
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -61,6 +61,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.24.0** | **A conta é do ERP, o CRM anota por cima** — identidade, classificação, pessoas e núcleos lidos ao vivo do hub no Dossiê de Experiência; três estados em vez de dois (tem / não tem / **não perguntei**) e guarda em código contra afirmar o vazio não conferido |
 | — | **2.25.0** | **O plano de ação é gravado e se edita** — tabela compacta, todo campo editável com um clique, histórico de cada alteração (quem, quando, de → para, à mão ou pela ata), e carga incremental: só as reuniões novas desde a última carga (migração 012). Absorve o "Lote 6" corretivo |
 | — | **2.26.0** | **Painel do plano** — rosca por prazo, gargalos de cadastro e abertas por núcleo, tudo filtrando a tabela; colunas ordenáveis; a carga para de parar no 429 do hub |
+| — | **2.27.0** | **Sessão de 7 dias** (Lote 4, opção B) — cookie HttpOnly assinado pelo servidor, renovado a cada abertura; o hub segue conferindo o cadastro a cada 5 min |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -80,9 +81,9 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 |---|---|---|
 | **2.24.0 — ENTREGUE em 15/09/2026, Fases 1 e 2** | **Identidade do ERP, avaliacao do CRM** — as pessoas vem do `contacts` de `/customers` e a ligacao delas com o nucleo sai do `customerParticipants` das reunioes; o CRM nao cria nem renomeia pessoa. Nucleo, no dossie, e o **Time** | nada — as quatro permissoes ja estavam na chave |
 | **Fase 3 (proxima versao)** | **Migracao 013** (era 012; a 2.25.0 tomou o número) — aposentar o campo de nucleos da ficha e o cadastro de **Papeis** (vale o Cargo do ERP), e amarrar influencia/postura ao id do contato do ERP em vez de casar por e-mail em tempo de leitura | escopo de D1 no `wrangler`, e o `contacts` ter id estavel — que a primeira geracao real responde |
-| **2.27.0** (era 2.25.0) | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
+| **2.28.0** (era 2.25.0) | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
 
-A 2.27.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
+A 2.28.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
 inverte. Com o plano gravado (2.25.0), ela pode ler as acoes do banco em
 vez de reler as atas.
 
