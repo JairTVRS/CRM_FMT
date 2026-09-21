@@ -114,7 +114,7 @@ const Plano = (() => {
   const OPCOES_POR_PAGINA = [50, 100, 200, 500];
   const PADRAO_SEQUENCIA = COLUNAS.map((c) => c.chave);
 
-  const layout = { sequencia: [...PADRAO_SEQUENCIA], ocultas: new Set() };
+  const layout = { sequencia: [...PADRAO_SEQUENCIA], ocultas: new Set(), semGraficos: false };
   let salvarDepois = null;
 
   const colunaPorChave = (k) => COLUNAS.find((c) => c.chave === k);
@@ -135,6 +135,8 @@ const Plano = (() => {
     layout.sequencia = [...new Set([...conhecidas, ...PADRAO_SEQUENCIA])];
     layout.ocultas = new Set(Array.isArray(v.ocultas) ? v.ocultas.filter((k) => colunaPorChave(k)) : []);
     if (layout.ocultas.size >= COLUNAS.length) layout.ocultas.clear();
+
+    layout.semGraficos = v.semGraficos === true;
 
     if (OPCOES_POR_PAGINA.includes(Number(v.porPagina))) {
       porPagina = Number(v.porPagina);
@@ -168,6 +170,7 @@ const Plano = (() => {
               sequencia: layout.sequencia,
               ocultas: [...layout.ocultas],
               porPagina,
+              semGraficos: layout.semGraficos,
               ordem: ordem.chave ? { chave: ordem.chave, sentido: ordem.sentido } : null
             }
           })
@@ -243,6 +246,12 @@ const Plano = (() => {
 
   function ligarConfiguracao() {
     el('btn-plano-colunas')?.addEventListener('click', abrirConfiguracao);
+
+    el('btn-plano-graficos')?.addEventListener('click', () => {
+      layout.semGraficos = !layout.semGraficos;
+      renderizar();
+      salvarLayout();
+    });
     el('btn-plano-config-fechar')?.addEventListener('click', fecharConfiguracao);
     el('plano-config-fundo')?.addEventListener('click', fecharConfiguracao);
     document.addEventListener('keydown', (ev) => {
@@ -258,6 +267,7 @@ const Plano = (() => {
     el('btn-plano-restaurar')?.addEventListener('click', () => {
       layout.sequencia = [...PADRAO_SEQUENCIA];
       layout.ocultas.clear();
+      layout.semGraficos = false;
       ordem.chave = null;
       ordem.sentido = 1;
       mudouLayout();
@@ -566,6 +576,12 @@ const Plano = (() => {
     const painel = el('plano-painel');
     if (!cartoes || !painel) return;
 
+    const botao = el('btn-plano-graficos');
+    if (botao) {
+      botao.setAttribute('aria-pressed', String(!layout.semGraficos));
+      botao.title = layout.semGraficos ? 'Mostrar os gráficos' : 'Recolher os gráficos';
+    }
+
     if (!acoes.length) { cartoes.innerHTML = ''; painel.innerHTML = ''; return; }
 
     const abertas = base.filter((a) => a.aberta);
@@ -679,7 +695,8 @@ const Plano = (() => {
         </div>`}
       </section>`;
 
-    painel.innerHTML = rosca + barrasH + barrasV;
+    // Recolhido, os cartões do cabeçalho continuam: os números seguem à vista.
+    painel.innerHTML = layout.semGraficos ? '' : rosca + barrasH + barrasV;
   }
 
   /* ----------------------------------------------------------

@@ -67,3 +67,27 @@ A ordenação escolhida no cabeçalho também fica salva.
 Conferido em captura de tela e com o teclado simulado. **Arrastar com o
 mouse não pôde ser exercitado daqui** — o navegador sem janela não
 arrasta.
+
+---
+
+## 5. v2.28.1 — uma rolagem só
+
+Pedido de 21/09/2026: "a página está ficando grande para scroll".
+
+A página rolava **e** a tabela rolava: para chegar ao fim de uma era
+preciso rolar as duas. Agora:
+
+- **A tela do plano ocupa a altura da janela.** Cabeçalho, gráficos e
+  filtros ficam parados; só a tabela rola. Em janela muito baixa (menos
+  de ~34rem) a página volta a rolar, para a tabela não ficar com três
+  linhas.
+- **O painel ficou mais baixo** (rosca e colunas menores, menos espaço
+  entre as linhas) e **as linhas da tabela também**: o texto longo corta
+  em duas linhas em vez de três — o texto inteiro aparece ao clicar para
+  editar.
+- **Botão de gráficos** ao lado da engrenagem: recolhe o painel e a tabela
+  ganha a altura dele. Os cartões do cabeçalho continuam à vista. A
+  escolha fica salva com a configuração de colunas (e "restaurar colunas"
+  volta a mostrar os gráficos).
+
+Sem migração.

@@ -454,7 +454,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.1fr);
   gap: 0.8rem;
-  margin-bottom: 0.9rem;
+  margin-bottom: 0.7rem;
 }
 
 .plano-painel:empty { display: none; }
@@ -464,7 +464,7 @@
 }
 
 .pn-bloco {
-  padding: 0.75rem 0.9rem 0.8rem;
+  padding: 0.6rem 0.85rem 0.65rem;
   border-radius: 6px;
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -472,7 +472,7 @@
 }
 
 .pn-bloco h3 {
-  margin: 0 0 0.6rem;
+  margin: 0 0 0.4rem;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-color);
@@ -493,7 +493,7 @@
 
 /* ---- rosca ---- */
 .pn-rosca { display: flex; align-items: center; gap: 1rem; }
-.pn-rosca svg { width: 132px; height: 132px; flex: 0 0 auto; }
+.pn-rosca svg { width: 104px; height: 104px; flex: 0 0 auto; }
 .pn-fatia { cursor: pointer; transition: opacity 0.15s; }
 .pn-rosca svg:hover .pn-fatia { opacity: 0.55; }
 .pn-rosca svg:hover .pn-fatia:hover { opacity: 1; }
@@ -507,7 +507,7 @@
   align-items: baseline;
   gap: 0.35rem;
   width: 100%;
-  padding: 0.22rem 0.3rem;
+  padding: 0.12rem 0.3rem;
   border-radius: 4px;
   font-size: 0.74rem;
 }
@@ -518,7 +518,7 @@
 .pn-marca { font-size: 0.8rem; line-height: 1; }
 
 /* ---- gargalos ---- */
-.pn-gargalos { display: flex; flex-direction: column; gap: 0.55rem; }
+.pn-gargalos { display: flex; flex-direction: column; gap: 0.35rem; }
 .pn-bloco .pn-garg {
   display: grid;
   grid-template-columns: 7.2rem 1fr 4.6rem;
@@ -542,7 +542,7 @@
   display: flex;
   align-items: stretch;
   gap: 0.4rem;
-  height: 9.5rem;
+  height: 7rem;
 }
 .pn-bloco .pn-col {
   flex: 1 1 0;
@@ -593,6 +593,7 @@
 }
 
 .filtros-linha .form-control { flex: 1 1 16rem; width: auto; min-width: 12rem; }
+.filtros-linha { margin-bottom: 0.6rem; }
 .filtros-linha select.form-control { flex: 0 1 13rem; min-width: 10rem; }
 
 /* A engrenagem, do tamanho dos filtros ao lado. */
@@ -609,6 +610,7 @@
   cursor: pointer;
 }
 .btn-engrenagem:hover { color: var(--text-color); border-color: var(--text-subtle); }
+.btn-engrenagem[aria-pressed="true"] { color: var(--accent-color); border-color: var(--accent-color); }
 .btn-engrenagem svg { width: 1.15rem; height: 1.15rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* --------------------------------------------------------------------------
@@ -725,10 +727,40 @@
 
 /* A rolagem é da tabela, não da página: o cabeçalho fica preso no topo
    e as treze colunas rolam de lado sem empurrar o menu. */
+/* --------------------------------------------------------------------------
+   Uma rolagem só (2.28.1)
+
+   A tela do plano ocupa exatamente a altura da janela: cabeçalho, painel e
+   filtros ficam parados, e só a tabela rola. Antes a página rolava E a
+   tabela rolava, e para ver o fim de uma era preciso rolar as duas.
+
+   A altura sai do padding do .main-content (2rem em cima e embaixo). Em
+   janela baixa demais, a tabela ainda guarda 16rem e a página volta a
+   rolar — melhor que uma tabela de três linhas.
+   -------------------------------------------------------------------------- */
+#view-plano:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 4rem);
+  min-height: 34rem;
+}
+
+#view-plano > .content-header { margin-bottom: 0.9rem; flex: 0 0 auto; }
+#view-plano > .plano-painel,
+#view-plano > .filtros-linha,
+#view-plano > .aviso-hub { flex: 0 0 auto; }
+
+#view-plano > .plano-lista {
+  flex: 1 1 auto;
+  min-height: 16rem;
+  display: flex;
+  flex-direction: column;
+}
+
 .p-rolagem {
   overflow: auto;
-  max-height: calc(100vh - 17rem);
-  min-height: 12rem;
+  flex: 1 1 auto;
+  min-height: 0;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   background-color: var(--card-bg);
@@ -758,7 +790,7 @@
 }
 
 .p-tabela td {
-  padding: 0.4rem 0.5rem;
+  padding: 0.32rem 0.5rem;
   border-bottom: 1px solid var(--border-color);
   vertical-align: top;
   color: var(--text-color);
@@ -796,7 +828,7 @@
 /* Texto longo corta em três linhas; o texto inteiro aparece ao editar. */
 .p-texto {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: pre-wrap;

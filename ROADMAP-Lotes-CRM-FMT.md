@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 21/09/2026
-**Versão no ar:** 2.27.0 (desde 21/09/2026; migração 012 e `SESSAO_SECRET` aplicados) · **pronta para subir:** 2.28.0 (exige a migração 013)
+**Versão no ar:** 2.28.0 (desde 21/09/2026; migrações 012 e 013 e `SESSAO_SECRET` aplicados) · **pronta para subir:** 2.28.1
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -63,6 +63,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.26.0** | **Painel do plano** — rosca por prazo, gargalos de cadastro e abertas por núcleo, tudo filtrando a tabela; colunas ordenáveis; a carga para de parar no 429 do hub |
 | — | **2.27.0** | **Sessão de 7 dias** (Lote 4, opção B) — cookie HttpOnly assinado pelo servidor, renovado a cada abertura; o hub segue conferindo o cadastro a cada 5 min |
 | — | **2.28.0** | **Colunas do plano por usuário** — engrenagem com arrastar, mostrar/esconder, ordenar e linhas por página, salvas no servidor por e-mail (migração 013) |
+| — | **2.28.1** | **Uma rolagem só** — a tela do plano cabe na janela, só a tabela rola, painel mais baixo e recolhível |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
