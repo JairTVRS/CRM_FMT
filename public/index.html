@@ -319,21 +319,22 @@
 
       <!-- TELA 3: PLANO DE ACAO (5W2H)
 
-           A ata da tres dos sete campos: What (a descricao da ACAO), Who
-           (Resp.) e When (Prazo). Why, Where, How e How much nao existem
-           no texto e sao preenchidos pela CX. A fronteira entre as duas
-           metades e visivel na tela de proposito. -->
+           Desde a 2.25.0 o plano e GRAVADO no CRM: a tela le o banco e,
+           em seguida, busca no ERP so as reunioes novas desde a ultima
+           carga. Uma linha por acao; cada celula se edita com um clique
+           e toda alteracao fica no historico da acao. -->
       <section id="view-plano" class="content-body hidden">
         <header class="content-header">
           <div class="header-titles">
             <h1>Plano de Ação</h1>
             <p class="subtitle">
-              As ações abertas de todas as carteiras, lidas das atas do ERP.
-              O 5W2H se completa aqui.
+              As ações de todas as carteiras, lidas das atas do ERP.
+              Clique numa célula para editar.
             </p>
           </div>
           <div class="header-actions">
-            <button id="btn-plano-recarregar" class="btn btn-secondary">Recarregar</button>
+            <span id="plano-carga" class="plano-carga"></span>
+            <button id="btn-plano-carga" class="btn btn-secondary">Buscar novas ações</button>
           </div>
         </header>
 
@@ -343,18 +344,19 @@
 
         <div class="filtros-linha">
           <input type="text" id="plano-busca" class="form-control"
-                 placeholder="Buscar por cliente, núcleo, ação ou responsável...">
+                 placeholder="Buscar por cliente, tipo de reunião, núcleo, ação ou responsável...">
           <select id="plano-cliente" class="form-control"></select>
-          <!-- Time e o agrupamento interno da Formatar (Governanca,
-               Operacoes); nucleo e o tipo de reuniao no cliente. Filtrar
-               por Time e ler a fila por frente de trabalho. -->
-          <select id="plano-time" class="form-control"></select>
+          <!-- Nucleo, nesta tela, e o Time da Formatar (Governanca,
+               Operacoes); o tipo de reuniao tem coluna propria. -->
+          <select id="plano-nucleo" class="form-control"></select>
           <select id="plano-situacao" class="form-control">
-            <option value="">Toda situação</option>
+            <option value="abertas">Em aberto</option>
             <option value="atrasadas">Só as atrasadas</option>
-            <option value="sem-anotacao">Sem 5W2H preenchido</option>
             <option value="sem-responsavel">Sem responsável</option>
-            <option value="sem-prazo">Sem prazo</option>
+            <option value="sem-data">Sem data prevista</option>
+            <option value="sem-5w">Sem 5W2H</option>
+            <option value="fechadas">Fechadas (concluída, cancelada, saiu da ata)</option>
+            <option value="">Todas</option>
           </select>
         </div>
 
@@ -439,6 +441,21 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- Historico de uma acao do Plano de Acao: quem mudou o que, quando,
+       de que para que, e se foi a mao ou pela ata. -->
+  <div id="modal-plano-log" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 640px;">
+      <header class="modal-header">
+        <h2 id="plano-log-titulo">Histórico</h2>
+        <button id="btn-plano-log-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+      <div class="modal-body">
+        <p id="plano-log-acao" class="p-log-acao"></p>
+        <ul id="plano-log-lista" class="p-log-lista"></ul>
+      </div>
+    </div>
   </div>
 
   <!-- FICHA DO LEAD — gaveta lateral (Lote D)

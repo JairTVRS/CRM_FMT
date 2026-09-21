@@ -1,15 +1,23 @@
 /**
- * Prova do plano de ação em 5W2H — ponta a ponta.
+ * Prova do plano de ação — ponta a ponta, com o plano GRAVADO (2.25.0).
  *
- * Sobe o dublê do hub de verdade, com duas reuniões da MESMA carteira, e
- * chama os handlers reais. O caso que mais importa é o da ação encerrada:
- * a AÇÃO 1 está na ata de agosto e sumiu da de setembro, e o plano tem de
- * refletir a ata mais recente.
+ * Sobe o dublê do hub de verdade e chama os handlers reais contra SQLite
+ * em memória com as migrações 010 e 012 de verdade. O que importa provar:
+ *
+ *   - a primeira carga lê seis meses em passos, e a seguinte só o novo;
+ *   - a ação que sai da ata não some: fica gravada como "saiu da ata";
+ *   - todo campo se edita, e toda alteração vai para o log com
+ *     quem, quando, de e para;
+ *   - a edição da CX sobrevive à carga seguinte, a menos que a ata mude
+ *     aquele mesmo campo.
  */
 import { DatabaseSync } from 'node:sqlite';
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { onRequestGet as planoGet, onRequestPut as planoPut } from '../../functions/api/plano-acao.js';
+import {
+  onRequestGet as planoGet, onRequestPost as planoPost, onRequestPatch as planoPatch
+} from '../../functions/api/plano-acao.js';
+import { mesclar, SAIU_DA_ATA } from '../../functions/api/_lib/plano.js';
 import { nomeDeDocumento, TIPO_DOCUMENTO } from '../../functions/api/_lib/documento-base.js';
 
 import { fileURLToPath } from 'node:url';
@@ -22,9 +30,14 @@ function ok(condicao, titulo, detalhe) {
   if (!condicao) falhas++;
 }
 
+/* O D1 de mentira: o lote é transacional, como no D1 de verdade. */
 function d1(db) {
   return {
-    async batch(cs) { for (const c of cs) await c.run(); },
+    async batch(cs) {
+      db.exec('BEGIN');
+      try { for (const c of cs) await c.run(); db.exec('COMMIT'); }
+      catch (e) { db.exec('ROLLBACK'); throw e; }
+    },
     prepare(sql) {
       const stmt = db.prepare(sql);
       let args = [];
@@ -32,7 +45,7 @@ function d1(db) {
         bind(...a) { args = a.map((v) => (v === undefined ? null : v)); return api; },
         async first() { return stmt.get(...args) ?? null; },
         async all() { return { results: stmt.all(...args) }; },
-        async run() { return stmt.run(...args); }
+        async run() { const r = stmt.run(...args); return { meta: { changes: Number(r.changes) } }; }
       };
       return api;
     }
@@ -50,243 +63,292 @@ async function subirDuble(args = []) {
 
 const bd = new DatabaseSync(':memory:');
 const DB = d1(bd);
-const usuario = { email: 'jair@formatar.com.br' };
+const jair = { email: 'jair@formatar.com.br', nome: 'Jair Tavares' };
+const olivia = { email: 'olivia@formatar.com.br', nome: 'Olivia' };
 
 const env = () => ({ DB, HUB_API_KEY: 'chave-de-teste', HUB_BASE_URL: BASE });
 
-const ctx = (url, ambiente, corpo, metodo = 'PUT') => ({
+const ctx = (url, { metodo = 'GET', corpo = null, usuario = jair, ambiente = env() } = {}) => ({
   request: new Request(`https://crm-fmt.pages.dev${url}`, corpo
     ? { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) }
-    : {}),
+    : { method: metodo }),
   env: ambiente,
   data: { cabecalhos: { 'Content-Type': 'application/json' }, usuario }
 });
 
 const ler = async (r) => ({ status: r.status, corpo: await r.json() });
+const plano = async () => (await ler(await planoGet(ctx('/api/plano-acao')))).corpo;
+const carga = async (o) => ler(await planoPost(ctx('/api/plano-acao?carga=1', { metodo: 'POST', ...o })));
+const editar = async (id, corpo, usuario = jair) =>
+  ler(await planoPatch(ctx(`/api/plano-acao?id=${id}`, { metodo: 'PATCH', corpo, usuario })));
+const historico = async (id) => (await ler(await planoGet(ctx(`/api/plano-acao?log=${id}`)))).corpo.log;
 
-/* A migração 010 de verdade. */
+/** Carrega até o fim, como a tela faz. Devolve os passos. */
+async function cargaCompleta() {
+  const passos = [];
+  for (let i = 0; i < 20; i++) {
+    const r = await carga();
+    passos.push(r);
+    if (r.status !== 200 || r.corpo.carga.completa) break;
+  }
+  return passos;
+}
+
+/* Uma banco SEM a 012, para provar o aviso de migração faltando. */
+const bdVelho = new DatabaseSync(':memory:');
+bdVelho.exec(readFileSync(`${RAIZ}/db/migracao-010-acoes-5w2h.sql`, 'utf8'));
+
 bd.exec(readFileSync(`${RAIZ}/db/migracao-010-acoes-5w2h.sql`, 'utf8'));
 
-const duble = await subirDuble();
+// Uma linha que a 010 já tinha criado em produção: só a numeração e um
+// Por quê preenchido. A primeira carga tem de completá-la, não duplicá-la.
+bd.exec(`INSERT INTO acoes_cx (cliente_erp_id, carteira_erp_id, acao_numero, numero_cliente, porque, criado_por, criado_em)
+         VALUES ('507f1f77bcf86cd799439012', '607f1f77bcf86cd799439101', 2, 1, 'Ruptura no CD', 'x@formatar.com.br', '2026-09-10T00:00:00Z')`);
+
+bd.exec(readFileSync(`${RAIZ}/db/migracao-012-plano-gravado.sql`, 'utf8'));
+
+let duble = await subirDuble();
 
 try {
-  console.log('\n=== 1. A migração 010 ===');
-  const tabelas = bd.prepare(
-    "SELECT name FROM sqlite_master WHERE name LIKE '%acoes%' ORDER BY name"
-  ).all().map((r) => r.name);
-  ok(tabelas.includes('acoes_cx'), 'a tabela existe', tabelas.join(', '));
-  ok(tabelas.includes('idx_acoes_cx_carteira'), 'e o índice também');
+  console.log('\n=== 1. As migrações ===');
+  const nomes = bd.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((r) => r.name);
+  for (const t of ['acoes_cx', 'acoes_cx_log', 'plano_carga', 'plano_carteiras']) {
+    ok(nomes.includes(t), `a tabela ${t} existe`);
+  }
+  const colunas = bd.prepare("SELECT name FROM pragma_table_info('acoes_cx')").all().map((r) => r.name);
+  ok(['status', 'status_ata', 'data_prevista', 'versao', 'saiu_da_ata_em'].every((c) => colunas.includes(c)),
+    'a acoes_cx ganhou as colunas da ata e as sombras');
 
-  bd.exec(readFileSync(`${RAIZ}/db/migracao-010-acoes-5w2h.sql`, 'utf8'));
-  ok(true, 'reaplicar a 010 não quebra — só CREATE ... IF NOT EXISTS');
+  const semMig = await ler(await planoGet(ctx('/api/plano-acao', { ambiente: { DB: d1(bdVelho) } })));
+  ok(semMig.status === 503 && semMig.corpo.code === 'SEM_MIGRACAO_012',
+    'sem a 012, a tela diz qual migração falta', semMig.corpo.error);
 
-  console.log('\n=== 2. O plano montado a partir das atas ===');
-  const p = await ler(await planoGet(ctx('/api/plano-acao', env())));
-  ok(p.status === 200, 'responde 200', `status=${p.status}`);
+  console.log('\n=== 2. Antes da primeira carga ===');
+  const vazio = await plano();
+  ok(Array.isArray(vazio.acoes) && vazio.acoes.length === 0,
+    'o GET lê o banco — e a linha só com numeração (010) não aparece incompleta');
+  ok(vazio.carga.carregadoAte === null && vazio.carga.completa === false, 'e diz que nunca houve carga');
 
-  const porNumero = Object.fromEntries((p.corpo.acoes || []).map((a) => [a.numero, a]));
+  console.log('\n=== 3. A primeira carga, em passos ===');
+  const passos = await cargaCompleta();
+  ok(passos.every((p) => p.status === 200), 'todos os passos respondem 200',
+    passos.map((p) => p.status).join(','));
+  ok(passos.length >= 5 && passos.length <= 8,
+    'seis meses viram passos de um mês, não uma leitura só', `${passos.length} passos`);
+  ok(passos.at(-1).corpo.carga.completa === true, 'e a carga termina completa');
+  ok(passos.every((p, i) => i === 0 || p.corpo.passo.desde === passos[i - 1].corpo.passo.ate),
+    'cada passo começa onde o anterior parou — sem folga durante a primeira carga');
+  ok(passos.reduce((s, p) => s + p.corpo.passo.reunioes, 0) === 2,
+    'as duas reuniões realizadas foram lidas uma vez cada — a cancelada e a agendada não');
+  ok(bd.prepare('SELECT travado_em FROM plano_carga').get().travado_em === null,
+    'a trava é solta ao fim de cada passo');
 
-  // O CASO QUE MAIS IMPORTA: a AÇÃO 1 está na ata de agosto e sumiu da de
-  // setembro. Ação encerrada sai do plano — então ela NÃO pode aparecer.
-  ok(!porNumero[1],
-    'a AÇÃO 1, encerrada na ata mais recente, NÃO aparece no plano');
-  ok(!!porNumero[2] && !!porNumero[3],
-    'as AÇÕES 2 e 3, que seguem na última ata, aparecem',
-    Object.keys(porNumero).join(','));
-  ok(p.corpo.acoes.length === 2, 'duas ações no plano', `n=${p.corpo.acoes.length}`);
+  const p = await plano();
+  const porNumero = Object.fromEntries(p.acoes.map((a) => [a.numero, a]));
+  ok(p.acoes.length === 3, 'três ações gravadas: a 1 encerrada, a 2 e a 3 abertas', `n=${p.acoes.length}`);
 
+  console.log('\n=== 4. A ação que saiu da ata fica, e diz que saiu ===');
+  const a1 = porNumero[1];
+  ok(a1.status === SAIU_DA_ATA && a1.aberta === false, 'a AÇÃO 1 é "saiu da ata", fechada', a1.status);
+  ok(String(a1.saiuDaAtaEm).startsWith('2026-09-03'), 'na data da ata que não a trouxe', a1.saiuDaAtaEm);
+  ok(a1.atrasada === false, 'ação fechada não conta como atrasada');
+  ok(p.acoes.at(-1).numero === 1, 'e vai para o fim da fila');
+
+  console.log('\n=== 5. O que a ata diz, gravado ===');
   const a2 = porNumero[2];
-  ok(a2.oQue === 'Revisar politica de estoque minimo', 'What vem da ata', a2.oQue);
-  ok(a2.quem === 'Marina Alves', 'Who vem de Resp.:');
-  ok(a2.quando === '2026-08-15', 'When vem de Prazo:');
+  ok(a2.descricao === 'Revisar politica de estoque minimo', 'descrição', a2.descricao);
+  ok(a2.responsavel === 'Marina Alves', 'responsável');
+  ok(a2.prazo === '15/08/26', 'Quando, como escrito na ata', a2.prazo);
+  ok(a2.dataPrevista === '2026-08-15', 'data prevista, como data', a2.dataPrevista);
   ok(a2.status === 'pendente' && a2.statusDesde === '2026-06-08', 'status e "desde"');
-  ok(a2.atrasada === true, 'e o atraso é calculado');
+  ok(a2.atrasada === true && a2.diasDeAtraso > 0, 'o atraso é calculado na leitura', String(a2.diasDeAtraso));
+  ok(a2.cliente === 'Comercial Vale Verde LTDA', 'o nome do cliente vem do ERP');
+  ok(a2.tipoReuniao === 'Logística', 'tipo de reunião vem do ERP, com acento', a2.tipoReuniao);
+  ok(a2.nucleo === 'Operações', 'núcleo é o Time', a2.nucleo);
+  ok(String(a2.primeiraAtaEm).startsWith('2026-08-20'), 'a primeira aparição fica registrada', a2.primeiraAtaEm);
+  ok(a2.porque === 'Ruptura no CD', 'o Por quê que a 010 já guardava sobreviveu');
 
-  // A carteira é cliente + tipo de reunião, e é ela que dá a chave da
-  // anotação — não o cliente, que pode ter três carteiras.
-  ok(a2.carteiraErpId === '607f1f77bcf86cd799439101',
-    'a carteira é resolvida por cliente + tipo de reunião', a2.carteiraErpId);
-  ok(a2.cliente === 'Comercial Vale Verde LTDA',
-    'o nome do cliente vem do ERP, não da ata', a2.cliente);
-  // O nucleo agora vem do ERP, nao do cabecalho da ata. Na ata esta
-  // escrito "LOGISTICA", sem acento; no cadastro do ERP e "Logistica"
-  // com acento. Vence o cadastro.
-  ok(a2.nucleo === 'Logística',
-    'o núcleo vem do ERP, não do cabeçalho da ata', a2.nucleo);
-  ok(a2.nucleoErpId === '707f1f77bcf86cd799439201',
-    'e o ObjectId do tipo de reunião acompanha');
-  ok(a2.timeErpId === '807f1f77bcf86cd799439501',
-    'o ObjectId do Time acompanha', a2.timeErpId);
+  console.log('\n=== 6. A numeração por cliente ===');
+  ok(a2.numeroCliente === 1, 'a linha da 010 manteve o seu número', String(a2.numeroCliente));
+  const nums = p.acoes.map((a) => a.numeroCliente).sort();
+  ok(new Set(nums).size === 3 && nums.join(',') === '1,2,3', 'três números distintos, começando em 1', nums.join(','));
+  ok(bd.prepare('SELECT COUNT(*) AS n FROM acoes_cx').get().n === 3, 'e nenhuma linha duplicada');
 
-  // Os TRES niveis chegam a tela, e nao se confundem: Time e o
-  // agrupamento interno da Formatar; nucleo e o tipo de reuniao no
-  // cliente; carteira e cliente + nucleo.
-  ok(a2.time === 'Operações',
-    'e o NOME do Time vem resolvido do ERP', a2.time);
-  ok(a2.time !== a2.nucleo,
-    'Time e núcleo são níveis distintos', `${a2.time} / ${a2.nucleo}`);
-  ok(p.corpo.resumo.times === 1, 'o resumo conta os times', String(p.corpo.resumo.times));
+  console.log('\n=== 7. O que NUNCA pode sair daqui ===');
+  const bruto = JSON.stringify(p) + JSON.stringify(bd.prepare('SELECT * FROM acoes_cx').all());
+  ok(!/DESCONFORTO/.test(bruto), 'a nota privada em CAIXA ALTA não está na resposta nem no banco');
+  ok(!/NOTA TECNICA/.test(bruto), 'nem o technicalNotes');
+  ok(!/Revisao do plano anterior/.test(bruto), 'nem o contexto da ata');
 
-  // "Desde quando se arrasta": a AÇÃO 2 já estava na ata de agosto.
-  ok(String(a2.desdeAAta).startsWith('2026-08-20'),
-    'a primeira aparição nas atas da carteira é registrada', a2.desdeAAta);
+  console.log('\n=== 8. O log da carga ===');
+  const log1 = await historico(a1.id);
+  ok(log1.some((l) => l.campo === 'criada' && l.origem === 'ata'), 'a criação da AÇÃO 1 foi registrada');
+  const saida = log1.find((l) => l.campo === 'status');
+  ok(saida && saida.de === 'nova' && saida.para === SAIU_DA_ATA && saida.reuniao_nid === 88,
+    'e a saída da ata: de "nova" para "saiu da ata", pela reunião 88', JSON.stringify(saida));
 
-  console.log('\n=== 2b. A numeracao por cliente ===');
+  console.log('\n=== 9. Editar um campo — e o registro ===');
+  const concluir = await editar(a2.id, { campo: 'status', de: 'pendente', para: 'concluida' }, olivia);
+  ok(concluir.status === 200 && concluir.corpo.acao.status === 'concluida',
+    'Pendente → Concluída', `status=${concluir.status}`);
+  ok(concluir.corpo.acao.aberta === false && concluir.corpo.acao.atrasada === false,
+    'e deixa de contar como aberta e atrasada');
 
-  // O identificador e N.M: N e a sequencia do CLIENTE, M e o numero da
-  // acao no tipo de reuniao. As duas acoes vem da mesma carteira, entao
-  // recebem numeros de cliente diferentes e M diferentes.
-  ok(a2.numeroCliente != null, 'a acao recebeu numero do cliente', String(a2.numeroCliente));
-  const a3 = porNumero[3];
-  ok(a3.numeroCliente != null && a3.numeroCliente !== a2.numeroCliente,
-    'duas acoes do mesmo cliente NAO compartilham numero',
-    `${a2.numeroCliente} e ${a3.numeroCliente}`);
+  const log2 = await historico(a2.id);
+  const mudanca = log2[0];
+  ok(mudanca.campo === 'status' && mudanca.de === 'pendente' && mudanca.para === 'concluida',
+    'o log diz o campo, de e para', `${mudanca.de} → ${mudanca.para}`);
+  ok(mudanca.por === 'olivia@formatar.com.br' && mudanca.por_nome === 'Olivia', 'quem mudou');
+  ok(mudanca.origem === 'crm' && !!mudanca.em, 'quando, e que foi à mão');
 
-  const gravadas = bd.prepare('SELECT cliente_erp_id, carteira_erp_id, acao_numero, numero_cliente FROM acoes_cx ORDER BY numero_cliente').all();
-  ok(gravadas.length === 2, 'a numeracao foi GRAVADA, nao calculada na hora', `n=${gravadas.length}`);
-  ok(gravadas[0].numero_cliente === 1 && gravadas[1].numero_cliente === 2,
-    'e comeca em 1',
-    gravadas.map((g) => g.numero_cliente).join(','));
-  ok(gravadas.every((g) => g.cliente_erp_id === '507f1f77bcf86cd799439012'),
-    'presa ao cliente, nao a carteira');
+  const porque = await editar(porNumero[3].id, { campo: 'porque', de: null, para: '  Falta gente à noite  ' });
+  ok(porque.status === 200 && porque.corpo.acao.porque === 'Falta gente à noite', 'o Por quê se edita, aparado');
 
-  // Reler nao pode renumerar: e o defeito que a gravacao existe para evitar.
-  const relido = await ler(await planoGet(ctx('/api/plano-acao', env())));
-  const r2 = relido.corpo.acoes.find((x) => x.numero === 2);
-  ok(r2.numeroCliente === a2.numeroCliente,
-    'reler NAO renumera',
-    `${a2.numeroCliente} -> ${r2.numeroCliente}`);
-  ok(bd.prepare('SELECT COUNT(*) AS n FROM acoes_cx').get().n === 2,
-    'e nao cria linha nova a cada leitura');
+  const resp = await editar(porNumero[3].id, { campo: 'responsavel', de: 'Roberto Nunes', para: 'Beto (CX)' });
+  ok(resp.status === 200, 'o responsável também');
 
-  // O numero NUNCA e reaproveitado: mesmo apagando a acao do plano, o
-  // proximo a chegar pega o seguinte, nao o vago.
-  const proximo = bd.prepare(
-    "SELECT COALESCE(MAX(numero_cliente),0)+1 AS n FROM acoes_cx WHERE cliente_erp_id = '507f1f77bcf86cd799439012'"
-  ).get();
-  ok(proximo.n === 3, 'o proximo numero do cliente e 3', String(proximo.n));
+  const data = await editar(porNumero[3].id, { campo: 'data_prevista', de: '2026-10-10', para: '2026-11-30' });
+  ok(data.status === 200 && data.corpo.acao.dataPrevista === '2026-11-30', 'e a data prevista');
 
-  console.log('\n=== 3. O que NUNCA pode sair daqui ===');
-  const bruto = JSON.stringify(p.corpo);
-  ok(!/DESCONFORTO/.test(bruto),
-    'a nota privada em CAIXA ALTA não aparece em lugar nenhum da resposta');
-  ok(!/NOTA TECNICA/.test(bruto),
-    'nem o technicalNotes — que sequer é pedido ao hub');
-  ok(!/Revisao do plano anterior/.test(bruto),
-    'o contexto da ata também não vaza: a rota devolve o plano, não a ata');
+  const mesmo = await editar(porNumero[3].id, { campo: 'data_prevista', de: '2026-11-30', para: '2026-11-30' });
+  ok(mesmo.corpo.semMudanca === true, 'gravar o mesmo valor não gera registro');
+  ok((await historico(porNumero[3].id)).filter((l) => l.origem === 'crm').length === 3,
+    'três edições, três registros');
 
-  console.log('\n=== 4. Reunião cancelada e sem ata ===');
-  ok(!p.corpo.acoes.some((a) => a.reuniaoNid === 86),
-    'reunião cancelada não produz ação');
+  console.log('\n=== 10. Conflito e validação ===');
+  const conflito = await editar(a2.id, { campo: 'status', de: 'pendente', para: 'em_andamento' });
+  ok(conflito.status === 409 && conflito.corpo.code === 'CONFLITO',
+    'quem editava um valor velho é avisado, em vez de apagar a mudança do outro');
+  ok(conflito.corpo.acao.status === 'concluida', 'e recebe o valor atual');
 
-  console.log('\n=== 5. O 5W2H que a CX preenche ===');
-  ok(a2.porque === null && a2.onde === null && a2.como === null && a2.quanto === null,
-    'os quatro campos nascem vazios — a ata não os tem');
-  ok(a2.completude === 0, 'e a completude é zero');
-  ok(p.corpo.resumo.semAnotacao === 2, 'o resumo conta quantas faltam anotar');
+  ok((await editar(a2.id, { campo: 'cliente_nome', de: null, para: 'X' })).status === 400,
+    'cliente, tipo de reunião e núcleo não se editam — são a chave da carteira');
+  ok((await editar(a2.id, { campo: 'status', de: 'concluida', para: SAIU_DA_ATA })).status === 400,
+    '"saiu da ata" só a carga põe');
+  ok((await editar(a2.id, { campo: 'data_prevista', de: null, para: '2026-02-31' })).status === 400,
+    '31 de fevereiro é recusado');
+  ok((await editar(999, { campo: 'porque', de: null, para: 'x' })).status === 404, 'ação inexistente: 404');
 
-  const gravou = await ler(await planoPut(ctx(
-    '/api/plano-acao?carteira=607f1f77bcf86cd799439101&acao=2', env(),
-    {
-      porque: 'Ruptura recorrente no CD',
-      onde: 'CD Divinópolis',
-      como: 'Revisar curva ABC e recalcular o ponto de pedido',
-      quanto: 'R$ 0 — usa time interno',
-      descricao_vista: 'Revisar politica de estoque minimo'
-    })));
+  console.log('\n=== 11. A carga seguinte traz só o novo ===');
+  const nada = await carga();
+  const cursor = bd.prepare('SELECT carregado_ate FROM plano_carga').get().carregado_ate;
+  ok(nada.status === 200 && nada.corpo.passo.novas === 0 && nada.corpo.passo.alteradas === 0,
+    'sem reunião nova, nada muda', JSON.stringify(nada.corpo.passo));
+  const folga = (new Date(passos.at(-1).corpo.passo.ate) - new Date(nada.corpo.passo.desde)) / 86400000;
+  ok(Math.round(folga) === 14, 'a janela recua 14 dias do cursor, para a ata escrita depois', `${folga.toFixed(1)} dias`);
+  ok((await plano()).acoes.find((a) => a.numero === 2).status === 'concluida',
+    'a edição da CX sobreviveu à carga');
 
-  ok(gravou.status === 200 && gravou.corpo.ok, 'grava a anotação', `status=${gravou.status}`);
+  // Uma reunião nova, de três dias atrás. A ata:
+  //  - traz a AÇÃO 2 igual à anterior (a ata não mudou nada nela);
+  //  - muda o responsável da AÇÃO 3;
+  //  - acrescenta a AÇÃO 4.
+  const tresDias = new Date(Date.now() - 3 * 86400000).toISOString();
+  await fetch('http://127.0.0.1:8787/__reuniao', {
+    method: 'POST',
+    body: JSON.stringify({
+      id: '907f1f77bcf86cd799439499', nid: 90, title: 'Reuniao mensal Vale Verde',
+      status: 'finished', customer: '507f1f77bcf86cd799439012',
+      meetingType: '707f1f77bcf86cd799439201', startDate: tresDias,
+      participants: [], customerParticipants: [{ name: 'Roberto Nunes' }],
+      notes: `Atas Comercial Vale Verde - LOGISTICA
+18/09/26 - 09:00 - 10:00
+Formatar: Jair Tavares
+Cliente: Roberto Nunes
 
-  const p2 = await ler(await planoGet(ctx('/api/plano-acao', env())));
-  const a2b = p2.corpo.acoes.find((a) => a.numero === 2);
-  ok(a2b.porque === 'Ruptura recorrente no CD', 'Why volta na leitura');
-  ok(a2b.como === 'Revisar curva ABC e recalcular o ponto de pedido', 'How volta');
-  ok(a2b.completude === 4, 'completude passa a 4', `${a2b.completude}`);
-  ok(a2b.anotadoPor === 'jair@formatar.com.br', 'e quem anotou fica registrado');
-  ok(a2b.descricaoMudou === false, 'a descrição não mudou desde a anotação');
-  ok(p2.corpo.resumo.semAnotacao === 1, 'o resumo cai para uma sem anotação');
+1. Seguimento.
 
-  // Gravar de novo ATUALIZA, não duplica: o UNIQUE mais o ON CONFLICT.
-  const regravou = await ler(await planoPut(ctx(
-    '/api/plano-acao?carteira=607f1f77bcf86cd799439101&acao=2', env(),
-    { porque: 'Corrigido: ruptura no CD e no estoque avançado' })));
-  ok(regravou.status === 200, 'regravar responde 200');
+Plano de acao:
 
-  const linhas = bd.prepare(
-    "SELECT COUNT(*) AS n FROM acoes_cx WHERE carteira_erp_id = '607f1f77bcf86cd799439101' AND acao_numero = 2"
-  ).get();
-  ok(linhas.n === 1, 'e não duplica a linha', `n=${linhas.n}`);
+ACAO 2: Revisar politica de estoque minimo
+Resp.: Marina Alves
+Prazo: 15/08/26
+Status: Pendente desde 08/06/26
 
-  const p3 = await ler(await planoGet(ctx('/api/plano-acao', env())));
-  const a2c = p3.corpo.acoes.find((a) => a.numero === 2);
-  ok(a2c.porque === 'Corrigido: ruptura no CD e no estoque avançado', 'o texto novo vale');
-  ok(a2c.como === null,
-    'e os campos não enviados foram limpos — a gravação substitui a anotação inteira');
+ACAO 3: Contratar operador para o turno da noite
+Resp.: Carla Souza
+Prazo: 10/10/26
+Status: Repactuado em 20/08/26
 
-  console.log('\n=== 6. A ata mudou de texto depois da anotação ===');
-  bd.exec(`UPDATE acoes_cx SET descricao_vista = 'Texto antigo e diferente'
-           WHERE carteira_erp_id = '607f1f77bcf86cd799439101' AND acao_numero = 2`);
-  const p4 = await ler(await planoGet(ctx('/api/plano-acao', env())));
-  ok(p4.corpo.acoes.find((a) => a.numero === 2).descricaoMudou === true,
-    'a tela é avisada de que a ação mudou desde a anotação');
+ACAO 4: Treinar a equipe no novo WMS
+Resp.: Tiago Nunes
+Prazo: 30/10/26
+Status: Nova`
+    })
+  });
 
-  console.log('\n=== 7. Chave e parâmetros ===');
-  const semChave = await ler(await planoGet(ctx('/api/plano-acao', { DB })));
-  ok(semChave.status === 503 && semChave.corpo.code === 'HUB_SEM_CHAVE',
-    'sem chave, diz que falta a chave');
+  const nova = await carga();
+  ok(nova.corpo.passo.reunioes === 1, 'a carga leu só a reunião nova', String(nova.corpo.passo.reunioes));
+  ok(nova.corpo.passo.novas === 1, 'e criou uma ação — a 4');
 
-  const semCarteira = await ler(await planoPut(ctx('/api/plano-acao?acao=2', env(), { porque: 'x' })));
-  ok(semCarteira.status === 400 && semCarteira.corpo.code === 'CHAVE_OBRIGATORIA',
-    'PUT sem carteira é recusado');
+  const p2 = await plano();
+  const n2 = Object.fromEntries(p2.acoes.map((a) => [a.numero, a]));
+  ok(n2[4] && n2[4].numeroCliente === 4, 'a AÇÃO 4 ganhou o número seguinte do cliente', String(n2[4]?.numeroCliente));
+  ok(n2[2].status === 'concluida',
+    'a AÇÃO 2 continua Concluída: a ata repetiu o mesmo status, não o mudou');
+  ok(n2[3].responsavel === 'Carla Souza',
+    'a AÇÃO 3 mudou de responsável NA ATA — a ata vence a edição anterior da CX');
+  ok(n2[3].porque === 'Falta gente à noite' && n2[3].dataPrevista === '2026-11-30',
+    'e o que a ata não mudou continua como a CX deixou');
 
-  const acaoInvalida = await ler(await planoPut(
-    ctx('/api/plano-acao?carteira=abc&acao=0', env(), { porque: 'x' })));
-  ok(acaoInvalida.status === 400, 'número de ação zero é recusado');
+  const log3 = await historico(n2[3].id);
+  const pelaAta = log3.find((l) => l.campo === 'responsavel' && l.origem === 'ata');
+  ok(pelaAta && pelaAta.de === 'Beto (CX)' && pelaAta.para === 'Carla Souza' && pelaAta.reuniao_nid === 90,
+    'o log registra a troca pela ata, de "Beto (CX)" para "Carla Souza", reunião 90', JSON.stringify(pelaAta));
+  ok(!log3.some((l) => l.campo === 'data_prevista' && l.origem === 'ata'),
+    'e não registra mudança onde a ata não mudou nada');
 
-  // Anotar uma ação que o CRM nunca viu gravaria um 5W2H órfão, sem
-  // número e sem cliente.
-  const naoNumerada = await ler(await planoPut(
-    ctx('/api/plano-acao?carteira=607f1f77bcf86cd799439999&acao=1', env(), { porque: 'x' })));
-  ok(naoNumerada.status === 404 && naoNumerada.corpo.code === 'ACAO_NAO_NUMERADA',
-    'anotar ação nunca vista é recusado, dizendo o que fazer',
-    naoNumerada.corpo.error);
+  console.log('\n=== 12. Ata velha não passa por cima da nova ===');
+  // Volta o cursor dois meses: as reuniões 87 e 88 são relidas.
+  bd.exec("UPDATE plano_carga SET carregado_ate = '2026-08-01T00:00:00.000Z', completa = 0");
+  const antesLog = bd.prepare('SELECT COUNT(*) AS n FROM acoes_cx_log').get().n;
+  let releitura;
+  for (let i = 0; i < 5; i++) { releitura = await carga(); if (releitura.corpo.carga.completa) break; }
+  ok(bd.prepare('SELECT COUNT(*) AS n FROM acoes_cx_log').get().n === antesLog,
+    'reler atas antigas não gera nenhuma alteração');
+  ok((await plano()).acoes.find((a) => a.numero === 3).responsavel === 'Carla Souza',
+    'e o responsável continua o da ata mais nova');
 
-  console.log('\n=== 8. Resumo e ordenação ===');
-  ok(p.corpo.resumo.carteiras === 1, 'uma carteira com ata', `n=${p.corpo.resumo.carteiras}`);
-  ok(p.corpo.resumo.atrasadas === 1, 'uma ação atrasada');
-  ok(p.corpo.acoes[0].atrasada === true,
-    'a atrasada vem primeiro — a fila começa pelo que dói');
-  ok(Array.isArray(p.corpo.avisos), 'os avisos do parser chegam à tela');
-  ok(p.corpo.avisos.some((a) => /participante do cliente/i.test(a.aviso)),
-    'inclusive o de participante do cliente ausente',
-    p.corpo.avisos.map((a) => a.aviso).join(' | '));
+  console.log('\n=== 13. Uma carga por vez ===');
+  bd.exec(`UPDATE plano_carga SET travado_em = '${new Date().toISOString()}', travado_por = 'outra@formatar.com.br'`);
+  const travada = await carga();
+  ok(travada.status === 409 && travada.corpo.code === 'CARGA_EM_ANDAMENTO',
+    'a segunda carga simultânea é recusada', travada.corpo.error);
+  const editaTravada = await editar(n2[4].id, { campo: 'porque', de: null, para: 'x' });
+  ok(editaTravada.status === 423, 'e a edição espera a carga terminar');
 
-  console.log('\n=== 9. Permissoes faltantes, TODAS de uma vez ===');
+  bd.exec(`UPDATE plano_carga SET travado_em = '${new Date(Date.now() - 10 * 60000).toISOString()}'`);
+  ok((await carga()).status === 200, 'trava de mais de 3 minutos é de carga que morreu, e expira');
 
-  // Com Promise.all a primeira falha derrubava o resto e o usuario
-  // descobria uma permissao por vez. Aqui as cinco fontes sao tentadas.
+  console.log('\n=== 14. A regra de quem vence, isolada ===');
+  const base = {
+    descricao: 'A', responsavel: 'CX', prazo: null, data_prevista: null, status: 'concluida',
+    descricao_ata: 'A', responsavel_ata: 'Ata', prazo_ata: null, data_prevista_ata: null, status_ata: 'pendente'
+  };
+  const m1 = mesclar(base, { descricao: 'A', responsavel: 'Ata', status: 'pendente' });
+  ok(m1.linha.responsavel === 'CX' && m1.linha.status === 'concluida' && m1.mudancas.length === 0,
+    'ata igual à sombra: a CX vence');
+  const m2 = mesclar(base, { descricao: 'A', responsavel: 'Ata', status: SAIU_DA_ATA });
+  ok(m2.linha.status === 'concluida', 'ação concluída pela CX que sai da ata continua concluída');
+  const m3 = mesclar(base, { descricao: 'A', responsavel: 'Outro', status: 'pendente' });
+  ok(m3.linha.responsavel === 'Outro' && m3.mudancas[0].de === 'CX', 'ata diferente da sombra: a ata vence');
+
+  console.log('\n=== 15. Permissões faltantes, TODAS de uma vez ===');
   duble.kill();
   await new Promise((r) => setTimeout(r, 400));
-  const semPerm = await subirDuble(['--sem-permissao']);
+  duble = await subirDuble(['--sem-permissao']);
 
-  const bloqueado = await ler(await planoGet(ctx('/api/plano-acao', env())));
-  // 503 desde a v2.23.0: com 403, o front entendia "acesso revogado" e
-  // expulsava o usuario do CRM ao abrir esta tela.
+  const bloqueado = await carga();
   ok(bloqueado.status === 503 && bloqueado.corpo.code === 'HUB_SEM_PERMISSAO',
-    'responde 503 com codigo legivel, e nao 403', `status=${bloqueado.status}`);
-  ok(Array.isArray(bloqueado.corpo.permissoesFaltando),
-    'e lista as permissoes que faltam');
-  ok(bloqueado.corpo.permissoesFaltando.length >= 3,
-    'TODAS de uma vez, nao so a primeira',
-    bloqueado.corpo.permissoesFaltando.join(', '));
-  for (const p of ['hub:portfolios:read', 'hub:meetings:read', 'hub:meeting-types:read', 'hub:teams:read']) {
-    ok(bloqueado.corpo.permissoesFaltando.includes(p), `inclui ${p}`);
+    'responde 503 com código legível, e não 403', `status=${bloqueado.status}`);
+  for (const perm of ['hub:portfolios:read', 'hub:meetings:read', 'hub:meeting-types:read', 'hub:teams:read']) {
+    ok((bloqueado.corpo.permissoesFaltando || []).includes(perm), `inclui ${perm}`);
   }
-  ok(Array.isArray(bloqueado.corpo.fontes) && bloqueado.corpo.fontes.length >= 3,
-    'e diz quais fontes falharam', (bloqueado.corpo.fontes || []).join(', '));
-  semPerm.kill();
+  ok(bd.prepare('SELECT travado_em FROM plano_carga').get().travado_em === null,
+    'a trava é solta mesmo quando o hub falha');
+  ok((await plano()).acoes.length === 4, 'e o plano gravado continua legível com o hub fora');
 
-  console.log('\n=== 10. Nome dos documentos ===');
+  console.log('\n=== 16. Nome dos documentos ===');
 
   // Desde a v2.23.0 a CAIXA ALTA do ERP vira capitalizada: `ALPHATEX`
   // grita num nome de arquivo. Siglas de ate 3 letras ficam intactas.

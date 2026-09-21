@@ -1,15 +1,23 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 15/09/2026
-**Versão no ar:** 2.23.2 · **pronta para subir:** 2.24.0
+**Atualizado em:** 21/09/2026
+**Versão no ar:** 2.23.2 · **prontas para subir:** 2.24.0 e 2.25.0
+
+**A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
+Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
+plano. Ver o [manual](Manuais/Manual-Plano-Gravado-CRM-FMT-v1.0.md).
 
 **Migrações:** 008, 009 e 010 aplicadas e conferidas no D1 remoto. **A
 011 está PENDENTE** — o token `wrangler` desta máquina não tem escopo de
 D1 (erro 7403). A 2.23.0 é segura sem ela: sem a coluna, o dossiê trata
 como "o CRM não sabe", que é a verdade de hoje. **A 2.24.0 não tem
-migração** — a 012, da Fase 3, entra na mesma fila da 011.
+migração**. A Fase 3 da 2.24.0 passou a ser a migração **013**: a 012
+foi tomada pela 2.25.0.
 
-**Da chave do hub falta UMA permissão: `hub:portfolios:read`.** As outras
+**`hub:portfolios:read` foi concedida:** o print do Plano de Ação de
+21/09/2026 mostra 608 carteiras lidas. O parágrafo abaixo é histórico.
+
+**Da chave do hub faltava UMA permissão: `hub:portfolios:read`.** As outras
 quatro (`customers`, `meetings`, `meeting-types`, `teams`) foram
 concedidas e estão provadas em produção. A que falta bloqueia só o Plano
 de Ação — e **não é tarefa na Cloudflare**: a chave está lá e funciona, o
@@ -51,6 +59,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.23.0** | **A sessão para de cair** (403 do hub não é mais expulsão), guarda contra afirmação sem fonte no dossiê, `etapa_desde` (migração 011) e nome de arquivo pelo fantasia |
 | — | **2.23.2** | **A importação lê a planilha que existe** — uma aba só com aviso que ensina a reexibir a oculta, cabeçalho procurado em vez de assumido na linha 1, `.xls`/`.xlsb`, modelo gerado no navegador, etapa vinda do `Status2` e etapas novas confirmadas na prévia |
 | — | **2.24.0** | **A conta é do ERP, o CRM anota por cima** — identidade, classificação, pessoas e núcleos lidos ao vivo do hub no Dossiê de Experiência; três estados em vez de dois (tem / não tem / **não perguntei**) e guarda em código contra afirmar o vazio não conferido |
+| — | **2.25.0** | **O plano de ação é gravado e se edita** — tabela compacta, todo campo editável com um clique, histórico de cada alteração (quem, quando, de → para, à mão ou pela ata), e carga incremental: só as reuniões novas desde a última carga (migração 012). Absorve o "Lote 6" corretivo |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -69,11 +78,12 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 | Versao | Entrega | Depende de |
 |---|---|---|
 | **2.24.0 — ENTREGUE em 15/09/2026, Fases 1 e 2** | **Identidade do ERP, avaliacao do CRM** — as pessoas vem do `contacts` de `/customers` e a ligacao delas com o nucleo sai do `customerParticipants` das reunioes; o CRM nao cria nem renomeia pessoa. Nucleo, no dossie, e o **Time** | nada — as quatro permissoes ja estavam na chave |
-| **Fase 3 (proxima versao)** | **Migracao 012** — aposentar o campo de nucleos da ficha e o cadastro de **Papeis** (vale o Cargo do ERP), e amarrar influencia/postura ao id do contato do ERP em vez de casar por e-mail em tempo de leitura | escopo de D1 no `wrangler`, e o `contacts` ter id estavel — que a primeira geracao real responde |
-| **2.25.0** | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
+| **Fase 3 (proxima versao)** | **Migracao 013** (era 012; a 2.25.0 tomou o número) — aposentar o campo de nucleos da ficha e o cadastro de **Papeis** (vale o Cargo do ERP), e amarrar influencia/postura ao id do contato do ERP em vez de casar por e-mail em tempo de leitura | escopo de D1 no `wrangler`, e o `contacts` ter id estavel — que a primeira geracao real responde |
+| **2.26.0** (era 2.25.0) | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
 
-A 2.25.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
-inverte.
+A 2.26.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
+inverte. Com o plano gravado (2.25.0), ela pode ler as acoes do banco em
+vez de reler as atas.
 
 **Reversao registrada:** em 05/09 eu deixei `contacts` fora do `fields`
 do `/customers`, com a justificativa de que "a ficha do CRM tem os seus".

@@ -3,64 +3,54 @@
  *
  * Autenticação garantida pelo _middleware.js.
  *
- * GET                      todas as ações abertas, de todas as carteiras
- * GET ?cliente_erp_id=...  só as de um cliente
- * GET ?desde=AAAA-MM-DD    janela de reuniões considerada
- * PUT ?carteira=...&acao=N grava o 5W2H que a CX preencheu
+ * GET                  as ações GRAVADAS no CRM, e até onde a carga chegou
+ * GET ?log=ID          o histórico de alterações de uma ação
+ * POST ?carga=1        um passo da carga: lê no ERP as reuniões novas
+ * PATCH ?id=ID         altera UM campo de uma ação, com registro no log
  *
- * COMO O PLANO É MONTADO
+ * O PLANO É GRAVADO (2.25.0, migração 012)
  *
- * A ata inteira vive no campo `notes` da reunião, no ERP. Este endpoint
- * lista as reuniões REALIZADAS, lê a ata de cada uma com o parser do
- * `_lib/ata.js` e devolve as ações.
+ * Até a 2.24.0 cada abertura da tela relia seis meses de atas no ERP.
+ * Era lento, estourava o teto de páginas do hub e não deixava editar
+ * nada. Agora a primeira carga lê os seis meses em janelas de um mês, e
+ * as seguintes pedem ao hub só as reuniões desde a última carga. O GET
+ * nunca fala com o hub: lê o banco.
  *
- * A ação vale enquanto está no plano. O manual v2.3 diz que ação
- * concluída ou cancelada **sai** do plano e fica registrada só no
- * contexto — então a ata mais recente de cada carteira é a verdade
- * corrente, e as anteriores servem para saber desde quando a ação vem
- * se arrastando.
+ * A ata inteira vive no campo `notes` da reunião. A carga lê as atas
+ * das reuniões REALIZADAS com o parser do `_lib/ata.js` e mescla cada
+ * ação com o que está gravado — a regra de quem vence está no cabeçalho
+ * do `_lib/plano.js`.
  *
  * A NUMERAÇÃO POR CLIENTE
  *
- * Na ata, a sequência de ações é por tipo de reunião: o Comercial tem as
- * suas 1, 2, 3 e o Financeiro tem as dele, também a partir de 1. Num
- * cliente com três carteiras isso produz três "AÇÃO 1".
+ * Na ata a sequência de ações é por tipo de reunião; o CRM dá um número
+ * corrido por CLIENTE, atribuído na primeira vez que a ação é vista e
+ * nunca reaproveitado. O identificador fica `N.M`.
  *
- * O CRM dá um número por CLIENTE, corrido. O identificador fica `N.M`:
- * N é o número do cliente, M é o da ação no tipo de reunião.
+ * TUDO SE EDITA, E TUDO FICA REGISTRADO
  *
- * Ele é ATRIBUÍDO na primeira vez que a ação é vista e gravado — nunca
- * calculado na hora. Calculado, renumeraria sozinho quando uma ação
- * fechasse, e "Alphatex ação 2" mudaria de significado na semana
- * seguinte.
- *
- * **Consequência assumida: este GET escreve.** Abrir a tela pela
- * primeira vez atribui os números que faltam.
- *
- * A FRONTEIRA DO 5W2H
- *
- * A ata dá três dos sete campos: What (a descrição), Who (`Resp.:`) e
- * When (`Prazo:`). Why, Where, How e How much **não existem no texto** e
- * são preenchidos pela CX, guardados em `acoes_cx` e amarrados a
- * (carteira + número da ação).
+ * Os campos da ata (descrição, responsável, quando, data prevista,
+ * status) e os que a CX preenche (por quê, onde, como, quanto,
+ * observações). Cada alteração grava uma linha em `acoes_cx_log`: quem,
+ * quando, o campo, de que valor para que valor, e se foi a CX ou a ata.
  *
  * Não há IA nesta rota. Contar ações e ler estrutura de texto regular
- * tem resposta certa; pedir isso a um modelo seria trocar uma resposta
- * exata por uma provável, num plano que as pessoas cobram umas das
- * outras.
+ * tem resposta certa.
  *
  * O QUE NUNCA SAI DAQUI
  *
  * As notas privadas do consultor — as linhas finais em CAIXA ALTA — e o
- * `technicalNotes` da reunião. O parser separa as primeiras em campo
- * próprio e esta rota não as devolve; o segundo nem é pedido ao hub.
+ * `technicalNotes` da reunião. O parser separa as primeiras e nada da
+ * ata além das ações é gravado; o segundo nem é pedido ao hub.
  */
 
 import {
   listarCarteiras, listarReunioes, listarClientesDoHub,
   mapaDeTiposDeReuniao, mapaDeTimes, ErroHub
 } from './_lib/hub.js';
-import { lerAta } from './_lib/ata.js';
+import {
+  aplicarReunioes, linhaParaTela, validarCampo, COLUNAS_DA_CARGA
+} from './_lib/plano.js';
 
 function json(objeto, status, cabecalhos) {
   return new Response(JSON.stringify(objeto), { status, headers: cabecalhos });
@@ -123,325 +113,356 @@ function erroDasFontes(falhas, cabecalhos) {
   return erroDoHub(falhas[0].erro, cabecalhos);
 }
 
-/**
- * Quantos meses de reunião olhar para trás, por padrão.
- *
- * Seis meses cobre com folga a carteira mensal e a quinzenal. Ir mais
- * longe custaria páginas do hub para achar ações que, se ainda
- * estivessem abertas, teriam reaparecido numa ata recente — porque ação
- * aberta reaparece em toda ata da carteira até ser encerrada.
- */
-const MESES_PADRAO = 6;
-
-function inicioDaJanela(meses = MESES_PADRAO) {
-  const d = new Date();
-  d.setUTCMonth(d.getUTCMonth() - meses);
-  return d.toISOString();
-}
-
 /* ==========================================================================
-   NUMERAÇÃO POR CLIENTE
-
-   Atribui, para cada ação ainda sem número, o próximo livre do seu
-   cliente. Nunca reaproveita: o `MAX + 1` conta inclusive as ações já
-   encerradas, cujas linhas continuam aqui.
+   A CARGA — constantes
    ========================================================================== */
 
-async function atribuirNumeros(db, linhas, usuario) {
-  // Só quem tem carteira resolvida. Sem ela não há chave estável, e um
-  // número amarrado a uma chave que muda se perderia junto com ela.
-  const semNumero = linhas.filter((l) => l.carteiraErpId && l.numeroCliente == null);
-  if (semNumero.length === 0) return;
+const DIA = 86400000;
 
-  // Ordem determinística: duas pessoas abrindo a tela ao mesmo tempo
-  // percorrem a mesma sequência, em vez de dependerem de qual página do
-  // hub chegou antes.
-  semNumero.sort((a, b) =>
-    String(a.clienteErpId).localeCompare(String(b.clienteErpId))
-    || String(a.carteiraErpId).localeCompare(String(b.carteiraErpId))
-    || a.numero - b.numero
-  );
+/**
+ * A primeira carga olha seis meses para trás. Cobre com folga a carteira
+ * mensal e a quinzenal: ação aberta reaparece em toda ata da carteira até
+ * ser encerrada, então o que está aberto está numa ata recente.
+ */
+const MESES_PRIMEIRA_CARGA = 6;
 
-  const agora = new Date().toISOString();
+/** Cada passo da carga pede ao hub no máximo um mês de reuniões. */
+const JANELA_DIAS = 31;
 
-  // Duas tentativas: na colisão do UNIQUE (cliente, numero) — outra
-  // pessoa atribuiu no intervalo — recalcula o próximo e refaz.
-  for (let tentativa = 0; tentativa < 2; tentativa++) {
-    const pendentes = semNumero.filter((l) => l.numeroCliente == null);
-    if (pendentes.length === 0) return;
+/**
+ * Depois da primeira carga, cada passo recua catorze dias antes do
+ * cursor. A ata é escrita DEPOIS da reunião — às vezes dias depois —, e o
+ * hub filtra pela data da reunião. Sem a folga, a reunião de ontem cuja
+ * ata saiu hoje nunca seria lida. Reler é inofensivo: a mescla é
+ * idempotente e `plano_carteiras` impede a ata velha de passar por cima
+ * da nova.
+ */
+const FOLGA_DIAS = 14;
 
-    // O próximo número de cada cliente, uma consulta por cliente.
-    const proximo = new Map();
-    for (const clienteId of new Set(pendentes.map((l) => l.clienteErpId))) {
-      const linha = await db
-        .prepare('SELECT COALESCE(MAX(numero_cliente), 0) AS n FROM acoes_cx WHERE cliente_erp_id = ?')
-        .bind(clienteId)
-        .first();
-      proximo.set(clienteId, Number(linha?.n || 0) + 1);
-    }
+/** Carga travada há mais que isso morreu no meio; a trava expira. */
+const TRAVA_MS = 3 * 60 * 1000;
 
-    const comandos = [];
-    const atribuidos = [];
+/**
+ * Linhas por comando. Cada comando manda as linhas como UM parâmetro
+ * JSON, lido no SQL com `json_each`. O D1 limita a 100 parâmetros por
+ * comando: um INSERT de vinte colunas com parâmetro por coluna caberia
+ * cinco linhas, e 1900 ações virariam centenas de comandos — foi assim
+ * que a numeração da 2.21.0 falhou calada em produção, com as ações
+ * aparecendo como "AÇÃO 8" em vez de "N.8".
+ */
+const LINHAS_POR_COMANDO = 150;
 
-    for (const l of pendentes) {
-      const n = proximo.get(l.clienteErpId);
-      proximo.set(l.clienteErpId, n + 1);
-      atribuidos.push([l, n]);
+const alterou = (r) => Number(r?.meta?.changes ?? r?.changes ?? 0);
 
-      comandos.push(db
-        .prepare(
-          `INSERT INTO acoes_cx
-             (cliente_erp_id, carteira_erp_id, acao_numero, numero_cliente, criado_por, criado_em)
-           VALUES (?, ?, ?, ?, ?, ?)`
-        )
-        .bind(l.clienteErpId, l.carteiraErpId, l.numero, n, usuario.email, agora));
-    }
+const emLotes = (lista, n = LINHAS_POR_COMANDO) => {
+  const lotes = [];
+  for (let i = 0; i < lista.length; i += n) lotes.push(lista.slice(i, i + n));
+  return lotes;
+};
 
-    try {
-      await db.batch(comandos);
-      atribuidos.forEach(([l, n]) => { l.numeroCliente = n; });
-      return;
+const travaViva = (carga, agora = Date.now()) =>
+  !!carga?.travado_em && new Date(carga.travado_em).getTime() > agora - TRAVA_MS;
 
-    } catch (e) {
-      // O lote é transacional: ou entrou tudo, ou nada. Reler diz o que
-      // já existe — inclusive o que outra pessoa acabou de criar.
-      const { results } = await db
-        .prepare('SELECT carteira_erp_id, acao_numero, numero_cliente FROM acoes_cx')
-        .all();
+function estadoDaCarga(carga) {
+  return {
+    carregadoAte: carga?.carregado_ate || null,
+    completa: !!carga?.completa,
+    ultimaCargaEm: carga?.ultima_carga_em || null,
+    ultimaCargaPor: carga?.ultima_carga_por || null,
+    emAndamento: travaViva(carga),
+    emAndamentoPor: travaViva(carga) ? carga.travado_por : null
+  };
+}
 
-      const porChave = new Map(
-        (results || []).map((r) => [`${r.carteira_erp_id}::${r.acao_numero}`, r.numero_cliente])
-      );
-
-      for (const l of semNumero) {
-        const achado = porChave.get(`${l.carteiraErpId}::${l.numero}`);
-        if (achado != null) l.numeroCliente = achado;
-      }
-
-      if (tentativa === 1) {
-        // Desistiu de numerar, mas não de mostrar: a ação aparece sem
-        // identificador, o que é melhor que sumir da fila.
-        return;
-      }
-    }
+/** A tabela ou a coluna não existe: a migração 012 não foi aplicada. */
+function faltaMigracao(e, cabecalhos) {
+  if (/no such (table|column)/i.test(String(e?.message))) {
+    return json({
+      error: 'O banco ainda não tem a migração 012 (plano de ação gravado). Aplique db/migracao-012-plano-gravado.sql.',
+      code: 'SEM_MIGRACAO_012'
+    }, 503, cabecalhos);
   }
+  return null;
 }
 
 /* ==========================================================================
-   GET
+   GET — lê o banco. Nunca fala com o hub.
    ========================================================================== */
 
 export async function onRequestGet(context) {
   const cabecalhos = context.data.cabecalhos;
-  const env = context.env;
-  const db = env.DB;
+  const db = context.env.DB;
   const { searchParams } = new URL(context.request.url);
 
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
 
-  const clienteErpId = searchParams.get('cliente_erp_id') || null;
-  const desde = searchParams.get('desde') || inicioDaJanela();
-
   try {
-    // As cinco fontes do ERP, em paralelo.
-    //
-    // `allSettled`, não `all`: com `all` a primeira que falha derruba o
-    // resto, e o usuário descobre UMA permissão faltante por vez — corrige
-    // carteiras, recarrega, descobre reuniões, e assim por diante. Uma
-    // viagem por permissão. Aqui todas são tentadas e o erro lista as que
-    // faltam de uma vez.
-    const fontes = await Promise.allSettled([
-      listarCarteiras(env, { clienteErpId }),
-      listarReunioes(env, { clienteErpId, desde }),
-      listarClientesDoHub(env, { status: 'active' }),
-      mapaDeTiposDeReuniao(env),
-      mapaDeTimes(env)
-    ]);
-
-    const falhas = fontes
-      .map((f, i) => (f.status === 'rejected' ? { erro: f.reason, qual: NOMES_DAS_FONTES[i] } : null))
-      .filter(Boolean);
-
-    if (falhas.length) return erroDasFontes(falhas, cabecalhos);
-
-    const [{ carteiras }, { reunioes, truncado }, { clientes }, tiposDeReuniao, times] =
-      fontes.map((f) => f.value);
-
-    const { results } = await db.prepare('SELECT * FROM acoes_cx').all();
-    const anotacoes = new Map(
-      (results || []).map((a) => [`${a.carteira_erp_id}::${a.acao_numero}`, a])
-    );
-
-    const nomeDoCliente = new Map(clientes.map((c) => [c.erp_id, c.nome]));
-
-    // A carteira de uma reunião é a que casa cliente E tipo de reunião —
-    // é a definição de carteira, e é por isso que a chave da anotação é
-    // a carteira e não o cliente: o mesmo cliente pode ter três, cada
-    // uma com a sua numeração de ações.
-    const carteiraDe = new Map(
-      carteiras.map((c) => [`${c.clienteErpId}::${c.nucleoErpId}`, c])
-    );
-
-    /* ---- as reuniões, agrupadas por carteira, da mais nova para a mais
-       velha (a ordenação padrão do hub já é essa) ---- */
-    const porCarteira = new Map();
-
-    for (const r of reunioes) {
-      if (!r.ata) continue;   // reunião realizada sem ata escrita
-
-      const chave = `${r.clienteErpId}::${r.nucleoErpId}`;
-      if (!porCarteira.has(chave)) porCarteira.set(chave, []);
-      porCarteira.get(chave).push(r);
+    /* ---- o histórico de uma ação ---- */
+    if (searchParams.has('log')) {
+      const id = Number(searchParams.get('log'));
+      if (!Number.isInteger(id) || id <= 0) {
+        return json({ error: 'Informe a ação.', code: 'ID_OBRIGATORIO' }, 400, cabecalhos);
+      }
+      const { results } = await db
+        .prepare(
+          `SELECT campo, de, para, origem, reuniao_nid, por, por_nome, em
+             FROM acoes_cx_log WHERE acao_id = ? ORDER BY em DESC, id DESC`
+        )
+        .bind(id)
+        .all();
+      return json({ log: results || [] }, 200, cabecalhos);
     }
 
-    const linhas = [];
-    const avisos = [];
+    /* ---- o plano ---- */
+    // `status IS NULL` é linha da 010 que nenhuma carga ainda completou:
+    // só tem a numeração. A primeira carga a preenche.
+    const { results } = await db.prepare('SELECT * FROM acoes_cx WHERE status IS NOT NULL').all();
+    const carga = await db.prepare('SELECT * FROM plano_carga WHERE id = 1').first();
 
-    for (const [chave, listaReunioes] of porCarteira) {
-      const carteira = carteiraDe.get(chave) || null;
-
-      // A ata mais recente manda: ação encerrada some do plano, então o
-      // que está na última ata é o que continua aberto.
-      const maisRecente = listaReunioes[0];
-      const lida = lerAta(maisRecente.ata);
-
-      lida.avisos.forEach((a) => avisos.push({
-        reuniao: maisRecente.erp_nid,
-        cliente: nomeDoCliente.get(maisRecente.clienteErpId) || lida.cabecalho.cliente,
-        aviso: a
-      }));
-
-      // Desde quando cada ação aparece nas atas da carteira. O status da
-      // ata já traz "desde", mas nem toda ação o tem — e a primeira
-      // aparição é um piso confiável para "há quanto tempo se arrasta".
-      const primeiraAparicao = new Map();
-      for (const r of listaReunioes) {
-        const anterior = lerAta(r.ata);
-        for (const acao of anterior.acoes) {
-          primeiraAparicao.set(acao.id, r.inicio);
-        }
-      }
-
-      for (const acao of lida.acoes) {
-        const carteiraId = carteira?.erp_id || null;
-        const anotacao = carteiraId
-          ? anotacoes.get(`${carteiraId}::${acao.id}`)
-          : null;
-
-        linhas.push({
-          // --- Quem é ---
-          carteiraErpId: carteiraId,
-          carteiraNid: carteira?.erp_nid ?? null,
-          clienteErpId: maisRecente.clienteErpId,
-          cliente: nomeDoCliente.get(maisRecente.clienteErpId) || lida.cabecalho.cliente,
-
-          // O núcleo vem do ERP; o cabeçalho da ata é a reserva. O ERP é
-          // dono do nome — se o consultor escreveu "LOGISTICA" e o
-          // cadastro diz "Logística", vale o cadastro.
-          nucleo: tiposDeReuniao.get(maisRecente.nucleoErpId)?.nome
-                  || lida.cabecalho.nucleo,
-          nucleoErpId: maisRecente.nucleoErpId,
-
-          timeErpId: tiposDeReuniao.get(maisRecente.nucleoErpId)?.timeErpId || null,
-          time: times.get(
-            tiposDeReuniao.get(maisRecente.nucleoErpId)?.timeErpId
-          )?.nome || null,
-
-          reuniaoErpId: maisRecente.erp_id,
-          reuniaoNid: maisRecente.erp_nid,
-          reuniaoEm: maisRecente.inicio,
-
-          // --- O que a ata diz. Não se edita. ---
-          // O M do identificador `N.M`: o número da ação no tipo de reunião.
-          numero: acao.id,
-          // O N. Nulo aqui significa "ainda não atribuído" — quem atribui
-          // é o `atribuirNumeros`, logo depois de a lista estar montada.
-          numeroCliente: anotacao?.numero_cliente ?? null,
-
-          oQue: acao.descricao,
-          quem: acao.responsavel,
-          quando: acao.prazo,
-          quandoBruto: acao.prazoBruto,
-
-          status: acao.statusTipo,
-          statusBruto: acao.status?.bruto || null,
-          statusDesde: acao.statusDesde,
-          diasEmAberto: acao.diasEmAberto,
-          diasDeAtraso: acao.diasDeAtraso,
-          atrasada: acao.atrasada,
-
-          desdeAAta: primeiraAparicao.get(acao.id) || maisRecente.inicio,
-
-          // --- O que a CX anota por cima. Editável. ---
-          porque: anotacao?.porque || null,
-          onde: anotacao?.onde || null,
-          como: anotacao?.como || null,
-          quanto: anotacao?.quanto || null,
-          observacoes: anotacao?.observacoes || null,
-
-          anotadoPor: anotacao?.atualizado_por || anotacao?.criado_por || null,
-          anotadoEm: anotacao?.atualizado_em || anotacao?.criado_em || null,
-
-          // A ata mudou de texto desde a anotação? A tela avisa, em vez
-          // de mostrar um "Como" que responde a outra pergunta.
-          descricaoMudou: !!(anotacao?.descricao_vista
-            && anotacao.descricao_vista !== acao.descricao),
-
-          // Quantos dos quatro campos a CX já preencheu.
-          completude: ['porque', 'onde', 'como', 'quanto']
-            .filter((c) => anotacao?.[c]).length
-        });
-      }
-    }
-
-    // Ação vista pela primeira vez ganha o seu número de cliente agora.
-    // É a única escrita desta rota de leitura, e está documentada no
-    // cabeçalho do arquivo.
-    await atribuirNumeros(db, linhas, context.data.usuario);
+    const hoje = new Date();
+    const acoes = (results || []).map((l) => linhaParaTela(l, hoje));
 
     // Primeiro o que dói: atrasado, depois o que se arrasta há mais tempo.
-    linhas.sort((a, b) =>
-      (b.atrasada ? 1 : 0) - (a.atrasada ? 1 : 0)
+    acoes.sort((a, b) =>
+      (b.aberta ? 1 : 0) - (a.aberta ? 1 : 0)
+      || (b.atrasada ? 1 : 0) - (a.atrasada ? 1 : 0)
       || (b.diasDeAtraso || 0) - (a.diasDeAtraso || 0)
       || (b.diasEmAberto || 0) - (a.diasEmAberto || 0)
       || String(a.cliente || '').localeCompare(String(b.cliente || ''), 'pt-BR')
+      || (a.numeroCliente || 0) - (b.numeroCliente || 0)
     );
 
-    return json({
-      acoes: linhas,
-      resumo: {
-        total: linhas.length,
-        atrasadas: linhas.filter((a) => a.atrasada).length,
-        semResponsavel: linhas.filter((a) => !a.quem).length,
-        semPrazo: linhas.filter((a) => !a.quando).length,
-        semAnotacao: linhas.filter((a) => a.completude === 0).length,
-        times: new Set(linhas.map((a) => a.time).filter(Boolean)).size,
-        carteiras: porCarteira.size,
-        clientes: new Set(linhas.map((a) => a.clienteErpId)).size
-      },
-      janelaDesde: desde,
-      avisos,
-      // Se a janela cortou páginas do hub, a tela precisa dizer que a
-      // lista pode estar incompleta em vez de deixar sumir ação.
-      truncado
-    }, 200, cabecalhos);
+    return json({ acoes, carga: estadoDaCarga(carga) }, 200, cabecalhos);
 
   } catch (e) {
-    return erroDoHub(e, cabecalhos);
+    return faltaMigracao(e, cabecalhos)
+      || json({ error: 'Falha ao ler o plano de ação.', details: e.message }, 500, cabecalhos);
   }
 }
 
 /* ==========================================================================
-   PUT — a CX preenche os quatro campos que a ata não tem
+   POST ?carga=1 — um passo da carga
+
+   Um passo lê UMA janela de até um mês. A primeira carga (seis meses)
+   são uns oito passos; a tela os encadeia até `carga.completa`. Passos
+   curtos cabem no tempo de uma requisição e não estouram o teto de
+   páginas do hub — o que a leitura de seis meses de uma vez fazia.
    ========================================================================== */
 
-const texto = (v, limite = 2000) => {
-  if (v == null) return null;
-  const t = String(v).trim();
-  return t ? t.slice(0, limite) : null;
-};
+/**
+ * As reuniões da janela. Se a janela estourar o teto de páginas do hub,
+ * encolhe pela metade e tenta de novo: o hub devolve da mais nova para a
+ * mais velha, e o que ele corta são justamente as mais velhas.
+ */
+async function reunioesDaJanela(env, desde, ate) {
+  let fim = ate;
+  for (let tentativa = 0; ; tentativa++) {
+    const r = await listarReunioes(env, { desde: desde.toISOString(), ate: fim.toISOString() });
+    if (!r.truncado || fim - desde <= DIA || tentativa === 4) return { ...r, ate: fim };
+    fim = new Date(desde.getTime() + Math.floor((fim - desde) / 2));
+  }
+}
 
-export async function onRequestPut(context) {
+async function passoDaCarga(env, db, usuario, cabecalhos, agora) {
+  const carga = await db.prepare('SELECT * FROM plano_carga WHERE id = 1').first();
+
+  let desde;
+  if (!carga?.carregado_ate) {
+    desde = new Date(agora);
+    desde.setUTCMonth(desde.getUTCMonth() - MESES_PRIMEIRA_CARGA);
+  } else {
+    desde = new Date(new Date(carga.carregado_ate).getTime() - (carga.completa ? FOLGA_DIAS * DIA : 0));
+  }
+  const ate = new Date(Math.min(desde.getTime() + JANELA_DIAS * DIA, agora.getTime()));
+
+  const fontes = await Promise.allSettled([
+    listarCarteiras(env),
+    reunioesDaJanela(env, desde, ate),
+    listarClientesDoHub(env, { status: 'active' }),
+    mapaDeTiposDeReuniao(env),
+    mapaDeTimes(env)
+  ]);
+
+  const falhas = fontes
+    .map((f, i) => (f.status === 'rejected' ? { erro: f.reason, qual: NOMES_DAS_FONTES[i] } : null))
+    .filter(Boolean);
+  if (falhas.length) return erroDasFontes(falhas, cabecalhos);
+
+  const [{ carteiras }, janela, { clientes }, tiposDeReuniao, times] = fontes.map((f) => f.value);
+
+  const { results: gravadas } = await db.prepare('SELECT * FROM acoes_cx').all();
+  const { results: jaAplicadas } = await db.prepare('SELECT * FROM plano_carteiras').all();
+
+  const r = aplicarReunioes(
+    gravadas || [],
+    new Map((jaAplicadas || []).map((a) => [a.carteira_erp_id, a])),
+    janela.reunioes,
+    {
+      carteiraDe: new Map(carteiras.map((c) => [`${c.clienteErpId}::${c.nucleoErpId}`, c])),
+      nomeDoCliente: new Map(clientes.map((c) => [c.erp_id, c.nome])),
+      tiposDeReuniao,
+      times
+    }
+  );
+
+  /* ---- a gravação, num lote só: ou entra tudo, ou nada ---- */
+  const agoraIso = agora.toISOString();
+  // Uma versão para tudo o que ESTA carga escreveu. É por ela que o log
+  // encontra as linhas — inclusive as novas, cujo id só existe depois do
+  // INSERT — e deixa de fora a linha que a CX editou no meio da carga.
+  const versao = crypto.randomUUID();
+  const comandos = [];
+
+  const colunasNovas = [
+    'cliente_erp_id', 'carteira_erp_id', 'acao_numero', 'numero_cliente',
+    ...COLUNAS_DA_CARGA, 'versao', 'criado_por', 'criado_em'
+  ];
+  const ext = (c, alias = 'value') => `json_extract(${alias}, '$.${c}')`;
+
+  for (const lote of emLotes(r.novas)) {
+    comandos.push(db
+      .prepare(
+        `INSERT INTO acoes_cx (${colunasNovas.join(', ')})
+         SELECT ${colunasNovas.map((c) => ext(c)).join(', ')} FROM json_each(?)`
+      )
+      .bind(JSON.stringify(lote.map((l) => ({ ...l, versao, criado_por: usuario.email, criado_em: agoraIso })))));
+  }
+
+  // UPDATE só se a linha ainda está como a carga a leu. Se a CX editou
+  // no meio, a edição dela fica, e a ata é reaplicada na próxima vez que
+  // mudar.
+  const colunasAlteradas = [...COLUNAS_DA_CARGA, 'versao'];
+  for (const lote of emLotes(r.alteradas)) {
+    comandos.push(db
+      .prepare(
+        `UPDATE acoes_cx
+            SET ${colunasAlteradas.map((c) => `${c} = ${ext(c, 'j.value')}`).join(', ')}
+           FROM json_each(?) AS j
+          WHERE acoes_cx.id = ${ext('id', 'j.value')}
+            AND acoes_cx.versao IS ${ext('versao_lida', 'j.value')}`
+      )
+      .bind(JSON.stringify(lote.map((l) => ({ ...l, versao })))));
+  }
+
+  for (const lote of emLotes(r.logs)) {
+    comandos.push(db
+      .prepare(
+        `INSERT INTO acoes_cx_log (acao_id, campo, de, para, origem, reuniao_nid, por, por_nome, em)
+         SELECT a.id, ${['campo', 'de', 'para'].map((c) => ext(c, 'j.value')).join(', ')},
+                'ata', ${ext('reuniao_nid', 'j.value')}, ?, ?, ?
+           FROM json_each(?) AS j
+           JOIN acoes_cx AS a
+             ON a.carteira_erp_id = ${ext('carteira_erp_id', 'j.value')}
+            AND a.acao_numero = ${ext('acao_numero', 'j.value')}
+          WHERE a.versao = ?`
+      )
+      .bind(usuario.email, usuario.nome || null, agoraIso, JSON.stringify(lote), versao));
+  }
+
+  for (const lote of emLotes(r.carteiras)) {
+    comandos.push(db
+      .prepare(
+        `INSERT INTO plano_carteiras (carteira_erp_id, reuniao_erp_id, reuniao_em)
+         SELECT ${['carteira_erp_id', 'reuniao_erp_id', 'reuniao_em'].map((c) => ext(c)).join(', ')}
+           FROM json_each(?) WHERE true
+         ON CONFLICT (carteira_erp_id) DO UPDATE
+            SET reuniao_erp_id = excluded.reuniao_erp_id, reuniao_em = excluded.reuniao_em
+          WHERE excluded.reuniao_em >= plano_carteiras.reuniao_em`
+      )
+      .bind(JSON.stringify(lote)));
+  }
+
+  const completa = janela.ate.getTime() >= agora.getTime();
+  comandos.push(db
+    .prepare(
+      `UPDATE plano_carga
+          SET carregado_ate = ?, completa = ?, ultima_carga_em = ?, ultima_carga_por = ?
+        WHERE id = 1`
+    )
+    .bind(janela.ate.toISOString(), completa ? 1 : 0, agoraIso, usuario.email));
+
+  await db.batch(comandos);
+
+  const depois = await db.prepare('SELECT * FROM plano_carga WHERE id = 1').first();
+
+  return json({
+    carga: { ...estadoDaCarga(depois), emAndamento: false, emAndamentoPor: null },
+    passo: {
+      desde: desde.toISOString(),
+      ate: janela.ate.toISOString(),
+      reunioes: janela.reunioes.length,
+      novas: r.novas.length,
+      alteradas: r.alteradas.length,
+      registros: r.logs.length,
+      semCarteira: r.semCarteira,
+      // Mesmo encolhida a um dia, a janela estourou o teto de páginas.
+      truncado: !!janela.truncado
+    },
+    avisos: r.avisos
+  }, 200, cabecalhos);
+}
+
+export async function onRequestPost(context) {
+  const cabecalhos = context.data.cabecalhos;
+  const env = context.env;
+  const db = env.DB;
+  const usuario = context.data.usuario;
+  const { searchParams } = new URL(context.request.url);
+
+  if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
+  if (!searchParams.has('carga')) {
+    return json({ error: 'Operação desconhecida.', code: 'OPERACAO_DESCONHECIDA' }, 400, cabecalhos);
+  }
+
+  const agora = new Date();
+
+  try {
+    // A trava: só uma carga por vez. Duas pessoas abrindo a tela juntas
+    // numerariam as mesmas ações duas vezes.
+    const trava = await db
+      .prepare(
+        `UPDATE plano_carga SET travado_em = ?, travado_por = ?
+          WHERE id = 1 AND (travado_em IS NULL OR travado_em < ?)`
+      )
+      .bind(agora.toISOString(), usuario.email, new Date(agora.getTime() - TRAVA_MS).toISOString())
+      .run();
+
+    if (!alterou(trava)) {
+      const carga = await db.prepare('SELECT * FROM plano_carga WHERE id = 1').first();
+      return json({
+        error: `Já há uma carga em andamento${carga?.travado_por ? ` (${carga.travado_por})` : ''}. Tente em instantes.`,
+        code: 'CARGA_EM_ANDAMENTO',
+        carga: estadoDaCarga(carga)
+      }, 409, cabecalhos);
+    }
+  } catch (e) {
+    return faltaMigracao(e, cabecalhos)
+      || json({ error: 'Falha ao iniciar a carga.', details: e.message }, 500, cabecalhos);
+  }
+
+  try {
+    return await passoDaCarga(env, db, usuario, cabecalhos, agora);
+  } catch (e) {
+    return erroDoHub(e, cabecalhos);
+  } finally {
+    try {
+      await db
+        .prepare('UPDATE plano_carga SET travado_em = NULL, travado_por = NULL WHERE id = 1 AND travado_em = ?')
+        .bind(agora.toISOString())
+        .run();
+    } catch (e) { /* a trava expira sozinha em três minutos */ }
+  }
+}
+
+/* ==========================================================================
+   PATCH ?id=N — altera UM campo, e registra
+
+   Corpo: { campo, de, para }. `de` é o valor que a pessoa estava vendo.
+   Se no banco já é outro, alguém mudou antes: a gravação é recusada com
+   o valor atual, em vez de apagar a mudança do outro sem ninguém saber.
+   ========================================================================== */
+
+export async function onRequestPatch(context) {
   const cabecalhos = context.data.cabecalhos;
   const usuario = context.data.usuario;
   const db = context.env.DB;
@@ -449,71 +470,83 @@ export async function onRequestPut(context) {
 
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
 
-  const carteira = searchParams.get('carteira');
-  const numero = Number(searchParams.get('acao'));
-
-  if (!carteira || !Number.isInteger(numero) || numero <= 0) {
-    return json({
-      error: 'Informe a carteira e o número da ação.',
-      code: 'CHAVE_OBRIGATORIA'
-    }, 400, cabecalhos);
-  }
-
-  // A linha já existe: foi criada quando a ação recebeu o número do
-  // cliente, na primeira leitura do plano. Se não existir, a ação nunca
-  // foi vista — anotar antes disso gravaria um 5W2H órfão, sem número e
-  // sem cliente.
-  const existente = await db
-    .prepare('SELECT id FROM acoes_cx WHERE carteira_erp_id = ? AND acao_numero = ?')
-    .bind(carteira, numero)
-    .first();
-
-  if (!existente) {
-    return json({
-      error: 'Esta ação ainda não foi vista pelo CRM. Abra o Plano de Ação para que ela seja numerada antes de anotar.',
-      code: 'ACAO_NAO_NUMERADA'
-    }, 404, cabecalhos);
+  const id = Number(searchParams.get('id'));
+  if (!Number.isInteger(id) || id <= 0) {
+    return json({ error: 'Informe a ação.', code: 'ID_OBRIGATORIO' }, 400, cabecalhos);
   }
 
   let corpo = {};
   try { corpo = await context.request.json(); }
   catch (e) { return json({ error: 'Corpo da requisição inválido.' }, 400, cabecalhos); }
 
-  const dados = {
-    porque: texto(corpo.porque),
-    onde: texto(corpo.onde),
-    como: texto(corpo.como),
-    quanto: texto(corpo.quanto),
-    observacoes: texto(corpo.observacoes, 4000),
-    // Guardado para a tela perceber depois que a ata mudou de texto.
-    descricao_vista: texto(corpo.descricao_vista, 1000)
-  };
-
-  const agora = new Date().toISOString();
-  const campos = Object.keys(dados);
+  const campo = String(corpo.campo || '');
+  const validado = validarCampo(campo, corpo.para);
+  if (validado.erro) return json({ error: validado.erro, code: 'CAMPO_INVALIDO' }, 400, cabecalhos);
 
   try {
-    // Uma anotação por ação da carteira: o UNIQUE garante, e o
-    // ON CONFLICT transforma "criar ou atualizar" numa escrita só, sem a
-    // corrida entre ler e gravar.
-    // UPDATE e não upsert: a linha nasce na numeração, não aqui. O que
-    // este endpoint escreve são só os campos que a CX preenche — o
-    // `numero_cliente` nunca é tocado, sob pena de o identificador mudar
-    // de significado.
-    const registro = await db
-      .prepare(
-        `UPDATE acoes_cx
-            SET ${campos.map((c) => `${c} = ?`).join(', ')},
-                atualizado_por = ?, atualizado_em = ?
-          WHERE carteira_erp_id = ? AND acao_numero = ?
-      RETURNING *`
-      )
-      .bind(...campos.map((c) => dados[c]), usuario.email, agora, carteira, numero)
-      .first();
+    const carga = await db.prepare('SELECT * FROM plano_carga WHERE id = 1').first();
+    if (travaViva(carga)) {
+      return json({
+        error: 'Uma carga de atas está gravando agora. Tente de novo em alguns segundos.',
+        code: 'CARGA_EM_ANDAMENTO'
+      }, 423, cabecalhos);
+    }
 
-    return json({ ok: true, anotacao: registro }, 200, cabecalhos);
+    const atual = await db.prepare('SELECT * FROM acoes_cx WHERE id = ?').bind(id).first();
+    if (!atual) return json({ error: 'Ação não encontrada.', code: 'NAO_ENCONTRADA' }, 404, cabecalhos);
+
+    const antes = atual[campo] ?? null;
+    const visto = corpo.de === undefined || corpo.de === '' ? null : corpo.de;
+
+    if (String(antes ?? '') !== String(visto ?? '')) {
+      return json({
+        error: `Este campo foi alterado por ${atual.atualizado_por || 'outra pessoa'} enquanto você editava. O valor atual foi recarregado.`,
+        code: 'CONFLITO',
+        acao: linhaParaTela(atual)
+      }, 409, cabecalhos);
+    }
+
+    if (validado.valor === antes) {
+      return json({ ok: true, semMudanca: true, acao: linhaParaTela(atual) }, 200, cabecalhos);
+    }
+
+    const agora = new Date().toISOString();
+    const versao = crypto.randomUUID();
+
+    // Mudar o status à mão reinicia o "desde": "Em andamento desde hoje".
+    // O texto bruto da ata deixa de valer para ele.
+    const extras = campo === 'status' ? ', status_bruto = NULL, status_desde = ?' : '';
+    const valoresExtras = campo === 'status' ? [agora.slice(0, 10)] : [];
+
+    await db.batch([
+      db.prepare(
+        `UPDATE acoes_cx
+            SET ${campo} = ?${extras}, atualizado_por = ?, atualizado_em = ?, versao = ?
+          WHERE id = ? AND versao IS ?`
+      ).bind(validado.valor, ...valoresExtras, usuario.email, agora, versao, id, atual.versao ?? null),
+
+      // O log só entra se o UPDATE entrou: a versão nova é a prova.
+      db.prepare(
+        `INSERT INTO acoes_cx_log (acao_id, campo, de, para, origem, reuniao_nid, por, por_nome, em)
+         SELECT ?, ?, ?, ?, 'crm', NULL, ?, ?, ?
+          WHERE EXISTS (SELECT 1 FROM acoes_cx WHERE id = ? AND versao = ?)`
+      ).bind(id, campo, antes, validado.valor, usuario.email, usuario.nome || null, agora, id, versao)
+    ]);
+
+    const depois = await db.prepare('SELECT * FROM acoes_cx WHERE id = ?').bind(id).first();
+
+    if (depois?.versao !== versao) {
+      return json({
+        error: 'A ação foi alterada por outra pessoa no mesmo instante. O valor atual foi recarregado.',
+        code: 'CONFLITO',
+        acao: linhaParaTela(depois)
+      }, 409, cabecalhos);
+    }
+
+    return json({ ok: true, acao: linhaParaTela(depois) }, 200, cabecalhos);
 
   } catch (e) {
-    return json({ error: 'Falha ao salvar a anotação.', details: e.message }, 500, cabecalhos);
+    return faltaMigracao(e, cabecalhos)
+      || json({ error: 'Falha ao salvar a alteração.', details: e.message }, 500, cabecalhos);
   }
 }

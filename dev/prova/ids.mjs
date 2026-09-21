@@ -39,10 +39,12 @@ const classes = [
   'resumo-alerta', 'resumo-nota', 'coluna-vazia', 'tags-vazio', 'tag-chip',
   'chip-nucleo', 'campo-informativo', 'ajuda-campo', 'secao-cadastro',
   'marca-influencia-alta', 'marca-postura-resistente', 'marca-postura-desconhecida',
-  'plano-resumo', 'plano-numero', 'plano-cartao', 'plano-oque', 'plano-marca',
-  'plano-5w2h', 'w-campo', 'w-rotulo', 'w-valor', 'plano-form', 'plano-mudou',
-  'plano-avisos', 'filtros-linha', 'plano-lista', 'marca-atraso', 'marca-falta',
-  'plano-time',
+  'plano-resumo', 'plano-numero', 'plano-carga', 'plano-avisos', 'filtros-linha',
+  'p-rolagem', 'p-tabela', 'p-linha', 'p-texto', 'p-vazio', 'p-editor', 'p-atraso',
+  'p-status', 'st-concluida', 'st-saiu_da_ata', 'p-log', 'p-rodape', 'p-log-acao',
+  'p-log-lista', 'p-log-topo', 'p-log-vazio', 'p-origem',
+  'c-acao', 'c-cliente', 'c-tipo', 'c-nucleo', 'c-descricao', 'c-resp', 'c-5w',
+  'c-onde', 'c-quando', 'c-data', 'c-status', 'c-log',
   'dossie-modal', 'dossie-selo-versao', 'anel-preenchimento', 'dossie-etapa-nota',
   'dossie-avisos', 'dossie-erro-codigo', 'espaco', 'hidden'
 ];

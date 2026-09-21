@@ -245,8 +245,26 @@ const semPermissao = process.argv.includes('--sem-permissao');
 /** `--sem-detalhe` imita um hub SEM a rota `GET /customers/{id}`. */
 const semDetalhe = process.argv.includes('--sem-detalhe');
 
+/**
+ * Reuniões acrescentadas em tempo de execução, por `POST /__reuniao`.
+ * Só a prova usa: é como se prova que a carga seguinte do plano de ação
+ * traz só a reunião nova, sem reler as antigas.
+ */
+const EXTRAS = [];
+
 const servidor = createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORTA}`);
+
+  if (req.method === 'POST' && url.pathname === '/__reuniao') {
+    let corpo = '';
+    req.on('data', (p) => { corpo += p; });
+    req.on('end', () => {
+      EXTRAS.push(JSON.parse(corpo));
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end('{"ok":true}');
+    });
+    return;
+  }
 
   const responder = (status, corpo) => {
     const texto = JSON.stringify(corpo);
@@ -366,6 +384,20 @@ const servidor = createServer((req, res) => {
     if (cliente) lista = lista.filter((x) => x.customer === cliente);
     if (tipo) lista = lista.filter((x) => x.meetingType === tipo);
     if (status.length) lista = lista.filter((x) => status.includes(x.status));
+
+    // A janela de datas, como o hub de verdade: a carga incremental do
+    // plano de ação (2.25.0) depende dela.
+    const de = url.searchParams.get('startDate[$gte]');
+    const ate = url.searchParams.get('startDate[$lte]');
+    if (de) lista = lista.filter((x) => String(x.startDate) >= de);
+    if (ate) lista = lista.filter((x) => String(x.startDate) <= ate);
+
+    // Reunião acrescentada pela prova em tempo de execução — é assim que
+    // se prova que a carga seguinte traz só a nova.
+    if (url.pathname === '/v1/meetings' && EXTRAS.length) {
+      lista = [...lista, ...EXTRAS.filter((x) =>
+        (!de || String(x.startDate) >= de) && (!ate || String(x.startDate) <= ate))];
+    }
 
     // A ordenação padrão de reuniões é startDate DESCENDENTE.
     if (url.pathname === '/v1/meetings') {
