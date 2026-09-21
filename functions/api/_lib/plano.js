@@ -32,7 +32,14 @@ export const SAIU_DA_ATA = 'saiu_da_ata';
 export const CAMPOS_DA_ATA = ['descricao', 'responsavel', 'prazo', 'data_prevista', 'status'];
 
 /** Os que só a CX escreve — a ata não os tem. */
-export const CAMPOS_DA_CX = ['porque', 'onde', 'como', 'quanto', 'observacoes'];
+export const CAMPOS_DA_CX = ['porque', 'onde', 'como', 'quanto', 'observacoes', 'tipo_acao'];
+
+/**
+ * Tipo de ação (2.29.0): o nível da ação, que a CX classifica. A ata não
+ * tem essa informação — e ela não é deduzida do texto, pela mesma razão
+ * do 5W2H: classificação não confirmada vira verdade com o tempo.
+ */
+export const TIPOS_DE_ACAO = ['operacional', 'tatica', 'estrategica'];
 
 export const CAMPOS_EDITAVEIS = [...CAMPOS_DA_ATA, ...CAMPOS_DA_CX];
 
@@ -56,13 +63,81 @@ const nulo = (v) => (v === undefined || v === '' ? null : v);
 
 export const chaveDaAcao = (carteira, numero) => `${carteira}::${numero}`;
 
+/* ==========================================================================
+   A DATA PREVISTA A PARTIR DO QUE O CONSULTOR ESCREVEU (2.29.0)
+
+   O `Prazo:` da ata é texto livre. O parser do `_lib/ata.js` só entende
+   `dd/mm/aa` exato, e 99% das ações no ar ficaram "sem data prevista": o
+   consultor escreve "08/10/26." (com ponto), "dez/26", "5–9/10/26",
+   "15/10". Pedido de 21/09/2026: padronizar em 01/01/2026.
+
+   A leitura, na ordem:
+     1. a ÚLTIMA data dd/mm/aa(aa) do texto — num intervalo, vale o fim;
+     2. dd/mm sem ano — o ano da reunião;
+     3. mês e ano ("dez/26", "outubro de 2026") — o ÚLTIMO dia do mês;
+     4. mês sem ano — o ano da reunião, último dia.
+   Nada disso ("a definir", "próxima") → sem data.
+
+   Fica aqui, e não no `ata.js`, de propósito: a leitura estrita do ata.js
+   alimenta o dossiê e o Health Score, e "dez/26 = 31/12" é uma
+   convenção da tela do plano, visível e editável — não um fato da ata.
+   ========================================================================== */
+
+const MESES = {
+  jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
+  jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
+};
+
+function isoValida(ano, mes, dia) {
+  const d = new Date(Date.UTC(ano, mes - 1, dia));
+  if (d.getUTCFullYear() !== ano || d.getUTCMonth() !== mes - 1 || d.getUTCDate() !== dia) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+const anoCheio = (a) => (String(a).length <= 2 ? 2000 + Number(a) : Number(a));
+const ultimoDia = (ano, mes) => new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+
+/**
+ * @param texto       o `Prazo:` como escrito
+ * @param referencia  ISO da reunião — dá o ano quando o texto não traz
+ * @returns 'AAAA-MM-DD' ou null
+ */
+export function dataPrevistaDoPrazo(texto, referencia = null) {
+  const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (!t.trim()) return null;
+
+  const anoRef = referencia && !Number.isNaN(new Date(referencia).getTime())
+    ? new Date(referencia).getUTCFullYear()
+    : null;
+
+  // 1 e 2: dd/mm[/aa[aa]] — a última ocorrência.
+  const datas = [...t.matchAll(/(\d{1,2})\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{4}|\d{2}))?(?!\d)/g)];
+  for (const m of datas.reverse()) {
+    const ano = m[3] ? anoCheio(m[3]) : anoRef;
+    if (!ano) continue;
+    const iso = isoValida(ano, Number(m[2]), Number(m[1]));
+    if (iso) return iso;
+  }
+
+  // 3 e 4: nome do mês, com ou sem ano.
+  const meses = [...t.matchAll(/\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\.?(?:\s*(?:\/|-|de)?\s*(\d{4}|\d{2})(?!\d))?/g)];
+  const m = meses.at(-1);
+  if (m) {
+    const mes = MESES[m[1]];
+    const ano = m[2] ? anoCheio(m[2]) : anoRef;
+    if (ano) return isoValida(ano, mes, ultimoDia(ano, mes));
+  }
+
+  return null;
+}
+
 /** O que a ata diz de uma ação, nos nomes das colunas. */
-export function valoresDaAta(acao) {
+export function valoresDaAta(acao, reuniaoEm = null) {
   return {
     descricao: nulo(acao.descricao),
     responsavel: nulo(acao.responsavel),
     prazo: nulo(acao.prazoBruto),
-    data_prevista: nulo(acao.prazo),
+    data_prevista: nulo(acao.prazo) || dataPrevistaDoPrazo(acao.prazoBruto, reuniaoEm),
     status: nulo(acao.statusTipo) || 'desconhecido',
     status_bruto: nulo(acao.status?.bruto),
     status_desde: nulo(acao.statusDesde)
@@ -152,6 +227,25 @@ export function aplicarReunioes(gravadas, aplicadas, reunioes, contexto) {
   const logs = [];
   const avisos = [];
   const carteirasAplicadas = new Map();
+
+  // A leitura de datas melhorou na 2.29.0. As ações gravadas antes, cuja
+  // ata não será relida, ganham a data agora — uma vez, pelo texto que a
+  // ata já tinha. Só onde a ata não deu data; se a CX pôs uma, ela fica.
+  for (const [k, g] of porChave) {
+    if (!g.status || nulo(g.data_prevista_ata) != null || nulo(g.prazo_ata) == null) continue;
+    const d = dataPrevistaDoPrazo(g.prazo_ata, g.reuniao_em);
+    if (!d) continue;
+
+    const linha = { ...g, data_prevista_ata: d };
+    if (nulo(g.data_prevista) == null) {
+      linha.data_prevista = d;
+      logs.push({
+        carteira_erp_id: g.carteira_erp_id, acao_numero: g.acao_numero,
+        reuniao_nid: g.reuniao_nid ?? null, campo: 'data_prevista', de: null, para: d
+      });
+    }
+    porChave.set(k, linha);
+  }
   let semCarteira = 0;
 
   /* ---- agrupa por carteira ---- */
@@ -197,7 +291,7 @@ export function aplicarReunioes(gravadas, aplicadas, reunioes, contexto) {
         vistas.add(k);
 
         const atual = porChave.get(k) || null;
-        const { linha, mudancas } = mesclar(atual, valoresDaAta(acao));
+        const { linha, mudancas } = mesclar(atual, valoresDaAta(acao, r.inicio));
 
         let numero = atual?.numero_cliente;
         if (numero == null) {
@@ -300,6 +394,7 @@ export function linhaParaTela(l, hoje = new Date()) {
     statusBruto: l.status_bruto,
     statusDesde: l.status_desde,
 
+    tipoAcao: l.tipo_acao ?? null,
     porque: l.porque,
     onde: l.onde,
     como: l.como,
@@ -334,6 +429,10 @@ export function validarCampo(campo, valor) {
 
   if (campo === 'status') {
     return STATUS_EDITAVEIS.includes(t) ? { valor: t } : { erro: `Status inválido: ${t}.` };
+  }
+
+  if (campo === 'tipo_acao') {
+    return TIPOS_DE_ACAO.includes(t) ? { valor: t } : { erro: `Tipo de ação inválido: ${t}.` };
   }
 
   if (campo === 'data_prevista') {

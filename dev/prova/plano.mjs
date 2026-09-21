@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import {
   onRequestGet as planoGet, onRequestPost as planoPost, onRequestPatch as planoPatch
 } from '../../functions/api/plano-acao.js';
-import { mesclar, SAIU_DA_ATA } from '../../functions/api/_lib/plano.js';
+import { mesclar, SAIU_DA_ATA, dataPrevistaDoPrazo } from '../../functions/api/_lib/plano.js';
 import { esquecerMemoria } from '../../functions/api/_lib/hub.js';
 import { nomeDeDocumento, TIPO_DOCUMENTO } from '../../functions/api/_lib/documento-base.js';
 
@@ -107,6 +107,7 @@ bd.exec(`INSERT INTO acoes_cx (cliente_erp_id, carteira_erp_id, acao_numero, num
          VALUES ('507f1f77bcf86cd799439012', '607f1f77bcf86cd799439101', 2, 1, 'Ruptura no CD', 'x@formatar.com.br', '2026-09-10T00:00:00Z')`);
 
 bd.exec(readFileSync(`${RAIZ}/db/migracao-012-plano-gravado.sql`, 'utf8'));
+bd.exec(readFileSync(`${RAIZ}/db/migracao-014-tipo-de-acao.sql`, 'utf8'));
 
 let duble = await subirDuble();
 
@@ -333,6 +334,63 @@ Status: Nova`
   ok(m2.linha.status === 'concluida', 'ação concluída pela CX que sai da ata continua concluída');
   const m3 = mesclar(base, { descricao: 'A', responsavel: 'Outro', status: 'pendente' });
   ok(m3.linha.responsavel === 'Outro' && m3.mudancas[0].de === 'CX', 'ata diferente da sombra: a ata vence');
+
+  console.log('\n=== 14b. Datas lidas do texto da ata (2.29.0) ===');
+  const R = '2026-09-18T12:00:00Z';
+  const casos = [
+    ['08/10/26.', '2026-10-08', 'ponto no fim não impede mais'],
+    ['dez/26.', '2026-12-31', 'mês e ano: o último dia do mês'],
+    ['5–9/10/26', '2026-10-09', 'intervalo: vale o fim'],
+    ['PARA SEMANA 5 A 9/10', '2026-10-09', 'dia e mês sem ano: o ano da reunião'],
+    ['Outubro de 2026', '2026-10-31', 'mês por extenso'],
+    ['31/07/2026', '2026-07-31', 'ano com quatro dígitos'],
+    ['a definir.', null, '"a definir" continua sem data'],
+    ['próxima', null, '"próxima" continua sem data'],
+    ['31/02/26', null, '31 de fevereiro não vira 3 de março']
+  ];
+  for (const [texto, esperado, titulo] of casos) {
+    const obtido = dataPrevistaDoPrazo(texto, R);
+    ok(obtido === esperado, `${titulo}: "${texto}"`, String(obtido));
+  }
+
+  // As ações gravadas antes da 2.29.0 não terão a ata relida: a carga as
+  // corrige uma vez, pelo texto que já estava gravado. A AÇÃO 1 serve: a
+  // reunião dela (03/09) está fora da folga de 14 dias e não é relida.
+  const idA = porNumero[1].id;
+
+  // Primeiro: a CX já tinha posto uma data. Ela fica; só a sombra aprende.
+  bd.exec(`UPDATE acoes_cx SET prazo_ata = 'set/26.', data_prevista = '2026-11-30', data_prevista_ata = NULL WHERE id = ${idA}`);
+  await carga();
+  const comCx = bd.prepare(`SELECT data_prevista, data_prevista_ata FROM acoes_cx WHERE id = ${idA}`).get();
+  ok(comCx.data_prevista === '2026-11-30' && comCx.data_prevista_ata === '2026-09-30',
+    'onde a CX já pôs data, ela fica — a leitura nova só vai para a sombra', JSON.stringify(comCx));
+
+  // Depois: sem data nenhuma, o texto "dez/26." vira 31/12/2026.
+  bd.exec(`UPDATE acoes_cx SET prazo = 'dez/26.', prazo_ata = 'dez/26.', data_prevista = NULL, data_prevista_ata = NULL WHERE id = ${idA}`);
+  await carga();
+  const depoisA = bd.prepare(`SELECT data_prevista, data_prevista_ata FROM acoes_cx WHERE id = ${idA}`).get();
+  ok(depoisA.data_prevista === '2026-12-31' && depoisA.data_prevista_ata === '2026-12-31',
+    'a ação gravada com "dez/26." ganha 31/12/2026 na carga seguinte', JSON.stringify(depoisA));
+  ok((await historico(idA)).some((l) => l.campo === 'data_prevista' && l.para === '2026-12-31' && l.origem === 'ata'),
+    'e a correção fica no histórico, como feita pela ata');
+  const logsAntes = bd.prepare('SELECT COUNT(*) AS n FROM acoes_cx_log').get().n;
+  await carga();
+  ok(bd.prepare('SELECT COUNT(*) AS n FROM acoes_cx_log').get().n === logsAntes,
+    'a correção acontece uma vez só: a carga seguinte não repete');
+  const idB = n2[3].id;
+
+  console.log('\n=== 14c. Tipo de ação (2.29.0) ===');
+  const tipo = await editar(idA, { campo: 'tipo_acao', de: null, para: 'estrategica' });
+  ok(tipo.status === 200 && tipo.corpo.acao.tipoAcao === 'estrategica', 'a CX classifica a ação como Estratégica');
+  ok((await historico(idA)).some((l) => l.campo === 'tipo_acao' && l.de === null && l.para === 'estrategica' && l.origem === 'crm'),
+    'e a classificação vai para o histórico');
+  ok((await editar(idA, { campo: 'tipo_acao', de: 'estrategica', para: 'urgente' })).status === 400,
+    'fora de Operacional, Tática e Estratégica: 400');
+  const limpa = await editar(idA, { campo: 'tipo_acao', de: 'estrategica', para: '' });
+  ok(limpa.status === 200 && limpa.corpo.acao.tipoAcao === null, 'e pode voltar a "não classificada"');
+  await carga();
+  ok((await plano()).acoes.find((a) => a.id === idB).tipoAcao === null,
+    'a carga nunca classifica: tipo de ação é só da CX');
 
   console.log('\n=== 15. Permissões faltantes, TODAS de uma vez ===');
   duble.kill();

@@ -820,7 +820,7 @@
 .c-resp      { width: 6rem; }
 .c-5w        { width: 9.5rem; }
 .c-onde      { width: 6.5rem; }
-.c-quando    { width: 5rem; }
+.c-tipoacao  { width: 6.6rem; }
 .c-data      { width: 6.3rem; white-space: nowrap; }
 .c-status    { width: 7rem; }
 .c-log       { width: 2rem; text-align: center; }
@@ -853,6 +853,24 @@
 }
 
 .p-atraso { color: var(--danger-color); font-weight: 600; }
+
+/* O prazo da ata que não virou data: dica, não valor. */
+.p-prazo-ata { color: var(--text-subtle); font-style: italic; }
+
+/* Tipo de ação: três níveis, um tom só com intensidade crescente — é
+   ordem (operacional → estratégica), não identidade. O rótulo escrito
+   carrega o sentido; o tom só ajuda a varrer a coluna. */
+.p-tipo {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+.tp-operacional { color: var(--text-muted); }
+.tp-tatica      { color: var(--text-color); border-color: var(--text-subtle); }
+.tp-estrategica { color: var(--text-color); border-color: var(--accent-color); font-weight: 600; }
 .p-atraso small { margin-left: 0.3rem; font-weight: 400; font-size: 0.66rem; }
 
 .p-status {

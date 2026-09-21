@@ -74,6 +74,9 @@ const Plano = (() => {
     desconhecido: 'Não reconhecido'
   };
 
+  /** Tipo de ação (2.29.0): a CX classifica; a ata não tem. */
+  const ROTULO_TIPO_ACAO = { operacional: 'Operacional', tatica: 'Tática', estrategica: 'Estratégica' };
+
   /** O que a pessoa pode escolher. "Saiu da ata" só a carga põe. */
   const STATUS_ESCOLHA = ['nova', 'pendente', 'em_andamento', 'repactuado', 'concluida', 'cancelada'];
 
@@ -94,8 +97,8 @@ const Plano = (() => {
     { chave: 'porque', rotulo: 'Por quê', classe: 'c-5w', campo: 'porque', tipo: 'longo' },
     { chave: 'onde', rotulo: 'Onde', classe: 'c-onde', campo: 'onde', tipo: 'texto' },
     { chave: 'como', rotulo: 'Como', classe: 'c-5w', campo: 'como', tipo: 'longo' },
-    { chave: 'prazo', rotulo: 'Quando', classe: 'c-quando', campo: 'prazo', tipo: 'texto' },
     { chave: 'dataPrevista', rotulo: 'Data prevista', classe: 'c-data', campo: 'data_prevista', tipo: 'data' },
+    { chave: 'tipoAcao', rotulo: 'Tipo de ação', classe: 'c-tipoacao', campo: 'tipo_acao', tipo: 'tipoAcao' },
     { chave: 'status', rotulo: 'Status', classe: 'c-status', campo: 'status', tipo: 'status' }
   ];
 
@@ -540,7 +543,7 @@ const Plano = (() => {
       if (!busca) return true;
 
       return [a.cliente, a.tipoReuniao, a.nucleo, a.descricao, a.responsavel,
-              a.porque, a.onde, a.como, identificador(a)]
+              a.porque, a.onde, a.como, ROTULO_TIPO_ACAO[a.tipoAcao], identificador(a)]
         .filter(Boolean).join(' ').toLowerCase().includes(busca);
     });
   }
@@ -708,6 +711,7 @@ const Plano = (() => {
   function chaveDeOrdem(a, chave) {
     if (chave === 'acao') return a.numeroCliente != null ? a.numeroCliente * 10000 + a.numero : null;
     if (chave === 'status') return ROTULO_STATUS[a.status] || a.status || null;
+    if (chave === 'tipoAcao') return ROTULO_TIPO_ACAO[a.tipoAcao] || null;
     const v = a[chave];
     return v == null || v === '' ? null : v;
   }
@@ -746,10 +750,23 @@ const Plano = (() => {
 
       case 'dataPrevista': {
         const d = dataBr(a.dataPrevista);
-        if (!d) return vazio;
+        // "Quando" e "Data prevista" eram duas colunas com a mesma coisa.
+        // Ficou a data; o que a ata escreveu aparece só quando não virou
+        // data ("a definir", "próxima"), apagado, como dica.
+        if (!d) {
+          return a.prazo
+            ? `<span class="p-prazo-ata" title="Prazo escrito na ata. Clique para definir a data.">${esc(a.prazo)}</span>`
+            : vazio;
+        }
+        const naAta = a.prazo && a.prazo.trim() !== d ? ` title="Na ata: ${esc(a.prazo)}"` : '';
         return a.atrasada
-          ? `<span class="p-atraso" title="${a.diasDeAtraso} dia(s) de atraso">${d}<small>${a.diasDeAtraso}d</small></span>`
-          : d;
+          ? `<span class="p-atraso" title="${a.diasDeAtraso} dia(s) de atraso${a.prazo ? ` · na ata: ${esc(a.prazo)}` : ''}">${d}<small>${a.diasDeAtraso}d</small></span>`
+          : `<span${naAta}>${d}</span>`;
+      }
+
+      case 'tipoAcao': {
+        const r = ROTULO_TIPO_ACAO[a.tipoAcao];
+        return r ? `<span class="p-tipo tp-${esc(a.tipoAcao)}">${r}</span>` : vazio;
       }
 
       case 'status': {
@@ -776,6 +793,12 @@ const Plano = (() => {
       return `<select class="p-editor">${opcoes.map((s) =>
         `<option value="${esc(s)}"${s === v ? ' selected' : ''}${STATUS_ESCOLHA.includes(s) ? '' : ' disabled'}>${ROTULO_STATUS[s] || esc(s)}</option>`
       ).join('')}</select>`;
+    }
+    if (col.tipo === 'tipoAcao') {
+      return `<select class="p-editor"><option value="">— não classificada</option>${
+        Object.entries(ROTULO_TIPO_ACAO).map(([k, r]) =>
+          `<option value="${k}"${k === v ? ' selected' : ''}>${r}</option>`).join('')
+      }</select>`;
     }
     if (col.tipo === 'data') return `<input type="date" class="p-editor" value="${esc(v)}">`;
     if (col.tipo === 'longo') return `<textarea class="p-editor" rows="4" maxlength="2000">${esc(v)}</textarea>`;
@@ -955,13 +978,15 @@ const Plano = (() => {
   const ROTULO_CAMPO = {
     descricao: 'Descrição', responsavel: 'Responsável', prazo: 'Quando',
     data_prevista: 'Data prevista', status: 'Status', porque: 'Por quê',
-    onde: 'Onde', como: 'Como', quanto: 'Quanto', observacoes: 'Observações'
+    onde: 'Onde', como: 'Como', quanto: 'Quanto', observacoes: 'Observações',
+    tipo_acao: 'Tipo de ação'
   };
 
   const valorDoLog = (campo, v) => {
     if (v == null || v === '') return '<em>vazio</em>';
     if (campo === 'status') return esc(ROTULO_STATUS[v] || v);
     if (campo === 'data_prevista') return esc(dataBr(v) || v);
+    if (campo === 'tipo_acao') return esc(ROTULO_TIPO_ACAO[v] || v);
     return esc(v);
   };
 

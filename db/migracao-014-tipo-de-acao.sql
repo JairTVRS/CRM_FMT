@@ -1,0 +1,25 @@
+-- ==========================================================
+-- CRM Formatar — Migração 014
+-- O tipo de ação: Operacional, Tática ou Estratégica (2.29.0).
+--
+-- Aplicar com:
+--   npx wrangler d1 execute crm-formatar --remote --file=db/migracao-014-tipo-de-acao.sql
+--
+-- Conferir DEPOIS de aplicar:
+--   npx wrangler d1 execute crm-formatar --remote --command="SELECT name FROM pragma_table_info('acoes_cx') WHERE name = 'tipo_acao'"
+--
+-- Seguro rodar duas vezes? NÃO — ALTER TABLE ADD COLUMN falha com
+-- "duplicate column name" na segunda. Se aparecer, já foi aplicada.
+--
+-- A Fase 3 da 2.24.0 passa a ser a migração 015.
+-- ==========================================================
+
+-- Pedido de 21/09/2026. A CX classifica cada ação; a ata não tem isso e
+-- o CRM não deduz do texto — classificação não confirmada vira verdade
+-- com o tempo, o mesmo motivo de o 5W2H não ser sugerido por IA.
+--
+-- Valores: 'operacional', 'tatica', 'estrategica', ou NULL (não
+-- classificada). A lista vive num lugar só — TIPOS_DE_ACAO, em
+-- _lib/plano.js, que valida toda gravação — para que acrescentar um tipo
+-- não exija outra migração.
+ALTER TABLE acoes_cx ADD COLUMN tipo_acao TEXT;
