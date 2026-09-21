@@ -37,6 +37,12 @@ const Plano = (() => {
 
   const filtros = { busca: '', cliente: '', nucleo: '', situacao: 'abertas' };
 
+  /** Coluna e sentido da ordenação. Sem coluna, vale a ordem do servidor: atrasadas primeiro. */
+  const ordem = { chave: null, sentido: 1 };
+
+  /** "Vence em breve" é até sete dias. */
+  const DIAS_VENCENDO = 7;
+
   const el = (id) => document.getElementById(id);
 
   const esc = (v) => String(v ?? '')
@@ -158,6 +164,7 @@ const Plano = (() => {
     if (botao) botao.disabled = true;
 
     let mudou = false;
+    let pausas = 0;
 
     try {
       for (let passo = 0; passo < 15; passo++) {
@@ -169,6 +176,17 @@ const Plano = (() => {
         const d = await r.json();
 
         if (!r.ok) {
+          // O ERP pediu uma pausa mesmo depois das tentativas do servidor.
+          // O que já veio está gravado: espera e retoma de onde parou.
+          if (d.code === 'HUB_LIMITE' && pausas < 4) {
+            pausas++;
+            for (let seg = 15 * pausas; seg > 0; seg--) {
+              mostrarCarga(`O ERP pediu uma pausa — retomando em ${seg}s…`);
+              await new Promise((ok) => setTimeout(ok, 1000));
+            }
+            passo--;
+            continue;
+          }
           if (d.code === 'CARGA_EM_ANDAMENTO') {
             // Outra pessoa está carregando: o que ela trouxer aparece na
             // próxima leitura. Não é erro.
@@ -241,16 +259,37 @@ const Plano = (() => {
     select.value = nomes.includes(escolhido) ? escolhido : '';
   }
 
-  function filtrar() {
+  /**
+   * Em que faixa de prazo a ação aberta está. Fechada devolve null.
+   * É a mesma conta do gráfico de rosca e do filtro de situação.
+   */
+  function faixaDePrazo(a) {
+    if (!a.aberta) return null;
+    if (!a.dataPrevista) return 'sem-data';
+    if (a.atrasada) return 'atrasadas';
+    const hoje = new Date();
+    const base = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const faltam = Math.round((new Date(`${a.dataPrevista}T00:00:00Z`).getTime() - base) / 86400000);
+    return faltam <= DIAS_VENCENDO ? 'vencendo' : 'no-prazo';
+  }
+
+  /**
+   * `comSituacao = false` devolve o recorte de cliente, núcleo e busca,
+   * sem o filtro de situação. É sobre ele que o painel conta: escolher
+   * "Atrasadas" não pode fazer a rosca virar 100% atrasada.
+   */
+  function filtrar(comSituacao = true) {
     const busca = filtros.busca.trim().toLowerCase();
 
     return acoes.filter((a) => {
       if (filtros.cliente && a.cliente !== filtros.cliente) return false;
       if (filtros.nucleo && a.nucleo !== filtros.nucleo) return false;
 
-      switch (filtros.situacao) {
+      switch (comSituacao ? filtros.situacao : '') {
         case 'abertas': if (!a.aberta) return false; break;
         case 'atrasadas': if (!a.atrasada) return false; break;
+        case 'vencendo': if (faixaDePrazo(a) !== 'vencendo') return false; break;
+        case 'no-prazo': if (faixaDePrazo(a) !== 'no-prazo') return false; break;
         case 'sem-responsavel': if (!a.aberta || a.responsavel) return false; break;
         case 'sem-data': if (!a.aberta || a.dataPrevista) return false; break;
         case 'sem-5w': if (!a.aberta || tem5w(a)) return false; break;
@@ -270,28 +309,183 @@ const Plano = (() => {
      Desenho
      ---------------------------------------------------------- */
 
-  /** Os números são do conjunto FILTRADO: com um cliente escolhido, são dele. */
-  function renderizarResumo(lista) {
-    const caixa = el('plano-resumo');
-    if (!caixa) return;
+  /* ----------------------------------------------------------
+     Painel: cartões no cabeçalho e três gráficos
 
-    if (!acoes.length) { caixa.innerHTML = ''; return; }
+     Tudo é contado sobre o recorte de cliente, núcleo e busca — com um
+     cliente escolhido, os números são dele — mas NÃO sobre a situação:
+     o painel é o mapa, a situação é o que se escolhe nele. Cada cartão,
+     fatia, gargalo e coluna filtra a tabela com um clique.
+     ---------------------------------------------------------- */
 
-    const abertas = lista.filter((a) => a.aberta);
-    const bloco = (valor, rotulo, situacao, alerta) => `
+  /**
+   * A faixa de prazo tem cor de STATUS, não de série: é estado. Cada uma
+   * leva também um ícone, para a cor nunca carregar o sentido sozinha.
+   */
+  const FAIXAS = [
+    { chave: 'atrasadas', rotulo: 'Atrasadas', cor: 'var(--st-critico)', icone: '●' },
+    { chave: 'vencendo', rotulo: `Vencem em até ${DIAS_VENCENDO} dias`, cor: 'var(--st-alerta)', icone: '▲' },
+    { chave: 'no-prazo', rotulo: 'No prazo', cor: 'var(--st-bom)', icone: '✓' },
+    { chave: 'sem-data', rotulo: 'Sem data prevista', cor: 'var(--st-neutro)', icone: '○' }
+  ];
+
+  const pct = (n, total) => (total ? Math.round((n / total) * 100) : 0);
+
+  function renderizarPainel(base) {
+    const cartoes = el('plano-resumo');
+    const painel = el('plano-painel');
+    if (!cartoes || !painel) return;
+
+    if (!acoes.length) { cartoes.innerHTML = ''; painel.innerHTML = ''; return; }
+
+    const abertas = base.filter((a) => a.aberta);
+    const total = abertas.length;
+    const conta = (f) => abertas.filter(f).length;
+
+    /* ---- os cartões do cabeçalho ---- */
+    const cartao = (valor, rotulo, situacao, alerta) => `
       <button type="button" class="plano-numero${alerta && valor > 0 ? ' alerta' : ''}${filtros.situacao === situacao ? ' ativo' : ''}"
-              data-situacao="${situacao}">
+              data-situacao="${situacao}" title="Filtrar: ${rotulo}">
         <strong>${valor}</strong><span>${rotulo}</span>
       </button>`;
 
-    caixa.innerHTML = [
-      bloco(abertas.length, 'em aberto', 'abertas'),
-      bloco(abertas.filter((a) => a.atrasada).length, 'atrasadas', 'atrasadas', true),
-      bloco(abertas.filter((a) => !a.responsavel).length, 'sem responsável', 'sem-responsavel', true),
-      bloco(abertas.filter((a) => !a.dataPrevista).length, 'sem data prevista', 'sem-data', true),
-      bloco(abertas.filter((a) => !tem5w(a)).length, 'sem 5W2H', 'sem-5w'),
-      bloco(lista.filter((a) => !a.aberta).length, 'fechadas', 'fechadas')
+    cartoes.innerHTML = [
+      cartao(total, 'em aberto', 'abertas'),
+      cartao(conta((a) => a.atrasada), 'atrasadas', 'atrasadas', true),
+      cartao(base.length - total, 'fechadas', 'fechadas'),
+      cartao(base.length, 'no total', '')
     ].join('');
+
+    /* ---- 1. a rosca: as abertas por faixa de prazo ---- */
+    const porFaixa = FAIXAS.map((f) => ({ ...f, n: conta((a) => faixaDePrazo(a) === f.chave) }));
+
+    const R = 54;
+    const C = 2 * Math.PI * R;
+    // 2px de superfície entre fatias, só quando há mais de uma.
+    const VAO = porFaixa.filter((f) => f.n).length > 1 ? 2 : 0;
+    let andado = 0;
+    const fatias = porFaixa.filter((f) => f.n > 0).map((f) => {
+      const comp = (f.n / total) * C;
+      const traco = Math.max(comp - VAO, 0.5);
+      const arco = `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${f.cor}" stroke-width="18"
+          stroke-dasharray="${traco} ${C - traco}" stroke-dashoffset="${-andado}"
+          class="pn-fatia" data-situacao="${f.chave}"
+          data-dica="${esc(f.rotulo)}: ${f.n} (${pct(f.n, total)}%)"></circle>`;
+      andado += comp;
+      return arco;
+    }).join('');
+
+    const rosca = `
+      <section class="pn-bloco">
+        <h3>Ações em aberto por prazo</h3>
+        <div class="pn-rosca">
+          <svg viewBox="0 0 140 140" role="img" aria-label="${esc(porFaixa.map((f) => `${f.rotulo}: ${f.n}`).join(', '))}">
+            <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--border-color)" stroke-width="18"></circle>
+            <g transform="rotate(-90 70 70)">${fatias}</g>
+            <text x="70" y="70" text-anchor="middle" class="pn-total">${total}</text>
+            <text x="70" y="88" text-anchor="middle" class="pn-total-rotulo">em aberto</text>
+          </svg>
+          <ul class="pn-legenda">
+            ${porFaixa.map((f) => `
+              <li><button type="button" data-situacao="${f.chave}" class="${filtros.situacao === f.chave ? 'ativo' : ''}">
+                <span class="pn-marca" style="color:${f.cor}">${f.icone}</span>
+                <span class="pn-leg-rotulo">${f.rotulo}</span>
+                <strong>${f.n}</strong><small>${pct(f.n, total)}%</small>
+              </button></li>`).join('')}
+          </ul>
+        </div>
+      </section>`;
+
+    /* ---- 2. gargalos de cadastro: uma série só, sobre as abertas ---- */
+    const gargalos = [
+      { rotulo: 'Sem responsável', situacao: 'sem-responsavel', n: conta((a) => !a.responsavel) },
+      { rotulo: 'Sem data prevista', situacao: 'sem-data', n: conta((a) => !a.dataPrevista) },
+      { rotulo: 'Sem 5W2H', situacao: 'sem-5w', n: conta((a) => !tem5w(a)) }
+    ];
+
+    const barrasH = `
+      <section class="pn-bloco">
+        <h3>Gargalos de cadastro <small>das ${total} em aberto</small></h3>
+        <div class="pn-gargalos">
+          ${gargalos.map((g) => `
+            <button type="button" class="pn-garg${filtros.situacao === g.situacao ? ' ativo' : ''}" data-situacao="${g.situacao}"
+                    data-dica="${g.rotulo}: ${g.n} de ${total} (${pct(g.n, total)}%)">
+              <span class="pn-garg-rotulo">${g.rotulo}</span>
+              <span class="pn-trilho"><span class="pn-barra" style="width:${pct(g.n, total)}%"></span></span>
+              <span class="pn-garg-valor"><strong>${g.n}</strong> <small>${pct(g.n, total)}%</small></span>
+            </button>`).join('')}
+        </div>
+      </section>`;
+
+    /* ---- 3. abertas por núcleo: maior primeiro, no máximo oito ---- */
+    const porNucleo = new Map();
+    abertas.forEach((a) => {
+      const k = a.nucleo || 'Sem núcleo';
+      porNucleo.set(k, (porNucleo.get(k) || 0) + 1);
+    });
+    let nucleos = [...porNucleo].sort((x, y) => y[1] - x[1]);
+    if (nucleos.length > 8) {
+      const resto = nucleos.slice(7).reduce((soma, [, n]) => soma + n, 0);
+      nucleos = [...nucleos.slice(0, 7), ['Outros', resto]];
+    }
+    const maior = Math.max(1, ...nucleos.map(([, n]) => n));
+
+    const barrasV = `
+      <section class="pn-bloco">
+        <h3>Ações em aberto por núcleo</h3>
+        ${nucleos.length === 0 ? '<p class="pn-vazio">Nenhuma ação em aberto.</p>' : `
+        <div class="pn-colunas">
+          ${nucleos.map(([nome, n]) => {
+            const filtravel = nome !== 'Outros' && nome !== 'Sem núcleo';
+            return `
+            <button type="button" class="pn-col${filtros.nucleo === nome ? ' ativo' : ''}"
+                    ${filtravel ? `data-nucleo="${esc(nome)}"` : ''}
+                    data-dica="${esc(nome)}: ${n} (${pct(n, total)}%)">
+              <span class="pn-col-valor">${n}</span>
+              <span class="pn-col-area"><span class="pn-col-barra" style="height:${Math.max(2, (n / maior) * 100)}%"></span></span>
+              <span class="pn-col-rotulo">${esc(nome)}</span>
+            </button>`;
+          }).join('')}
+        </div>`}
+      </section>`;
+
+    painel.innerHTML = rosca + barrasH + barrasV;
+  }
+
+  /* ----------------------------------------------------------
+     Ordenação por coluna
+     ---------------------------------------------------------- */
+
+  const coletor = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' });
+
+  function chaveDeOrdem(a, chave) {
+    if (chave === 'acao') return a.numeroCliente != null ? a.numeroCliente * 10000 + a.numero : null;
+    if (chave === 'status') return ROTULO_STATUS[a.status] || a.status || null;
+    const v = a[chave];
+    return v == null || v === '' ? null : v;
+  }
+
+  /** Vazio vai sempre para o fim, nos dois sentidos: "—" no topo não informa nada. */
+  function ordenar(lista) {
+    if (!ordem.chave) return lista;
+    return [...lista].sort((x, y) => {
+      const a = chaveDeOrdem(x, ordem.chave);
+      const b = chaveDeOrdem(y, ordem.chave);
+      if (a == null && b == null) return 0;
+      if (a == null) return 1;
+      if (b == null) return -1;
+      const c = typeof a === 'number' && typeof b === 'number' ? a - b : coletor.compare(String(a), String(b));
+      return c * ordem.sentido;
+    });
+  }
+
+  function cabecalhoHtml(c) {
+    const ativa = ordem.chave === c.chave;
+    const seta = ativa ? (ordem.sentido === 1 ? '▲' : '▼') : '↕';
+    const proximo = ativa && ordem.sentido === 1 ? 'Z → A' : (ativa ? 'ordem original' : 'A → Z');
+    return `<th class="${c.classe} p-ordenavel${ativa ? ' ordenada' : ''}" data-ordem="${c.chave}"
+                aria-sort="${ativa ? (ordem.sentido === 1 ? 'ascending' : 'descending') : 'none'}"
+                title="Ordenar: ${proximo}">${c.rotulo}<span class="p-seta">${seta}</span></th>`;
   }
 
   function valorCelula(a, col) {
@@ -367,8 +561,8 @@ const Plano = (() => {
     const caixa = el('plano-lista');
     if (!caixa) return;
 
-    const lista = filtrar();
-    renderizarResumo(lista);
+    const lista = ordenar(filtrar());
+    renderizarPainel(filtrar(false));
 
     if (lista.length === 0) {
       caixa.innerHTML = `<div class="coluna-vazia">${
@@ -384,7 +578,7 @@ const Plano = (() => {
     caixa.innerHTML = `
       <div class="p-rolagem">
         <table class="p-tabela">
-          <thead><tr>${COLUNAS.map((c) => `<th class="${c.classe}">${c.rotulo}</th>`).join('')}<th class="c-log"></th></tr></thead>
+          <thead><tr>${COLUNAS.map(cabecalhoHtml).join('')}<th class="c-log"></th></tr></thead>
           <tbody>${visiveis.map(linhaHtml).join('')}</tbody>
         </table>
       </div>
@@ -403,7 +597,7 @@ const Plano = (() => {
     const a = acoes.find((x) => x.id === id);
     if (!tr || !a) { renderizar(); return; }
     tr.outerHTML = linhaHtml(a);
-    renderizarResumo(filtrar());
+    renderizarPainel(filtrar(false));
     focarEditor();
   }
 
@@ -590,21 +784,55 @@ const Plano = (() => {
       filtros.situacao = ev.target.value; limite = POR_PAGINA; renderizar();
     });
 
-    // Os cartões do resumo também filtram.
-    el('plano-resumo')?.addEventListener('click', (ev) => {
-      const b = ev.target.closest('[data-situacao]');
-      if (!b) return;
-      filtros.situacao = b.dataset.situacao;
-      const s = el('plano-situacao');
-      if (s) s.value = filtros.situacao;
+    // Cartões, fatias, gargalos e colunas do painel filtram a tabela.
+    // Clicar de novo no filtro ativo volta para "Em aberto".
+    const aoClicarNoPainel = (ev) => {
+      const porSituacao = ev.target.closest('[data-situacao]');
+      const porNucleo = ev.target.closest('[data-nucleo]');
+      if (porNucleo) {
+        filtros.nucleo = filtros.nucleo === porNucleo.dataset.nucleo ? '' : porNucleo.dataset.nucleo;
+        const n = el('plano-nucleo');
+        if (n) n.value = filtros.nucleo;
+      } else if (porSituacao) {
+        const escolhida = porSituacao.dataset.situacao;
+        filtros.situacao = filtros.situacao === escolhida && escolhida !== 'abertas' ? 'abertas' : escolhida;
+        const sel = el('plano-situacao');
+        if (sel) sel.value = filtros.situacao;
+      } else return;
       limite = POR_PAGINA;
       renderizar();
+    };
+    el('plano-resumo')?.addEventListener('click', aoClicarNoPainel);
+    el('plano-painel')?.addEventListener('click', aoClicarNoPainel);
+
+    // A dica que acompanha o mouse nas marcas dos gráficos.
+    const dica = el('plano-dica');
+    el('plano-painel')?.addEventListener('mousemove', (ev) => {
+      if (!dica) return;
+      const alvo = ev.target.closest('[data-dica]');
+      if (!alvo) { dica.classList.add('hidden'); return; }
+      dica.textContent = alvo.dataset.dica;
+      dica.classList.remove('hidden');
+      dica.style.left = `${ev.clientX + 14}px`;
+      dica.style.top = `${ev.clientY + 14}px`;
     });
+    el('plano-painel')?.addEventListener('mouseleave', () => dica?.classList.add('hidden'));
 
     const lista = el('plano-lista');
 
     lista?.addEventListener('click', (ev) => {
       if (ev.target.closest('[data-mais]')) { limite += POR_PAGINA; renderizar(); return; }
+
+      // Cabeçalho: A → Z, Z → A, e de volta à ordem original.
+      const th = ev.target.closest('th[data-ordem]');
+      if (th) {
+        const chave = th.dataset.ordem;
+        if (ordem.chave !== chave) { ordem.chave = chave; ordem.sentido = 1; }
+        else if (ordem.sentido === 1) ordem.sentido = -1;
+        else ordem.chave = null;
+        renderizar();
+        return;
+      }
 
       const log = ev.target.closest('[data-log]');
       if (log) { abrirHistorico(Number(log.dataset.log)); return; }

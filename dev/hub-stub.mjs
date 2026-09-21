@@ -252,8 +252,23 @@ const semDetalhe = process.argv.includes('--sem-detalhe');
  */
 const EXTRAS = [];
 
+/**
+ * `--limite` imita o hub pedindo pausa: a PRIMEIRA chamada a cada rota
+ * responde 429 com Retry-After de 1 s. Prova que o CRM espera e tenta
+ * de novo em vez de parar a carga do plano de ação no meio.
+ */
+const limite = process.argv.includes('--limite');
+const jaLimitadas = new Set();
+
 const servidor = createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORTA}`);
+
+  if (limite && url.pathname.startsWith('/v1/') && !jaLimitadas.has(url.pathname)) {
+    jaLimitadas.add(url.pathname);
+    res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '1' });
+    res.end('{"error":"Too many requests"}');
+    return;
+  }
 
   if (req.method === 'POST' && url.pathname === '/__reuniao') {
     let corpo = '';

@@ -332,15 +332,23 @@
               Clique numa célula para editar.
             </p>
           </div>
-          <div class="header-actions">
-            <span id="plano-carga" class="plano-carga"></span>
-            <button id="btn-plano-carga" class="btn btn-secondary">Buscar novas ações</button>
+          <div class="header-actions plano-topo-acoes">
+            <!-- Os cartões filtram a tabela com um clique. -->
+            <div id="plano-resumo" class="plano-resumo"></div>
+            <div class="plano-carga-caixa">
+              <button id="btn-plano-carga" class="btn btn-secondary">Buscar novas ações</button>
+              <span id="plano-carga" class="plano-carga"></span>
+            </div>
           </div>
         </header>
 
         <p id="plano-aviso" class="campo-informativo aviso-hub hidden"></p>
 
-        <div id="plano-resumo" class="plano-resumo"></div>
+        <!-- O painel: prazo das abertas, gargalos de cadastro e abertas
+             por nucleo. Conta sobre cliente, nucleo e busca, nao sobre a
+             situacao; cada marca filtra a tabela. -->
+        <div id="plano-painel" class="plano-painel"></div>
+        <div id="plano-dica" class="plano-dica hidden" role="tooltip"></div>
 
         <div class="filtros-linha">
           <input type="text" id="plano-busca" class="form-control"
@@ -352,6 +360,8 @@
           <select id="plano-situacao" class="form-control">
             <option value="abertas">Em aberto</option>
             <option value="atrasadas">Só as atrasadas</option>
+            <option value="vencendo">Vencem em até 7 dias</option>
+            <option value="no-prazo">No prazo</option>
             <option value="sem-responsavel">Sem responsável</option>
             <option value="sem-data">Sem data prevista</option>
             <option value="sem-5w">Sem 5W2H</option>

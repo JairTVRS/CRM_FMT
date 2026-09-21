@@ -18,6 +18,7 @@ import {
   onRequestGet as planoGet, onRequestPost as planoPost, onRequestPatch as planoPatch
 } from '../../functions/api/plano-acao.js';
 import { mesclar, SAIU_DA_ATA } from '../../functions/api/_lib/plano.js';
+import { esquecerMemoria } from '../../functions/api/_lib/hub.js';
 import { nomeDeDocumento, TIPO_DOCUMENTO } from '../../functions/api/_lib/documento-base.js';
 
 import { fileURLToPath } from 'node:url';
@@ -337,6 +338,9 @@ Status: Nova`
   duble.kill();
   await new Promise((r) => setTimeout(r, 400));
   duble = await subirDuble(['--sem-permissao']);
+  // As listas de referência ficaram na memória do passo anterior: sem
+  // esquecer, só as reuniões seriam pedidas e a prova mediria a memória.
+  esquecerMemoria();
 
   const bloqueado = await carga();
   ok(bloqueado.status === 503 && bloqueado.corpo.code === 'HUB_SEM_PERMISSAO',
@@ -348,7 +352,22 @@ Status: Nova`
     'a trava é solta mesmo quando o hub falha');
   ok((await plano()).acoes.length === 4, 'e o plano gravado continua legível com o hub fora');
 
-  console.log('\n=== 16. Nome dos documentos ===');
+  console.log('\n=== 16. O hub pede pausa (429) ===');
+  duble.kill();
+  await new Promise((r) => setTimeout(r, 400));
+  duble = await subirDuble(['--limite']);
+  esquecerMemoria();
+
+  const comPausa = await carga();
+  ok(comPausa.status === 200,
+    'a carga espera o Retry-After e tenta de novo, em vez de parar no meio', `status=${comPausa.status}`);
+
+  const t1 = Date.now();
+  await carga();
+  ok(Date.now() - t1 < 900,
+    'o passo seguinte usa as listas de referência da memória: não repete as páginas', `${Date.now() - t1} ms`);
+
+  console.log('\n=== 17. Nome dos documentos ===');
 
   // Desde a v2.23.0 a CAIXA ALTA do ERP vira capitalizada: `ALPHATEX`
   // grita num nome de arquivo. Siglas de ate 3 letras ficam intactas.

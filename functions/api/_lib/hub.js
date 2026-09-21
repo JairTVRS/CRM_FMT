@@ -120,6 +120,26 @@ function traduzirStatus(status, corpoTexto, permissao) {
 }
 
 /**
+ * Memória curta, por isolate do Worker, para listas que mudam pouco.
+ *
+ * A carga do plano de ação anda em passos, e cada passo precisava das
+ * mesmas carteiras, clientes, tipos e times — 20+ páginas repetidas a
+ * cada mês lido, o que levou o hub a recusar por excesso de requisições.
+ * Só guarda sucesso: falha nunca fica memorizada.
+ */
+const MEMORIA = new Map();
+
+export async function memorizar(chave, ms, executar) {
+  const guardado = MEMORIA.get(chave);
+  if (guardado && guardado.expira > Date.now()) return guardado.valor;
+  const valor = await executar();
+  MEMORIA.set(chave, { valor, expira: Date.now() + ms });
+  return valor;
+}
+
+export function esquecerMemoria() { MEMORIA.clear(); }
+
+/**
  * Uma requisição ao hub. Devolve o corpo já em JSON.
  *
  * @param {object} env      o ambiente da Function
@@ -139,13 +159,24 @@ export async function pedirAoHub(env, caminho, parametros = {}) {
 
   const url = `${base(env)}${caminho}${p.toString() ? `?${p}` : ''}`;
 
+  // 429 é o hub pedindo uma pausa, não recusando. Espera o que ele pedir
+  // (Retry-After, no máximo 5 s) e tenta de novo, até duas vezes. Sem
+  // isso, a carga do plano de ação — dezenas de páginas seguidas —
+  // parava no meio a cada rajada (visto em produção em 21/09/2026).
   let resposta;
-  try {
-    resposta = await fetch(url, {
-      headers: { Authorization: `Bearer ${chave}`, Accept: 'application/json' }
-    });
-  } catch (e) {
-    throw new ErroHub('HUB_INALCANCAVEL', `Não foi possível falar com o hub: ${e.message}`);
+  for (let tentativa = 0; ; tentativa++) {
+    try {
+      resposta = await fetch(url, {
+        headers: { Authorization: `Bearer ${chave}`, Accept: 'application/json' }
+      });
+    } catch (e) {
+      throw new ErroHub('HUB_INALCANCAVEL', `Não foi possível falar com o hub: ${e.message}`);
+    }
+    if (resposta.status !== 429 || tentativa === 2) break;
+
+    const pedido = Number(resposta.headers.get('Retry-After'));
+    const espera = Number.isFinite(pedido) && pedido > 0 ? Math.min(pedido * 1000, 5000) : 1500 * (tentativa + 1);
+    await new Promise((r) => setTimeout(r, espera));
   }
 
   if (!resposta.ok) {

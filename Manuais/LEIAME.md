@@ -36,6 +36,7 @@ o que já saiu e o que vem. Estes manuais são o detalhe de cada linha dele.
 | 2.23.2 | [Importação, lote 3](Manual-Importacao-Lote-3-CRM-FMT-v1.0.md) | Etapas novas passam pelo usuário |
 | 2.24.0 | [A conta é do ERP](Manual-Conta-do-ERP-CRM-FMT-v1.0.md) | Pessoas e núcleos vêm do ERP; o documento para de afirmar o vazio que não conferiu |
 | 2.25.0 | [Plano gravado](Manual-Plano-Gravado-CRM-FMT-v1.0.md) | O plano de ação vira tabela editável, com histórico e carga incremental |
+| 2.26.0 | [Painel do plano](Manual-Painel-Plano-CRM-FMT-v1.0.md) | Gráficos que filtram, colunas ordenáveis e a carga que não para no 429 |
 
 Os quatro primeiros são anteriores à convenção de registrar a versão do
 sistema no cabeçalho — estão na ordem de data.

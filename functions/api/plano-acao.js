@@ -46,7 +46,7 @@
 
 import {
   listarCarteiras, listarReunioes, listarClientesDoHub,
-  mapaDeTiposDeReuniao, mapaDeTimes, ErroHub
+  mapaDeTiposDeReuniao, mapaDeTimes, ErroHub, memorizar
 } from './_lib/hub.js';
 import {
   aplicarReunioes, linhaParaTela, validarCampo, COLUNAS_DA_CARGA
@@ -138,6 +138,9 @@ const JANELA_DIAS = 31;
  * da nova.
  */
 const FOLGA_DIAS = 14;
+
+/** Quanto as listas de referência do hub ficam na memória. */
+const REFERENCIA_MS = 10 * 60 * 1000;
 
 /** Carga travada há mais que isso morreu no meio; a trava expira. */
 const TRAVA_MS = 3 * 60 * 1000;
@@ -276,11 +279,14 @@ async function passoDaCarga(env, db, usuario, cabecalhos, agora) {
   const ate = new Date(Math.min(desde.getTime() + JANELA_DIAS * DIA, agora.getTime()));
 
   const fontes = await Promise.allSettled([
-    listarCarteiras(env),
+    // As quatro listas de referência mudam pouco e se repetem em todo
+    // passo: ficam na memória por dez minutos. Só as reuniões são sempre
+    // pedidas de novo.
+    memorizar('plano:carteiras', REFERENCIA_MS, () => listarCarteiras(env)),
     reunioesDaJanela(env, desde, ate),
-    listarClientesDoHub(env, { status: 'active' }),
-    mapaDeTiposDeReuniao(env),
-    mapaDeTimes(env)
+    memorizar('plano:clientes', REFERENCIA_MS, () => listarClientesDoHub(env, { status: 'active' })),
+    memorizar('plano:tipos', REFERENCIA_MS, () => mapaDeTiposDeReuniao(env)),
+    memorizar('plano:times', REFERENCIA_MS, () => mapaDeTimes(env))
   ]);
 
   const falhas = fontes

@@ -45,6 +45,8 @@ const classes = [
   'p-log-lista', 'p-log-topo', 'p-log-vazio', 'p-origem',
   'c-acao', 'c-cliente', 'c-tipo', 'c-nucleo', 'c-descricao', 'c-resp', 'c-5w',
   'c-onde', 'c-quando', 'c-data', 'c-status', 'c-log',
+  'plano-painel', 'plano-dica', 'plano-topo-acoes', 'plano-carga-caixa', 'pn-bloco', 'pn-rosca',
+  'pn-fatia', 'pn-legenda', 'pn-garg', 'pn-barra', 'pn-colunas', 'pn-col', 'pn-col-barra', 'p-ordenavel', 'p-seta',
   'dossie-modal', 'dossie-selo-versao', 'anel-preenchimento', 'dossie-etapa-nota',
   'dossie-avisos', 'dossie-erro-codigo', 'espaco', 'hidden'
 ];
