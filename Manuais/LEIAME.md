@@ -38,6 +38,7 @@ o que já saiu e o que vem. Estes manuais são o detalhe de cada linha dele.
 | 2.25.0 | [Plano gravado](Manual-Plano-Gravado-CRM-FMT-v1.0.md) | O plano de ação vira tabela editável, com histórico e carga incremental |
 | 2.26.0 | [Painel do plano](Manual-Painel-Plano-CRM-FMT-v1.0.md) | Gráficos que filtram, colunas ordenáveis e a carga que não para no 429 |
 | 2.27.0 | [Sessão de 7 dias](Manual-Sessao-7-Dias-CRM-FMT-v1.0.md) | Recarregar a página não derruba mais o login |
+| 2.28.0 | [Colunas do plano](Manual-Colunas-Plano-CRM-FMT-v1.0.md) | Engrenagem: ordem, exibição e ordenação das colunas, salvas por usuário |
 
 Os quatro primeiros são anteriores à convenção de registrar a versão do
 sistema no cabeçalho — estão na ordem de data.

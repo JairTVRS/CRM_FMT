@@ -30,10 +30,10 @@ const Plano = (() => {
   let sincronizando = false;
   let editando = null;          // { id, campo }
   let recarregarDepois = false; // a carga trouxe novidade durante uma edição
-  let limite = 200;
+  let porPagina = 200;         // preferência do usuário: 50, 100, 200 ou 500
+  let limite = porPagina;
   let debounce = null;
 
-  const POR_PAGINA = 200;
 
   const filtros = { busca: '', cliente: '', nucleo: '', situacao: 'abertas' };
 
@@ -101,6 +101,236 @@ const Plano = (() => {
 
   const colunaDoCampo = (campo) => COLUNAS.find((c) => c.campo === campo);
 
+  /* ----------------------------------------------------------
+     Configuração de colunas, por usuário (2.28.0)
+
+     A engrenagem ao lado dos filtros abre um painel com todas as
+     colunas: arrastar muda a ordem, o olho mostra ou esconde, as setas
+     ordenam a tabela por ela. Fica gravado no servidor, por e-mail
+     (/api/preferencias) — segue a pessoa em qualquer computador.
+     ---------------------------------------------------------- */
+
+  const CHAVE_PREFERENCIA = 'plano-colunas';
+  const OPCOES_POR_PAGINA = [50, 100, 200, 500];
+  const PADRAO_SEQUENCIA = COLUNAS.map((c) => c.chave);
+
+  const layout = { sequencia: [...PADRAO_SEQUENCIA], ocultas: new Set() };
+  let salvarDepois = null;
+
+  const colunaPorChave = (k) => COLUNAS.find((c) => c.chave === k);
+
+  function colunasVisiveis() {
+    return layout.sequencia.map(colunaPorChave).filter((c) => c && !layout.ocultas.has(c.chave));
+  }
+
+  /**
+   * Aplica o que veio do servidor, desconfiando de tudo: coluna que não
+   * existe mais é ignorada, coluna nova (de uma versão futura) entra no
+   * fim, visível. Esconder TODAS não é uma escolha — volta ao padrão.
+   */
+  function aplicarLayout(v) {
+    if (!v || typeof v !== 'object') return;
+
+    const conhecidas = Array.isArray(v.sequencia) ? v.sequencia.filter((k) => colunaPorChave(k)) : [];
+    layout.sequencia = [...new Set([...conhecidas, ...PADRAO_SEQUENCIA])];
+    layout.ocultas = new Set(Array.isArray(v.ocultas) ? v.ocultas.filter((k) => colunaPorChave(k)) : []);
+    if (layout.ocultas.size >= COLUNAS.length) layout.ocultas.clear();
+
+    if (OPCOES_POR_PAGINA.includes(Number(v.porPagina))) {
+      porPagina = Number(v.porPagina);
+      limite = porPagina;
+    }
+
+    if (v.ordem && colunaPorChave(v.ordem.chave) && [1, -1].includes(v.ordem.sentido)) {
+      ordem.chave = v.ordem.chave;
+      ordem.sentido = v.ordem.sentido;
+    }
+  }
+
+  async function carregarLayout() {
+    try {
+      const r = await fetch(`/api/preferencias?chave=${CHAVE_PREFERENCIA}`);
+      if (r.ok) aplicarLayout((await r.json()).valor);
+    } catch (e) { /* sem preferência: fica o padrão */ }
+  }
+
+  /** Grava meio segundo depois da última mudança: arrastar cinco colunas é uma gravação. */
+  function salvarLayout() {
+    clearTimeout(salvarDepois);
+    salvarDepois = setTimeout(async () => {
+      const nota = el('plano-config-nota');
+      try {
+        const r = await fetch(`/api/preferencias?chave=${CHAVE_PREFERENCIA}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            valor: {
+              sequencia: layout.sequencia,
+              ocultas: [...layout.ocultas],
+              porPagina,
+              ordem: ordem.chave ? { chave: ordem.chave, sentido: ordem.sentido } : null
+            }
+          })
+        });
+        if (nota) {
+          const d = r.ok ? null : await r.json().catch(() => ({}));
+          nota.textContent = r.ok
+            ? 'Salvo para você — vale em qualquer computador.'
+            : (d?.error || 'Não foi possível salvar; vale só até recarregar.');
+        }
+      } catch (e) {
+        if (nota) nota.textContent = 'Sem conexão: a configuração vale só até recarregar.';
+      }
+    }, 500);
+  }
+
+  const ICONE_OLHO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const ICONE_OLHO_FECHADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+
+  function renderizarConfiguracao() {
+    const lista = el('plano-config-colunas');
+    if (!lista) return;
+
+    const pagina = el('plano-por-pagina');
+    if (pagina) pagina.value = String(porPagina);
+
+    lista.innerHTML = layout.sequencia.map((k) => {
+      const c = colunaPorChave(k);
+      const visivel = !layout.ocultas.has(k);
+      const ordenada = ordem.chave === k;
+      const seta = ordenada ? (ordem.sentido === 1 ? '▲' : '▼') : '↕';
+      return `
+        <li class="pc-item${visivel ? '' : ' oculta'}" draggable="true" data-coluna="${k}">
+          <span class="pc-alca" tabindex="0" role="button"
+                aria-label="Mover ${c.rotulo}: setas para cima e para baixo" title="Arraste para mudar a ordem">☰</span>
+          <span class="pc-nome">${c.rotulo}</span>
+          <button type="button" class="pc-botao pc-ordem${ordenada ? ' ativo' : ''}" data-acao="ordenar"
+                  title="${ordenada ? (ordem.sentido === 1 ? 'Ordenado A → Z; clique para Z → A' : 'Ordenado Z → A; clique para tirar') : 'Ordenar a tabela por esta coluna'}">${seta}</button>
+          <button type="button" class="pc-botao pc-olho${visivel ? ' ativo' : ''}" data-acao="olho"
+                  aria-pressed="${visivel}" title="${visivel ? 'Esconder a coluna' : 'Mostrar a coluna'}">${visivel ? ICONE_OLHO : ICONE_OLHO_FECHADO}</button>
+        </li>`;
+    }).join('');
+  }
+
+  function abrirConfiguracao() {
+    renderizarConfiguracao();
+    el('plano-config')?.classList.remove('hidden');
+    el('plano-config-fundo')?.classList.remove('hidden');
+    el('btn-plano-config-fechar')?.focus();
+  }
+
+  function fecharConfiguracao() {
+    el('plano-config')?.classList.add('hidden');
+    el('plano-config-fundo')?.classList.add('hidden');
+    el('btn-plano-colunas')?.focus();
+  }
+
+  /** Uma mudança no painel: redesenha o painel e a tabela, e grava. */
+  function mudouLayout() {
+    renderizarConfiguracao();
+    renderizar();
+    salvarLayout();
+  }
+
+  function moverColuna(k, passo) {
+    const i = layout.sequencia.indexOf(k);
+    const j = i + passo;
+    if (i < 0 || j < 0 || j >= layout.sequencia.length) return;
+    [layout.sequencia[i], layout.sequencia[j]] = [layout.sequencia[j], layout.sequencia[i]];
+    mudouLayout();
+    el('plano-config-colunas')?.querySelector(`[data-coluna="${k}"] .pc-alca`)?.focus();
+  }
+
+  function ligarConfiguracao() {
+    el('btn-plano-colunas')?.addEventListener('click', abrirConfiguracao);
+    el('btn-plano-config-fechar')?.addEventListener('click', fecharConfiguracao);
+    el('plano-config-fundo')?.addEventListener('click', fecharConfiguracao);
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && !el('plano-config')?.classList.contains('hidden')) fecharConfiguracao();
+    });
+
+    el('plano-por-pagina')?.addEventListener('change', (ev) => {
+      porPagina = Number(ev.target.value) || 200;
+      limite = porPagina;
+      mudouLayout();
+    });
+
+    el('btn-plano-restaurar')?.addEventListener('click', () => {
+      layout.sequencia = [...PADRAO_SEQUENCIA];
+      layout.ocultas.clear();
+      ordem.chave = null;
+      ordem.sentido = 1;
+      mudouLayout();
+    });
+
+    const lista = el('plano-config-colunas');
+    if (!lista) return;
+
+    lista.addEventListener('click', (ev) => {
+      const botao = ev.target.closest('[data-acao]');
+      const k = ev.target.closest('[data-coluna]')?.dataset.coluna;
+      if (!botao || !k) return;
+
+      if (botao.dataset.acao === 'olho') {
+        if (layout.ocultas.has(k)) layout.ocultas.delete(k);
+        else if (layout.ocultas.size < COLUNAS.length - 1) layout.ocultas.add(k);
+        else return;   // a última coluna visível não se esconde
+      }
+
+      if (botao.dataset.acao === 'ordenar') {
+        if (ordem.chave !== k) { ordem.chave = k; ordem.sentido = 1; }
+        else if (ordem.sentido === 1) ordem.sentido = -1;
+        else ordem.chave = null;
+      }
+
+      mudouLayout();
+    });
+
+    // Teclado: a alça com foco move com as setas.
+    lista.addEventListener('keydown', (ev) => {
+      if (!ev.target.classList.contains('pc-alca')) return;
+      const k = ev.target.closest('[data-coluna]')?.dataset.coluna;
+      if (ev.key === 'ArrowUp') { ev.preventDefault(); moverColuna(k, -1); }
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); moverColuna(k, 1); }
+    });
+
+    // Arrastar: a linha muda de lugar enquanto se arrasta; ao soltar, a
+    // ordem da lista vira a ordem das colunas.
+    let arrastada = null;
+
+    lista.addEventListener('dragstart', (ev) => {
+      arrastada = ev.target.closest('.pc-item');
+      if (!arrastada) return;
+      arrastada.classList.add('arrastando');
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', arrastada.dataset.coluna);
+    });
+
+    lista.addEventListener('dragover', (ev) => {
+      if (!arrastada) return;
+      ev.preventDefault();
+      const alvo = ev.target.closest('.pc-item');
+      if (!alvo || alvo === arrastada) return;
+      const r = alvo.getBoundingClientRect();
+      const depois = ev.clientY > r.top + r.height / 2;
+      alvo.parentNode.insertBefore(arrastada, depois ? alvo.nextSibling : alvo);
+    });
+
+    const soltar = () => {
+      if (!arrastada) return;
+      arrastada.classList.remove('arrastando');
+      arrastada = null;
+      const nova = [...lista.querySelectorAll('.pc-item')].map((li) => li.dataset.coluna);
+      if (nova.join() !== layout.sequencia.join()) {
+        layout.sequencia = nova;
+        mudouLayout();
+      }
+    };
+    lista.addEventListener('drop', (ev) => { ev.preventDefault(); soltar(); });
+    lista.addEventListener('dragend', soltar);
+  }
+
+
   /**
    * O identificador da ação: `N.M`. N é a sequência do CLIENTE, dada pelo
    * CRM; M é o número da ação no tipo de reunião, que é como a ata a chama.
@@ -114,7 +344,7 @@ const Plano = (() => {
      Leitura do banco
      ---------------------------------------------------------- */
 
-  async function carregar() {
+  async function carregar({ semDesenhar = false } = {}) {
     if (carregando) return;
     carregando = true;
 
@@ -134,7 +364,7 @@ const Plano = (() => {
 
       acoes = d.acoes || [];
       carga = d.carga || null;
-      renderizar();
+      if (!semDesenhar) renderizar();
       return true;
 
     } catch (e) {
@@ -538,7 +768,7 @@ const Plano = (() => {
   function linhaHtml(a) {
     const classes = ['p-linha', a.atrasada ? 'atrasada' : '', a.aberta ? '' : 'fechada'].filter(Boolean).join(' ');
 
-    const celulas = COLUNAS.map((col) => {
+    const celulas = colunasVisiveis().map((col) => {
       const emEdicao = editando && editando.id === a.id && editando.campo === col.campo;
       const editavel = !!col.campo;
       return `<td class="${col.classe}${editavel ? ' editavel' : ''}${emEdicao ? ' editando' : ''}"
@@ -578,13 +808,13 @@ const Plano = (() => {
     caixa.innerHTML = `
       <div class="p-rolagem">
         <table class="p-tabela">
-          <thead><tr>${COLUNAS.map(cabecalhoHtml).join('')}<th class="c-log"></th></tr></thead>
+          <thead><tr>${colunasVisiveis().map(cabecalhoHtml).join('')}<th class="c-log"></th></tr></thead>
           <tbody>${visiveis.map(linhaHtml).join('')}</tbody>
         </table>
       </div>
       <div class="p-rodape">
         ${lista.length} ação(ões)${lista.length > limite
-          ? ` · mostrando ${limite} <button type="button" class="btn btn-secondary btn-sm" data-mais>Mostrar mais ${Math.min(POR_PAGINA, lista.length - limite)}</button>`
+          ? ` · mostrando ${limite} <button type="button" class="btn btn-secondary btn-sm" data-mais>Mostrar mais ${Math.min(porPagina, lista.length - limite)}</button>`
           : ''}
       </div>`;
 
@@ -765,23 +995,24 @@ const Plano = (() => {
 
   function iniciar() {
     el('btn-plano-carga')?.addEventListener('click', sincronizar);
+    ligarConfiguracao();
 
     el('plano-busca')?.addEventListener('input', (ev) => {
       clearTimeout(debounce);
       const v = ev.target.value;
-      debounce = setTimeout(() => { filtros.busca = v; limite = POR_PAGINA; renderizar(); }, 250);
+      debounce = setTimeout(() => { filtros.busca = v; limite = porPagina; renderizar(); }, 250);
     });
 
     el('plano-cliente')?.addEventListener('change', (ev) => {
-      filtros.cliente = ev.target.value; limite = POR_PAGINA; renderizar();
+      filtros.cliente = ev.target.value; limite = porPagina; renderizar();
     });
 
     el('plano-nucleo')?.addEventListener('change', (ev) => {
-      filtros.nucleo = ev.target.value; limite = POR_PAGINA; renderizar();
+      filtros.nucleo = ev.target.value; limite = porPagina; renderizar();
     });
 
     el('plano-situacao')?.addEventListener('change', (ev) => {
-      filtros.situacao = ev.target.value; limite = POR_PAGINA; renderizar();
+      filtros.situacao = ev.target.value; limite = porPagina; renderizar();
     });
 
     // Cartões, fatias, gargalos e colunas do painel filtram a tabela.
@@ -799,7 +1030,7 @@ const Plano = (() => {
         const sel = el('plano-situacao');
         if (sel) sel.value = filtros.situacao;
       } else return;
-      limite = POR_PAGINA;
+      limite = porPagina;
       renderizar();
     };
     el('plano-resumo')?.addEventListener('click', aoClicarNoPainel);
@@ -821,7 +1052,7 @@ const Plano = (() => {
     const lista = el('plano-lista');
 
     lista?.addEventListener('click', (ev) => {
-      if (ev.target.closest('[data-mais]')) { limite += POR_PAGINA; renderizar(); return; }
+      if (ev.target.closest('[data-mais]')) { limite += porPagina; renderizar(); return; }
 
       // Cabeçalho: A → Z, Z → A, e de volta à ordem original.
       const th = ev.target.closest('th[data-ordem]');
@@ -830,6 +1061,7 @@ const Plano = (() => {
         if (ordem.chave !== chave) { ordem.chave = chave; ordem.sentido = 1; }
         else if (ordem.sentido === 1) ordem.sentido = -1;
         else ordem.chave = null;
+        salvarLayout();
         renderizar();
         return;
       }
@@ -888,7 +1120,10 @@ const Plano = (() => {
   async function aoEntrarNaTela() {
     if (jaCarregou) return;
     jaCarregou = true;
-    const leu = await carregar();
+    // A preferência de colunas chega junto com o plano; a tabela só é
+    // desenhada uma vez, já na ordem da pessoa.
+    const [leu] = await Promise.all([carregar({ semDesenhar: true }), carregarLayout()]);
+    renderizar();
     if (leu) sincronizar();
   }
 
