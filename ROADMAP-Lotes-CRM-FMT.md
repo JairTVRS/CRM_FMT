@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 28/09/2026
-**Versão no ar:** 2.34.2 (desde 28/09/2026; migrações 016 a 019 aplicadas e conferidas no D1 remoto; Worker `crm-fmt-prospects-diario` com o Cron das 06:00) · **falta:** o binding **Workers AI** (`AI`) no projeto crm-fmt, para a 2.35.0
+**Versão no ar:** 2.35.0 (desde 28/09/2026; migrações 016 a 020 aplicadas e conferidas no D1 remoto; Worker `crm-fmt-prospects-diario` com o Cron das 06:00) · **falta:** um transcritor — o binding **Workers AI** (`AI`) no projeto crm-fmt, ou uma chave da OpenAI nas Configurações
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -75,6 +75,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **JL⁴** | **2.34.0** | **Chaves de IA e roteiros** — provedor em uso no servidor (valia por navegador, e o dossiê o ignorava); chave cadastrada pelo admin, cifrada (AES-GCM, `CHAVES_SECRET`), nunca devolvida à tela, a do painel vale primeiro; roteiro .md por tipo de reunião, versionado, visível na reunião (migração 019) |
 | — | **2.34.1** | **Barra do topo** — tema, configurações e o usuário (iniciais, menu com Sair) no canto superior direito; barra lateral só com o menu, mais estreita; **tema claro por padrão**, o escuro lembrado por navegador |
 | — | **2.34.2** | **A versão no canto inferior esquerdo** e, ao clicar, "O que mudou" (`public/novidades.json`, conferido pela `ids.mjs` contra o package.json) |
+| **JL⁵** | **2.35.0** | **Gravação e transcrição da reunião** — consentimento registrado; no computador, microfone e áudio da aba separados (Formatar / Lead); pedaços de 20 s em WAV 16 kHz, transcritos pelo Workers AI (ou OpenAI) e descartados — só o texto fica; encerrar marca a reunião como realizada; a gravação fica presa à versão do roteiro (migração 020) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -92,7 +93,7 @@ emitido ou a perda. Uma versão por entrega, cada uma testável sozinha.
 | ~~2.32.0~~ | ~~Agenda do lead~~ — entregue (o Time "Vendas" já está no hub) | — |
 | ~~2.33.0~~ | ~~Prospects do ERP, 1× por dia~~ — entregue | — |
 | ~~2.34.0~~ | ~~Chaves de IA e roteiros~~ — entregue | o binding Workers AI no painel (para a 2.35.0) |
-| **2.35.0** | **Gravação e transcrição ao vivo** — consentimento registrado; pedaços de 20–30 s; **só o texto é guardado**; no computador, microfone e áudio da aba separados (quem falou); no celular só o microfone, com aviso | 2.34.0 |
+| ~~2.35.0~~ | ~~Gravação e transcrição ao vivo~~ — entregue | um transcritor: binding Workers AI ou chave OpenAI |
 | **2.36.0** | **Recortes e insights durante a reunião** — frases do lead que captam a expectativa, conferidas por código contra a transcrição; perguntas do roteiro ainda não cobertas | 2.35.0 |
 | **2.37.0** | **Laudo pós-reunião** — HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão, como histórico da pré-venda | 2.35.0 |
 | depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |

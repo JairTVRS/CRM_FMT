@@ -16,7 +16,7 @@ let falhas = 0;
 for (const arquivo of ['public/js/stakeholders.js', 'public/js/dossie-cx.js',
                        'public/js/clientes.js', 'public/js/conversao.js',
                        'public/js/plano-acao.js', 'public/js/perda.js', 'public/js/agenda.js',
-                       'public/js/roteiros.js', 'public/js/novidades.js']) {
+                       'public/js/roteiros.js', 'public/js/novidades.js', 'public/js/gravacao.js']) {
   const js = readFileSync(`${RAIZ}/${arquivo}`, 'utf8');
   const procurados = new Set([...js.matchAll(/\bel\('([^']+)'\)/g)].map((m) => m[1]));
 
@@ -72,7 +72,11 @@ const classes = [
   'topo', 'topo-acoes', 'topo-botao', 'topo-usuario', 'topo-avatar', 'topo-menu',
   'topo-menu-quem', 'topo-menu-selo', 'topo-menu-versao', 'topo-menu-sair',
   // 2.34.2
-  'versao-rodape', 'novidades-lista', 'novidade', 'novidade-topo', 'novidade-selo', 'novidade-titulo'
+  'versao-rodape', 'novidades-lista', 'novidade', 'novidade-topo', 'novidade-selo', 'novidade-titulo',
+  // 2.35.0
+  'agenda-gravacao', 'agenda-gravacao-topo', 'gravacao-opcao', 'gravacao-rotulo', 'gravacao-acoes',
+  'gravacao-barra', 'gravacao-estado', 'gravacao-ponto', 'gravacao-avisos', 'gravacao-final',
+  'transcricao', 'transcricao-curta', 'trecho', 'trecho-quando'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));
@@ -86,7 +90,7 @@ if (semEstilo.length) {
 // Os scripts novos estão no index.html, na ordem certa?
 // O conversao.js precisa vir depois do quadro.js e do clientes.js: é
 // acionado pelo quadro do funil e recarrega a Jornada ao converter.
-const ordem = ['js/cadastros.js', 'js/perda.js', 'js/agenda.js', 'js/roteiros.js', 'js/leads.js', 'js/quadro.js', 'js/clientes.js', 'js/stakeholders.js',
+const ordem = ['js/cadastros.js', 'js/perda.js', 'js/agenda.js', 'js/audio-wav.js', 'js/gravacao.js', 'js/roteiros.js', 'js/leads.js', 'js/quadro.js', 'js/clientes.js', 'js/stakeholders.js',
                'js/dossie-cx.js', 'js/conversao.js',
                'js/plano-acao.js'].map((s) => html.indexOf(s));
 
@@ -120,7 +124,7 @@ console.log('  OK    o modal de conversão e o bloco da ficha estão no HTML');
 const ARQUIVOS_JS = [
   'app.js', 'auth.js', 'cadastros.js', 'clientes.js', 'configuracoes.js',
   'conversao.js', 'dossie.js', 'dossie-cx.js', 'importar.js', 'leads.js',
-  'perda.js', 'agenda.js', 'roteiros.js', 'novidades.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
+  'perda.js', 'agenda.js', 'roteiros.js', 'novidades.js', 'audio-wav.js', 'gravacao.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
 ];
 
 /* Duplicatas LEGITIMAS: mesmo nome, escopos diferentes.

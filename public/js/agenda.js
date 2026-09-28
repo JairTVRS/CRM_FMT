@@ -346,6 +346,8 @@ const Agenda = (() => {
 
     mostrarLead();
     aplicarTipo(base.tipo);
+    // Gravar e a transcrição (2.35.0): só na reunião que já existe.
+    if (typeof Gravacao !== 'undefined') Gravacao.mostrarNaReuniao(item);
     el('modal-agenda').classList.remove('hidden');
   }
 
@@ -603,8 +605,11 @@ const Agenda = (() => {
     });
 
     document.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape' && !el('modal-agenda')?.classList.contains('hidden')
-          && !document.querySelector('.dossie-modal.aberto, #dossie-modal.aberto')) fecharJanela();
+      // Esc fecha a reunião só se nada estiver aberto por cima dela.
+      const porCima = document.querySelector('.dossie-modal.aberto, #dossie-modal.aberto')
+        || !el('modal-gravacao')?.classList.contains('hidden')
+        || !el('modal-roteiro')?.classList.contains('hidden');
+      if (ev.key === 'Escape' && !el('modal-agenda')?.classList.contains('hidden') && !porCima) fecharJanela();
     });
 
     // A ficha do lead: a aba Agenda acompanha o lead aberto.

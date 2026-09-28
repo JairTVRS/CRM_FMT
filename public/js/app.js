@@ -172,7 +172,7 @@ function initModalEvents() {
     if (e.key !== 'Escape' || !modal || modal.classList.contains('hidden')) return;
     // Não rouba o Esc de outra janela aberta por cima
     // Nem o de janelas que abrem sobre a ficha (agenda, motivo da perda).
-    const porCima = ['modal-etapas', 'modal-agenda', 'modal-motivo-perda']
+    const porCima = ['modal-etapas', 'modal-agenda', 'modal-motivo-perda', 'modal-gravacao', 'modal-roteiro']
       .map((id) => document.getElementById(id))
       .some((m) => m && !m.classList.contains('hidden'));
     if (porCima) return;

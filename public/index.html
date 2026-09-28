@@ -1049,6 +1049,76 @@
   <!-- Motivo da perda, pedido ao arrastar um lead para uma etapa de
        perda (2.31.0). Na ficha o mesmo pedido é feito pelos campos da
        aba Funil; aqui é o quadro que não tem onde perguntar. -->
+  <!-- Gravação da reunião (2.35.0). Só o texto é guardado. -->
+  <div id="modal-gravacao" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 720px;">
+      <header class="modal-header">
+        <h2 id="gravacao-titulo">Gravar a reunião</h2>
+        <button id="btn-gravacao-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+      <div class="modal-body">
+
+        <!-- 1. Preparar -->
+        <div id="gravacao-preparar">
+          <p id="gravacao-sem-transcritor" class="agenda-aviso hidden">
+            Não há como transcrever agora: falta ligar o Workers AI no painel da Cloudflare
+            (binding <strong>AI</strong>) ou cadastrar uma chave da OpenAI nas Configurações.
+          </p>
+          <label class="gravacao-opcao">
+            <input type="checkbox" id="gravacao-consentimento">
+            <span><strong>O lead foi avisado e concordou com a gravação.</strong>
+              Fica registrado quem confirmou e quando.</span>
+          </label>
+
+          <p class="gravacao-rotulo">De onde vem o áudio</p>
+          <label class="gravacao-opcao">
+            <input type="radio" name="gravacao-modo" id="gravacao-modo-online">
+            <span><strong>Reunião online, no computador</strong> — o seu microfone e o áudio da aba
+              da reunião (Meet, Teams…), separados: a transcrição sabe quem falou. Ao começar,
+              escolha a <em>aba</em> da reunião e marque "Compartilhar áudio da guia".
+              Com fone de ouvido fica melhor.</span>
+          </label>
+          <label class="gravacao-opcao">
+            <input type="radio" name="gravacao-modo" id="gravacao-modo-sala">
+            <span><strong>Um microfone só</strong> — presencial, externo ou celular. Quem falou não
+              é separado.</span>
+          </label>
+          <p id="gravacao-nota-celular" class="campo-ajuda hidden">
+            Neste aparelho só dá para gravar pelo microfone. Deixe a tela ligada durante a
+            reunião: no iPhone, a tela apagada para a gravação.
+          </p>
+
+          <p class="campo-ajuda">O áudio não é guardado: vai em pedaços de ~20 segundos para a
+            transcrição e é descartado. Só o texto fica na reunião.</p>
+          <div class="gravacao-acoes">
+            <button type="button" id="btn-gravacao-comecar" class="btn btn-primary">&#9679; Começar a gravar</button>
+          </div>
+        </div>
+
+        <!-- 2. Gravando -->
+        <div id="gravacao-gravando" class="hidden">
+          <div class="gravacao-barra">
+            <span id="gravacao-estado" class="gravacao-estado"></span>
+            <div class="gravacao-acoes">
+              <button type="button" id="btn-gravacao-pausar" class="btn btn-secondary btn-sm">Pausar</button>
+              <button type="button" id="btn-gravacao-encerrar" class="btn btn-primary btn-sm">Encerrar</button>
+            </div>
+          </div>
+          <div id="gravacao-avisos" class="gravacao-avisos"></div>
+          <div id="gravacao-transcricao" class="transcricao"></div>
+        </div>
+
+        <!-- 3. Encerrada -->
+        <div id="gravacao-encerrada" class="hidden">
+          <p id="gravacao-final" class="gravacao-final"></p>
+          <div class="gravacao-acoes">
+            <button type="button" id="btn-gravacao-concluir" class="btn btn-primary">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- O que mudou em cada versão (2.34.2). -->
   <div id="modal-novidades" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 640px;">
@@ -1190,6 +1260,16 @@
             <label>Dossiê do lead</label>
             <p id="agenda-dossie-estado" class="campo-informativo"></p>
             <button type="button" id="btn-agenda-dossie" class="btn btn-sm btn-secondary hidden">Abrir o dossiê</button>
+          </div>
+
+          <!-- Gravar a reunião e a transcrição (2.35.0): só reunião já salva. -->
+          <div class="form-group col-span-2 so-reuniao agenda-gravacao hidden" id="agenda-gravacao">
+            <label>Gravação</label>
+            <div class="agenda-gravacao-topo">
+              <span id="agenda-gravacao-estado" class="campo-informativo"></span>
+              <button type="button" id="btn-agenda-gravar" class="btn btn-sm btn-primary">&#9679; Gravar a reunião</button>
+            </div>
+            <div id="agenda-transcricao" class="transcricao transcricao-curta"></div>
           </div>
 
           <!-- Remarcar: esta vira "remarcada" e nasce outra na data nova. -->
@@ -1549,6 +1629,8 @@
   <script src="js/cadastros.js"></script>
   <script src="js/perda.js"></script>
   <script src="js/agenda.js"></script>
+  <script src="js/audio-wav.js"></script>
+  <script src="js/gravacao.js"></script>
   <script src="js/roteiros.js"></script>
   <script src="js/novidades.js"></script>
   <script src="js/leads.js"></script>
