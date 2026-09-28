@@ -1,41 +1,162 @@
 /**
  * CRM Formatar — Módulo de Configurações
- * Gerenciamento de Provedores e Preferências do Backend
+ *
+ * Desde a 2.34.0 a IA é configurada no SERVIDOR (/api/config-ia): o
+ * provedor em uso vale para todos, e o admin pode cadastrar as chaves
+ * aqui. Antes a escolha ficava no localStorage de cada navegador — e
+ * começava em "ChatGPT", que não tinha chave —, e o dossiê nem a lia.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   initConfiguracoes();
+  ligarIA();
 });
 
+// Depois do login: o provedor em uso vai para `window.CONFIG_IA`, que o
+// enriquecimento usa para dizer o nome na mensagem de espera.
+document.addEventListener('crm:autenticado', () => carregarIA(), { once: true });
+
 function initConfiguracoes() {
-  const selectProvider = document.getElementById('select-active-provider');
-  const btnSave = document.getElementById('btn-save-config');
-
-  // Carregar preferência salva do provedor ativo
-  const savedProvider = localStorage.getItem('crm_active_ai_provider') || 'chatgpt';
-  if (selectProvider) {
-    selectProvider.value = savedProvider;
-  }
-
-  // Evento para salvar preferências
-  if (btnSave) {
-    btnSave.addEventListener('click', () => {
-      if (!selectProvider) return;
-      const selectedValue = selectProvider.value;
-      localStorage.setItem('crm_active_ai_provider', selectedValue);
-
-      mostrarNotificacao(`Preferências salvas com sucesso! Provedor ativo: ${selectedValue.toUpperCase()}`, 'sucesso');
-    });
-  }
-
-  // Verificar status de conexão com as APIs do backend
-  verificarStatusBackend();
+  carregarIA();
 
   // Motivos de perda e o aviso de quem é admin (2.31.0)
   if (typeof Perda !== 'undefined') Perda.montarConfig();
 
   // Prospects do ERP (2.33.0)
   mostrarProspects();
+
+  // Roteiros de reunião (2.34.0)
+  if (typeof Roteiros !== 'undefined') Roteiros.montarConfig();
+}
+
+// A navegação chama isto ao abrir a tela de Configurações.
+window.initConfiguracoes = initConfiguracoes;
+
+/* ==========================================================================
+   Inteligência artificial (2.34.0)
+   ========================================================================== */
+
+const ORDEM_PROVEDORES = ['deepseek', 'chatgpt', 'claude', 'gemini'];
+
+function escConfig(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+let configIA = null;
+
+function guardarConfigIA(d) {
+  configIA = d;
+  const provedor = d.provedorAtivo;
+  window.CONFIG_IA = { provider: provedor, nome: d.provedores?.[provedor]?.nome || provedor };
+}
+
+async function carregarIA() {
+  try {
+    const r = await fetch('/api/config-ia');
+    if (!r.ok) return;
+    guardarConfigIA(await r.json());
+    desenharIA();
+  } catch (e) {
+    // Antes do login o fetch devolve 401; a tela se redesenha depois.
+  }
+}
+
+function desenharIA() {
+  const select = document.getElementById('select-active-provider');
+  const caixa = document.getElementById('ia-chaves');
+  if (!select || !caixa || !configIA) return;
+  const admin = typeof Auth !== 'undefined' && Auth.usuario?.admin;
+  const p = configIA.provedores || {};
+
+  const escolhido = configIA.provedorEscolhido || configIA.provedorAtivo;
+  select.innerHTML = ORDEM_PROVEDORES.map((id) =>
+    `<option value="${id}">${escConfig(p[id]?.nome || id)}${p[id]?.configurado ? '' : ' (sem chave)'}</option>`).join('');
+  select.value = escolhido;
+  select.disabled = !admin;
+
+  const nota = document.getElementById('ia-provedor-nota');
+  if (nota) {
+    const emUso = p[configIA.provedorAtivo]?.nome || configIA.provedorAtivo;
+    nota.textContent = escolhido !== configIA.provedorAtivo
+      ? `O escolhido está sem chave: em uso agora, ${emUso}.`
+      : (admin ? 'Vale para todos os usuários.' : 'Só administradores mudam o provedor.');
+  }
+
+  caixa.innerHTML = ORDEM_PROVEDORES.map((id) => {
+    const s = p[id] || {};
+    const estado = s.origem === 'painel'
+      ? '<span class="badge-status badge-success">● Painel da Cloudflare</span>'
+      : (s.origem === 'crm'
+        ? `<span class="badge-status badge-success">● Cadastrada no CRM ••••${escConfig(s.final)}</span>`
+        : '<span class="badge-status badge-warning">○ Sem chave</span>');
+    // A chave do painel vale primeiro: não há o que cadastrar por cima.
+    const editavel = admin && s.origem !== 'painel' && configIA.podeGuardarChave;
+    return `
+      <div class="ia-linha" data-provedor="${id}">
+        <div class="ia-linha-topo">
+          <strong>${escConfig(s.nome || id)}</strong>
+          ${estado}
+        </div>
+        ${editavel ? `
+          <div class="ia-linha-form">
+            <input type="password" class="form-control" autocomplete="off" data-lpignore="true"
+                   placeholder="${s.origem === 'crm' ? 'Colar uma chave nova para trocar' : 'Colar a chave'}">
+            <button type="button" class="btn btn-sm btn-primary" data-acao="salvar">Salvar</button>
+            ${s.origem === 'crm' ? '<button type="button" class="btn btn-sm btn-secondary" data-acao="remover">Remover</button>' : ''}
+          </div>` : ''}
+      </div>`;
+  }).join('') + (admin && !configIA.podeGuardarChave
+    ? '<p class="campo-ajuda">O servidor está sem o segredo CHAVES_SECRET: cadastrar chave pela tela fica desligado.</p>'
+    : '');
+
+  const workers = document.getElementById('ia-workers');
+  if (workers) {
+    workers.textContent = configIA.workersAI
+      ? 'Workers AI (transcrição grátis para os testes): ligado.'
+      : 'Workers AI (transcrição grátis para os testes, 2.35.0): ainda não ligado no painel da Cloudflare.';
+  }
+}
+
+async function gravarIA(corpo) {
+  try {
+    const r = await fetch('/api/config-ia', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo)
+    });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || 'Não foi possível salvar.'); return false; }
+    guardarConfigIA(d);
+    desenharIA();
+    return true;
+  } catch (e) {
+    alert('Falha de conexão ao salvar.');
+    return false;
+  }
+}
+
+/** Ligados uma vez só: initConfiguracoes roda a cada abertura da tela. */
+function ligarIA() {
+  document.getElementById('select-active-provider')?.addEventListener('change', (ev) => {
+    gravarIA({ provedor_ativo: ev.target.value });
+  });
+
+  document.getElementById('ia-chaves')?.addEventListener('click', async (ev) => {
+    const botao = ev.target.closest('[data-acao]');
+    const linha = botao?.closest('[data-provedor]');
+    if (!botao || !linha) return;
+    const provedor = linha.dataset.provedor;
+    const nome = configIA?.provedores?.[provedor]?.nome || provedor;
+
+    if (botao.dataset.acao === 'remover') {
+      if (confirm(`Remover a chave de ${nome} cadastrada no CRM?`)) gravarIA({ provedor, remover: true });
+      return;
+    }
+    const campo = linha.querySelector('input');
+    const chave = campo?.value.trim();
+    if (!chave) { campo?.focus(); return; }
+    // O redesenho troca a linha: a chave não fica na tela depois de salva.
+    if (await gravarIA({ provedor, chave })) alert(`Chave de ${nome} salva.`);
+  });
 }
 
 /* ==========================================================================
@@ -116,42 +237,3 @@ async function importarProspectsAgora() {
     mostrarProspects();
   }
 }
-
-/**
- * Consulta o endpoint de saúde/status das APIs no backend
- * e atualiza visualmente os badges do HTML.
- */
-async function verificarStatusBackend() {
-  try {
-    const response = await fetch('/api/enrich-lead?checkStatus=true');
-    if (!response.ok) return;
-
-    const data = await response.json();
-    
-    // Atualiza os badges dinamicamente conforme retorno do servidor
-    if (data && data.providers) {
-      Object.keys(data.providers).forEach(provider => {
-        const el = document.getElementById(`status-${provider}`);
-        if (el) {
-          const isConfigured = data.providers[provider];
-          
-          // Correção das classes CSS para bater exatamente com a folha de estilos do index.html
-          el.className = isConfigured ? 'badge-status badge-success' : 'badge-status badge-warning';
-          el.textContent = isConfigured ? '● Servidor Ativo' : '○ Não Configurado';
-        }
-      });
-    }
-  } catch (err) {
-    console.log('Backend executando com variáveis de ambiente padrão ou offline.');
-  }
-}
-
-/**
- * Utilitário de notificação na tela
- */
-function mostrarNotificacao(mensagem, tipo = 'sucesso') {
-  alert(mensagem); // Pode ser substituído por um toast customizado
-}
-
-// Tornar a inicialização acessível globalmente caso a troca de telas seja feita por rotas JS
-window.initConfiguracoes = initConfiguracoes;

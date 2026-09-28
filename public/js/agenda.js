@@ -249,6 +249,13 @@ const Agenda = (() => {
     select.value = atualId || '';
   }
 
+  /** O roteiro do tipo escolhido (2.34.0), para estudar junto com o dossiê. */
+  function mostrarRoteiro() {
+    if (typeof Roteiros === 'undefined') return;
+    const select = el('agenda-tipo-reuniao');
+    Roteiros.mostrarNaReuniao(select.value || null, select.selectedOptions[0]?.textContent || null);
+  }
+
   function mostrarLead() {
     const temLead = !!leadDaJanela;
     el('agenda-lead-bloco').classList.toggle('hidden', temLead);
@@ -325,6 +332,7 @@ const Agenda = (() => {
     el('agenda-pauta').value = base.pauta || '';
     montarResponsaveis(base.responsavel);
     montarTipos(base.tipo_reuniao_erp_id, base.tipo_reuniao_nome);
+    mostrarRoteiro();
     rotuloDoLocal();
 
     // Na criação o status é sempre "agendada"; muda depois, ao acontecer.
@@ -551,6 +559,7 @@ const Agenda = (() => {
     document.querySelectorAll('[data-agenda-tipo]').forEach((b) =>
       b.addEventListener('click', () => aplicarTipo(b.dataset.agendaTipo)));
     el('agenda-local-tipo')?.addEventListener('change', rotuloDoLocal);
+    el('agenda-tipo-reuniao')?.addEventListener('change', mostrarRoteiro);
     const campoLead = el('agenda-lead-busca');
     campoLead?.addEventListener('input', (ev) => buscarLeads(ev.target.value));
     // Entrar no campo já mostra a lista (vazio: os mais recentes).

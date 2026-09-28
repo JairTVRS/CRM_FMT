@@ -47,6 +47,7 @@ o que já saiu e o que vem. Estes manuais são o detalhe de cada linha dele.
 | 2.32.0 | [Agenda do lead](Manual-Agenda-Lead-CRM-FMT-v1.0.md) | Reuniões e contatos, visão Agenda, dossiê na reunião, próximo contato vindo da agenda |
 | 2.32.1 | [Agenda do lead, seção 2.1](Manual-Agenda-Lead-CRM-FMT-v1.0.md) | O lead é escolhido numa lista clicável |
 | 2.33.0 | [Prospects do ERP](Manual-Prospects-ERP-CRM-FMT-v1.0.md) | Os prospects do ERP entram no funil todo dia às 06:00, sem duplicar |
+| 2.34.0 | [IA e roteiros](Manual-IA-Roteiros-CRM-FMT-v1.0.md) | Provedor e chaves de IA no CRM (cifradas), roteiro .md por tipo de reunião |
 
 Os quatro primeiros são anteriores à convenção de registrar a versão do
 sistema no cabeçalho — estão na ordem de data.

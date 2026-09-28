@@ -18,6 +18,7 @@ import { consultarCnpj, limparCnpj, cnpjValido } from './_lib/cnpj.js';
 import { lerSite } from './_lib/site.js';
 import { coletarInstagram } from './_lib/instagram.js';
 import { chamarIA, extrairJson, chaveConfigurada, PROVEDORES } from './_lib/ia.js';
+import { ambienteDeIA, provedorAtivo } from './_lib/chaves-ia.js';
 import {
   FORMATO_ANALISE, validarAnalise, analiseUtilizavel, montarDossie
 } from './_lib/schema-dossie.js';
@@ -250,7 +251,8 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const cabecalhos = context.data.cabecalhos;
   const usuario = context.data.usuario;
-  const env = context.env;
+  // 2.34.0: as chaves cadastradas no CRM completam as do painel.
+  const env = await ambienteDeIA(context.env);
   const db = env.DB;
 
   let corpo;
@@ -261,8 +263,13 @@ export async function onRequestPost(context) {
   }
 
   const {
-    nome, documento, site, instagram = {}, provider = 'deepseek', forcar = false
+    nome, documento, site, instagram = {}, forcar = false
   } = corpo;
+
+  // O provedor é o escolhido nas Configurações (2.34.0), não o que o
+  // navegador manda: antes cada navegador guardava o seu, e este gerador
+  // recebia sempre 'deepseek'.
+  const provider = await provedorAtivo(env);
 
   const cnpj = limparCnpj(documento);
   if (!cnpjValido(cnpj)) {

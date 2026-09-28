@@ -556,3 +556,51 @@ body.light-theme .btn-icone .icone-lua { display: block; }
 /* 2.33.0 — prospects do ERP nas Configurações. */
 .prospects-estado { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
 .prospects-estado p { margin: 0 0 0.35rem 0; }
+
+/* 2.34.0 — IA e roteiros nas Configurações. */
+.ia-chaves { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.75rem; }
+.ia-linha {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+.ia-linha-topo { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.ia-linha-form { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+.ia-linha-form .form-control { flex: 1; min-width: 12rem; }
+.ia-workers { font-size: 0.82rem; color: var(--text-muted); margin: 0.75rem 0 0 0; }
+
+.roteiros-lista { display: flex; flex-direction: column; gap: 0.5rem; }
+.roteiro-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+.roteiro-linha-info { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.roteiro-linha-info span { font-size: 0.8rem; color: var(--text-muted); }
+.roteiro-linha-acoes { display: flex; gap: 0.4rem; }
+
+.roteiro-topo { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.roteiro-topo .form-control { width: auto; }
+.roteiro-meta { font-size: 0.8rem; color: var(--text-muted); }
+.roteiro-texto {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin: 0;
+}
+
+/* Na reunião: o roteiro do tipo escolhido. */
+.agenda-roteiro { font-size: 0.82rem; margin: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }

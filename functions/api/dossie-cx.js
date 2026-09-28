@@ -22,6 +22,7 @@
  */
 
 import { chamarIA, extrairJson, chaveConfigurada, PROVEDORES } from './_lib/ia.js';
+import { ambienteDeIA, provedorAtivo } from './_lib/chaves-ia.js';
 import {
   FORMATO_ANALISE_CX, validarAnaliseCx, analiseCxUtilizavel, filtrarPorFontes,
   montarDossieCx, resumirMapa, mesesDesde,
@@ -592,7 +593,8 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const cabecalhos = context.data.cabecalhos;
   const usuario = context.data.usuario;
-  const env = context.env;
+  // 2.34.0: as chaves cadastradas no CRM completam as do painel.
+  const env = await ambienteDeIA(context.env);
   const db = env.DB;
   const { searchParams } = new URL(context.request.url);
 
@@ -604,7 +606,8 @@ export async function onRequestPost(context) {
   let corpo = {};
   try { corpo = await context.request.json(); } catch (e) { corpo = {}; }
 
-  const provider = corpo.provider || 'deepseek';
+  // O provedor é o escolhido nas Configurações (2.34.0).
+  const provider = await provedorAtivo(env);
   if (!PROVEDORES.includes(provider) || !chaveConfigurada(provider, env)) {
     return json({
       error: `Provedor "${provider}" não está configurado no servidor.`,

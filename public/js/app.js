@@ -351,7 +351,9 @@ async function executarBuscaIA() {
   const resumoBox = document.getElementById('ai-resumo-texto');
   const nomeLead = document.getElementById('lead-input-nome')?.value;
   const docLead = document.getElementById('lead-input-doc')?.value;
-  const providerAtivo = localStorage.getItem('crm_active_ai_provider') || 'chatgpt';
+  // 2.34.0: o provedor é o das Configurações, decidido no servidor. Aqui
+  // só o nome, para a mensagem de espera.
+  const providerAtivo = (window.CONFIG_IA && window.CONFIG_IA.provider) || 'a IA configurada';
 
   if (!resumoBox) return;
 
@@ -368,8 +370,7 @@ async function executarBuscaIA() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nome: nomeLead,
-        documento: docLead,
-        provider: providerAtivo
+        documento: docLead
       })
     });
 

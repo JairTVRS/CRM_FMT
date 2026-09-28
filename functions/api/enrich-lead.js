@@ -8,17 +8,22 @@
  * em context.data.cabecalhos — não redefina "Access-Control-Allow-Origin".
  */
 
+import { ambienteDeIA, provedorAtivo } from './_lib/chaves-ia.js';
+
 // 1. CHECAGEM DE STATUS DAS CHAVES (GET)
+// Mantida por compatibilidade; a tela de Configurações usa /api/config-ia
+// desde a 2.34.0, que diz também de onde vem cada chave.
 export async function onRequestGet(context) {
   const cabecalhos = context.data.cabecalhos;
   const url = new URL(context.request.url);
 
   if (url.searchParams.get('checkStatus') === 'true') {
+    const env = await ambienteDeIA(context.env);
     const statusObj = {
-      chatgpt: !!context.env.OPENAI_API_KEY,
-      deepseek: !!context.env.DEEPSEEK_API_KEY,
-      claude: !!context.env.ANTHROPIC_API_KEY,
-      gemini: !!context.env.GEMINI_API_KEY
+      chatgpt: !!env.OPENAI_API_KEY,
+      deepseek: !!env.DEEPSEEK_API_KEY,
+      claude: !!env.ANTHROPIC_API_KEY,
+      gemini: !!env.GEMINI_API_KEY
     };
 
     return new Response(JSON.stringify({ providers: statusObj }), {
@@ -39,7 +44,11 @@ export async function onRequestPost(context) {
   const usuario = context.data.usuario;
 
   try {
-    const { nome, doc, documento, phone, provider = 'deepseek' } = await context.request.json();
+    const { nome, doc, documento, phone } = await context.request.json();
+    // 2.34.0: as chaves do CRM completam as do painel, e o provedor é o
+    // escolhido nas Configurações — não o que o navegador guardava.
+    const env = await ambienteDeIA(context.env);
+    const provider = await provedorAtivo(env);
     const docFinal = doc || documento || 'N/A';
 
     if (!nome) {
@@ -71,17 +80,17 @@ SEGMENTOS PERMITIDOS: INDÚSTRIA, ONG, SERVIÇOS, VAREJO.`;
     // Roteamento conforme a escolha de IA nas Configurações
     switch (provider) {
       case 'chatgpt':
-        rawContent = await callChatGPT(SYSTEM_PROMPT, userPrompt, context.env.OPENAI_API_KEY);
+        rawContent = await callChatGPT(SYSTEM_PROMPT, userPrompt, env.OPENAI_API_KEY);
         break;
       case 'claude':
-        rawContent = await callClaude(SYSTEM_PROMPT, userPrompt, context.env.ANTHROPIC_API_KEY);
+        rawContent = await callClaude(SYSTEM_PROMPT, userPrompt, env.ANTHROPIC_API_KEY);
         break;
       case 'gemini':
-        rawContent = await callGemini(SYSTEM_PROMPT, userPrompt, context.env.GEMINI_API_KEY);
+        rawContent = await callGemini(SYSTEM_PROMPT, userPrompt, env.GEMINI_API_KEY);
         break;
       case 'deepseek':
       default:
-        rawContent = await callDeepSeek(SYSTEM_PROMPT, userPrompt, context.env.DEEPSEEK_API_KEY);
+        rawContent = await callDeepSeek(SYSTEM_PROMPT, userPrompt, env.DEEPSEEK_API_KEY);
         break;
     }
 

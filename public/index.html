@@ -474,62 +474,40 @@
 
           <hr class="divider">
 
+          <!-- 2.34.0: um cartão só para a IA. O provedor em uso vale para
+               todos (antes cada navegador guardava o seu, e o dossiê nem o
+               lia). As chaves podem vir do painel da Cloudflare ou ser
+               cadastradas aqui pelo admin — e nunca voltam para a tela. -->
           <div class="config-card">
-            <h3>Provedor Ativo de Inteligência Artificial</h3>
-            <p class="card-desc">Escolha qual modelo de IA será utilizado para pesquisar e enriquecer os dados dos seus leads.</p>
-            
+            <h3>Inteligência artificial</h3>
+            <p class="card-desc">
+              O provedor em uso vale para o dossiê, o dossiê de experiência e o
+              enriquecimento do lead. A chave do painel da Cloudflare vale primeiro;
+              a cadastrada aqui fica cifrada e nunca é mostrada, só os 4 últimos caracteres.
+            </p>
+
             <div class="form-group">
-              <label for="select-active-provider">Provedor Selecionado:</label>
-              <select id="select-active-provider" class="form-control">
-                <option value="chatgpt">OpenAI (ChatGPT)</option>
-                <option value="deepseek">DeepSeek</option>
-                <option value="claude">Anthropic (Claude)</option>
-                <option value="gemini">Google (Gemini)</option>
-              </select>
+              <label for="select-active-provider">Provedor em uso</label>
+              <select id="select-active-provider" class="form-control"></select>
+              <small id="ia-provedor-nota" class="campo-ajuda"></small>
             </div>
 
-            <button id="btn-save-config" class="btn btn-success">Salvar Preferências</button>
+            <div id="ia-chaves" class="ia-chaves"></div>
+            <p id="ia-workers" class="ia-workers"></p>
           </div>
 
           <hr class="divider">
 
+          <!-- 2.34.0: um roteiro .md por tipo de reunião do Time Vendas. -->
           <div class="config-card">
-            <h3>Status de Conexão das APIs (Backend Serverless)</h3>
-            <p class="card-desc">Verificação em tempo real da presença das chaves de API no ambiente do servidor (<code>.env</code> / Variables).</p>
-
-            <div class="status-grid">
-              <div class="status-card">
-                <div class="status-info">
-                  <strong>OpenAI (ChatGPT)</strong>
-                  <small>Modelo GPT-4o-mini</small>
-                </div>
-                <span id="status-chatgpt" class="badge-status badge-warning">○ Não Configurado</span>
-              </div>
-
-              <div class="status-card">
-                <div class="status-info">
-                  <strong>DeepSeek</strong>
-                  <small>Modelo DeepSeek-Chat</small>
-                </div>
-                <span id="status-deepseek" class="badge-status badge-warning">○ Não Configurado</span>
-              </div>
-
-              <div class="status-card">
-                <div class="status-info">
-                  <strong>Anthropic (Claude)</strong>
-                  <small>Modelo Claude 3.5 Sonnet</small>
-                </div>
-                <span id="status-claude" class="badge-status badge-warning">○ Não Configurado</span>
-              </div>
-
-              <div class="status-card">
-                <div class="status-info">
-                  <strong>Google (Gemini)</strong>
-                  <small>Modelo Gemini 1.5 Flash</small>
-                </div>
-                <span id="status-gemini" class="badge-status badge-warning">○ Não Configurado</span>
-              </div>
-            </div>
+            <h3>Roteiros de reunião</h3>
+            <p class="card-desc">
+              Um arquivo .md por tipo de reunião, com os objetivos e as perguntas.
+              Enviar de novo cria a versão seguinte — as anteriores continuam
+              consultáveis. Nas próximas versões a IA lê o roteiro durante a reunião.
+            </p>
+            <div id="roteiros-lista" class="roteiros-lista"></div>
+            <input type="file" id="roteiro-arquivo" accept=".md,.markdown,.txt,text/markdown,text/plain" class="hidden">
           </div>
         </div>
       </section>
@@ -1048,6 +1026,23 @@
   <!-- Motivo da perda, pedido ao arrastar um lead para uma etapa de
        perda (2.31.0). Na ficha o mesmo pedido é feito pelos campos da
        aba Funil; aqui é o quadro que não tem onde perguntar. -->
+  <!-- Leitura de um roteiro (2.34.0), das Configurações ou da reunião. -->
+  <div id="modal-roteiro" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 780px;">
+      <header class="modal-header">
+        <h2 id="roteiro-titulo">Roteiro</h2>
+        <button id="btn-roteiro-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div class="roteiro-topo">
+          <select id="roteiro-versao" class="form-control" aria-label="Versão"></select>
+          <span id="roteiro-meta" class="roteiro-meta"></span>
+        </div>
+        <pre id="roteiro-texto" class="roteiro-texto"></pre>
+      </div>
+    </div>
+  </div>
+
   <!-- Compromisso da agenda do lead (2.32.0): reunião ou contato.
        Vem depois da ficha do lead no HTML para abrir POR CIMA dela. -->
   <div id="modal-agenda" class="modal-overlay hidden">
@@ -1104,6 +1099,7 @@
               <option value="180">3 h</option>
             </select>
           </div>
+          <p class="form-group col-span-2 so-reuniao agenda-roteiro" id="agenda-roteiro"></p>
           <div class="form-group so-reuniao">
             <label for="agenda-local-tipo">Local *</label>
             <select id="agenda-local-tipo" class="form-control">
@@ -1517,6 +1513,7 @@
   <script src="js/cadastros.js"></script>
   <script src="js/perda.js"></script>
   <script src="js/agenda.js"></script>
+  <script src="js/roteiros.js"></script>
   <script src="js/leads.js"></script>
   <script src="js/quadro.js"></script>
   <script src="js/clientes.js"></script>
