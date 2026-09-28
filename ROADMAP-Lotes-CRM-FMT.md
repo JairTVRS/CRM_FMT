@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 28/09/2026
-**Versão no ar:** 2.32.0 (desde 28/09/2026; migrações 016 e 017 aplicadas e conferidas no D1 remoto) · **falta:** o Time "Vendas" no hub, com os tipos de reunião de venda
+**Versão no ar:** 2.32.1 (desde 28/09/2026; migrações 016 e 017 aplicadas e conferidas no D1 remoto) · **falta:** o Time "Vendas" no hub, com os tipos de reunião de venda
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -70,6 +70,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **JL¹** | **2.31.0** | **Funil arrumado** — CX responsável (quem cadastrou, trocável entre quem usa o CRM), admin pelo grupo do hub, motivos de perda obrigatórios (5 modelos, só admin edita), encerramento em ganho/perdido, "Finalizado" vira "Contrato emitido" e a conversão ao arrastar volta a existir (migração 016) |
 | — | **2.31.1** | **Admin pelo id do grupo** — a permissão `hub:user-groups:read` fica fechada (abre a árvore de acesso do hub); o CRM compara o id do grupo, que já vem com o usuário |
 | **JL²** | **2.32.0** | **Agenda do lead** — reuniões (tipos do hub, Time Vendas; local online/presencial/externo; dossiê dentro) e contatos; remarcar preserva o histórico; próximo contato derivado da agenda; visão Agenda semana/mês; aba Agenda na ficha; selo "sem agenda" (migração 017) |
+| — | **2.32.1** | A escolha do lead na agenda vira lista clicável (era `<datalist>`, que extensões de preenchimento escondiam); título do mês com a inicial maiúscula só no mês |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

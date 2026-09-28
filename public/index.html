@@ -1051,13 +1051,20 @@
         <div class="form-grid">
           <!-- Lead: escolhido só quando o compromisso nasce na visão
                Agenda; da ficha, o lead já é o da ficha. -->
-          <div class="form-group col-span-2" id="agenda-lead-bloco">
+          <!-- A busca mostra a lista logo abaixo, e o lead é ESCOLHIDO
+               clicando nela. Era um <datalist>, cujas sugestões dependem
+               do navegador e somem com extensões de preenchimento. -->
+          <div class="form-group col-span-2 agenda-lead-escolha" id="agenda-lead-bloco">
             <label for="agenda-lead-busca">Lead *</label>
-            <input type="text" id="agenda-lead-busca" class="form-control" list="agenda-lead-opcoes"
-                   placeholder="Digite o nome do lead" autocomplete="off">
-            <datalist id="agenda-lead-opcoes"></datalist>
+            <input type="text" id="agenda-lead-busca" class="form-control"
+                   placeholder="Digite o nome, CNPJ ou telefone e escolha na lista"
+                   autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other">
+            <div id="agenda-lead-resultados" class="agenda-lead-resultados hidden" role="listbox"></div>
           </div>
-          <p class="form-group col-span-2 agenda-lead-nome hidden" id="agenda-lead-nome"></p>
+          <div class="form-group col-span-2 agenda-lead-nome hidden" id="agenda-lead-nome">
+            <span id="agenda-lead-escolhido"></span>
+            <button type="button" id="btn-agenda-lead-trocar" class="btn btn-sm btn-secondary">Trocar</button>
+          </div>
 
           <div class="form-group">
             <label for="agenda-data">Data *</label>

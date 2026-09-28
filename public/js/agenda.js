@@ -66,7 +66,10 @@ const Agenda = (() => {
   }
 
   function tituloDoPeriodo() {
-    if (escala === 'mes') return `${MESES[referencia.getMonth()]} de ${referencia.getFullYear()}`;
+    if (escala === 'mes') {
+      const mes = MESES[referencia.getMonth()];
+      return `${mes[0].toUpperCase()}${mes.slice(1)} de ${referencia.getFullYear()}`;
+    }
     const { de, ate } = periodo();
     return `${dataBr(diaIso(de)).slice(0, 5)} a ${dataBr(diaIso(ate))}`;
   }
@@ -204,7 +207,8 @@ const Agenda = (() => {
   let emEdicao = null;       // o compromisso aberto (null = novo)
   let leadDaJanela = null;   // { id, nome, documento, responsavel }
   let tipoDaJanela = 'reuniao';
-  const leadsBuscados = new Map();   // nome → lead, da busca por nome
+  let leadFixo = false;      // veio da ficha ou é edição: não se troca
+  let resultados = [];       // a última busca de leads, na ordem da lista
 
   function aplicarTipo(tipo) {
     tipoDaJanela = tipo;
@@ -248,9 +252,18 @@ const Agenda = (() => {
   function mostrarLead() {
     const temLead = !!leadDaJanela;
     el('agenda-lead-bloco').classList.toggle('hidden', temLead);
-    const nome = el('agenda-lead-nome');
-    nome.classList.toggle('hidden', !temLead);
-    nome.textContent = temLead ? `Lead: ${leadDaJanela.nome}` : '';
+    el('agenda-lead-nome').classList.toggle('hidden', !temLead);
+    el('agenda-lead-escolhido').textContent = temLead ? `Lead: ${leadDaJanela.nome}` : '';
+    el('btn-agenda-lead-trocar').classList.toggle('hidden', leadFixo);
+    el('agenda-lead-resultados').classList.add('hidden');
+  }
+
+  function escolherLead(lead) {
+    leadDaJanela = lead;
+    // O responsável acompanha o lead escolhido, se ninguém mexeu nele.
+    if (lead?.responsavel && !emEdicao) montarResponsaveis(lead.responsavel);
+    mostrarLead();
+    if (tipoDaJanela === 'reuniao') mostrarDossie();
   }
 
   async function mostrarDossie() {
@@ -287,6 +300,9 @@ const Agenda = (() => {
     leadDaJanela = item
       ? { id: item.lead_id, nome: item.lead_nome, documento: item.lead_documento, responsavel: item.lead_responsavel }
       : lead;
+    leadFixo = !!leadDaJanela;
+    resultados = [];
+    el('agenda-lead-resultados').innerHTML = '';
 
     const eu = (typeof Auth !== 'undefined' && Auth.usuario?.email) || '';
     const base = item || {
@@ -371,9 +387,15 @@ const Agenda = (() => {
 
   async function salvar() {
     if (!leadDaJanela) {
-      const nome = el('agenda-lead-busca').value.trim();
-      leadDaJanela = leadsBuscados.get(nome) || null;
-      if (!leadDaJanela) { alert('Escolha o lead na lista.'); el('agenda-lead-busca').focus(); return; }
+      // Digitou o nome exato de um resultado sem clicar: vale como escolha.
+      const digitado = el('agenda-lead-busca').value.trim().toLowerCase();
+      const exato = resultados.filter((l) => String(l.nome).trim().toLowerCase() === digitado);
+      if (exato.length === 1) escolherLead(exato[0]);
+    }
+    if (!leadDaJanela) {
+      alert('Escolha o lead: digite parte do nome e clique nele na lista.');
+      el('agenda-lead-busca').focus();
+      return;
     }
     const corpo = lerJanela();
     if (!el('agenda-data').value || !el('agenda-hora').value) { alert('Informe a data e a hora.'); return; }
@@ -416,21 +438,41 @@ const Agenda = (() => {
     } catch (e) { /* a ficha se corrige ao reabrir */ }
   }
 
-  /** A busca de lead, na janela aberta pela visão Agenda. */
+  /**
+   * A busca de lead, na janela aberta pela visão Agenda.
+   *
+   * Busca por nome, documento ou telefone (o mesmo da barra de Leads) e
+   * mostra os resultados numa lista logo abaixo do campo; o lead é
+   * escolhido clicando. Campo vazio mostra os mais recentes.
+   */
   let esperaBusca = null;
+  let buscaAtual = 0;
   function buscarLeads(termo) {
     clearTimeout(esperaBusca);
-    if (termo.trim().length < 2) return;
+    const caixa = el('agenda-lead-resultados');
     esperaBusca = setTimeout(async () => {
+      const minha = ++buscaAtual;
+      const t = termo.trim();
+      const p = new URLSearchParams({ porPagina: '10' });
+      if (t) p.set('busca', t);
       try {
-        const r = await fetch(`/api/leads?busca=${encodeURIComponent(termo.trim())}&porPagina=20`);
+        const r = await fetch(`/api/leads?${p}`);
         const d = await r.json();
-        leadsBuscados.clear();
-        (d.leads || []).forEach((l) => leadsBuscados.set(l.nome, l));
-        el('agenda-lead-opcoes').innerHTML = [...leadsBuscados.keys()]
-          .map((n) => `<option value="${esc(n)}"></option>`).join('');
-      } catch (e) { /* a lista só não se atualiza */ }
-    }, 300);
+        if (minha !== buscaAtual) return;         // chegou uma busca mais nova
+        resultados = d.leads || [];
+        caixa.innerHTML = resultados.length
+          ? resultados.map((l, i) => `
+              <button type="button" class="agenda-lead-opcao" data-indice="${i}" role="option">
+                <span>${esc(l.nome)}</span>
+                <small>${esc(String(l.documento || '').replace(/\D/g, '') || l.telefone || '')}</small>
+              </button>`).join('')
+          : `<div class="agenda-lead-vazio">Nenhum lead encontrado${t ? ` para "${esc(t)}"` : ''}.</div>`;
+        caixa.classList.remove('hidden');
+      } catch (e) {
+        caixa.innerHTML = '<div class="agenda-lead-vazio">Não foi possível buscar os leads.</div>';
+        caixa.classList.remove('hidden');
+      }
+    }, 250);
   }
 
   /* ----------------------------------------------------------
@@ -509,10 +551,31 @@ const Agenda = (() => {
     document.querySelectorAll('[data-agenda-tipo]').forEach((b) =>
       b.addEventListener('click', () => aplicarTipo(b.dataset.agendaTipo)));
     el('agenda-local-tipo')?.addEventListener('change', rotuloDoLocal);
-    el('agenda-lead-busca')?.addEventListener('input', (ev) => buscarLeads(ev.target.value));
-    el('agenda-lead-busca')?.addEventListener('change', (ev) => {
-      const achado = leadsBuscados.get(ev.target.value.trim());
-      if (achado) { leadDaJanela = achado; mostrarLead(); if (tipoDaJanela === 'reuniao') mostrarDossie(); }
+    const campoLead = el('agenda-lead-busca');
+    campoLead?.addEventListener('input', (ev) => buscarLeads(ev.target.value));
+    // Entrar no campo já mostra a lista (vazio: os mais recentes).
+    campoLead?.addEventListener('focus', (ev) => buscarLeads(ev.target.value));
+    // Enter escolhe o primeiro da lista; Esc fecha só a lista.
+    campoLead?.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' && resultados.length) { ev.preventDefault(); escolherLead(resultados[0]); }
+      if (ev.key === 'Escape' && !el('agenda-lead-resultados').classList.contains('hidden')) {
+        ev.stopPropagation();
+        el('agenda-lead-resultados').classList.add('hidden');
+      }
+    });
+    // `mousedown`, não `click`: o clique chega depois de o campo perder o
+    // foco, e a lista não pode sumir antes de o clique contar.
+    el('agenda-lead-resultados')?.addEventListener('mousedown', (ev) => {
+      const opcao = ev.target.closest('[data-indice]');
+      if (!opcao) return;
+      ev.preventDefault();
+      escolherLead(resultados[Number(opcao.dataset.indice)]);
+    });
+    el('btn-agenda-lead-trocar')?.addEventListener('click', () => {
+      leadDaJanela = null;
+      mostrarLead();
+      el('agenda-lead-busca').value = '';
+      el('agenda-lead-busca').focus();
     });
 
     el('btn-agenda-salvar')?.addEventListener('click', salvar);

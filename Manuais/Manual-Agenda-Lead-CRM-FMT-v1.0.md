@@ -2,7 +2,7 @@
 
 **Versão:** 1.0
 **Data:** 28/09/2026
-**Versão do sistema:** 2.32.0
+**Versão do sistema:** 2.32.0 · revisto na 2.32.1 (escolha do lead)
 **Responsável:** Jair Tavares
 
 Segunda entrega do lote da jornada do lead (ver o ROADMAP). A agenda é
@@ -48,7 +48,10 @@ Na tela de Leads, ao lado de **Tabela** e **Quadro**, agora há **Agenda**:
 - o **filtro de responsável** e a **busca** da barra valem aqui — "Meus
   leads" mostra só a sua agenda;
 - clicar num compromisso abre; clicar no espaço vazio de um dia agenda
-  naquele dia; **+ Agendar** agenda escolhendo o lead pelo nome;
+  naquele dia; **+ Agendar** agenda escolhendo o lead: digite parte do
+  nome, do CNPJ ou do telefone e **clique** nele na lista que abre abaixo
+  do campo (2.32.1 — antes eram sugestões do navegador, que algumas
+  extensões escondiam);
 - no celular, os dias da semana se empilham.
 
 ### 2.2 Reunião ou contato

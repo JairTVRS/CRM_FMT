@@ -25,7 +25,6 @@
 .agenda-periodo {
   margin-left: 0.5rem;
   font-size: 0.95rem;
-  text-transform: capitalize;
 }
 
 .agenda-aviso {
@@ -175,7 +174,53 @@
 .modal-card.modo-reuniao .so-contato,
 .modal-card.modo-contato .so-reuniao { display: none; }
 
-.agenda-lead-nome { font-weight: 600; margin: 0; }
+/* O lead escolhido, com o botão de trocar. */
+.agenda-lead-nome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+/* A busca de lead: a lista abre logo abaixo do campo, por cima do resto. */
+.agenda-lead-escolha { position: relative; }
+
+.agenda-lead-resultados {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 5;
+  margin-top: 0.2rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.agenda-lead-opcao {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.agenda-lead-opcao:last-child { border-bottom: none; }
+.agenda-lead-opcao:hover { background: var(--border-color); }
+.agenda-lead-opcao small { color: var(--text-muted); white-space: nowrap; }
+
+.agenda-lead-vazio { padding: 0.6rem 0.75rem; font-size: 0.82rem; color: var(--text-muted); }
 
 .agenda-remarcar-campos { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .agenda-remarcar-campos .form-control { flex: 1; min-width: 8rem; }
