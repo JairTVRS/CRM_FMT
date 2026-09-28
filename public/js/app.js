@@ -158,8 +158,11 @@ function initModalEvents() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !modal || modal.classList.contains('hidden')) return;
     // Não rouba o Esc de outra janela aberta por cima
-    const etapas = document.getElementById('modal-etapas');
-    if (etapas && !etapas.classList.contains('hidden')) return;
+    // Nem o de janelas que abrem sobre a ficha (agenda, motivo da perda).
+    const porCima = ['modal-etapas', 'modal-agenda', 'modal-motivo-perda']
+      .map((id) => document.getElementById(id))
+      .some((m) => m && !m.classList.contains('hidden'));
+    if (porCima) return;
     closeModal();
   });
 

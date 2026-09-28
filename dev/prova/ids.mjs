@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url)).replace(/[\/]$/, '');
 const html = readFileSync(`${RAIZ}/public/index.html`, 'utf8');
-const css = ['cx', 'dossie', 'main', 'gaveta', 'quadro']
+const css = ['cx', 'dossie', 'main', 'gaveta', 'quadro', 'agenda']
   .map((f) => readFileSync(`${RAIZ}/public/assets/css/${f}.css`, 'utf8')).join('\n');
 
 const idsNoHtml = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
@@ -15,7 +15,7 @@ let falhas = 0;
 
 for (const arquivo of ['public/js/stakeholders.js', 'public/js/dossie-cx.js',
                        'public/js/clientes.js', 'public/js/conversao.js',
-                       'public/js/plano-acao.js', 'public/js/perda.js']) {
+                       'public/js/plano-acao.js', 'public/js/perda.js', 'public/js/agenda.js']) {
   const js = readFileSync(`${RAIZ}/${arquivo}`, 'utf8');
   const procurados = new Set([...js.matchAll(/\bel\('([^']+)'\)/g)].map((m) => m[1]));
 
@@ -53,7 +53,13 @@ const classes = [
   'dossie-modal', 'dossie-selo-versao', 'anel-preenchimento', 'dossie-etapa-nota',
   'dossie-avisos', 'dossie-erro-codigo', 'espaco', 'hidden',
   // 2.31.0
-  'config-acesso', 'motivos-lista', 'motivo-linha', 'etapa-resultado', 'perda-obs', 'celula-secundaria'
+  'config-acesso', 'motivos-lista', 'motivo-linha', 'etapa-resultado', 'perda-obs', 'celula-secundaria',
+  // 2.32.0
+  'agenda-barra', 'agenda-nav', 'agenda-periodo', 'agenda-aviso', 'agenda-grade', 'agenda-dia',
+  'agenda-dia-topo', 'agenda-dia-lista', 'agenda-dia-vazio', 'agenda-mes-cabeca', 'agenda-item',
+  'agenda-item-quando', 'agenda-item-cx', 'agenda-mais', 'agenda-lead-acoes', 'agenda-lead-lista',
+  'agenda-linha', 'agenda-linha-quando', 'agenda-linha-status', 'agenda-tipo', 'so-reuniao', 'so-contato',
+  'agenda-lead-nome', 'agenda-remarcar-campos', 'agenda-rodape', 'selo-sem-agenda', 'sem-agenda'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));
@@ -67,7 +73,7 @@ if (semEstilo.length) {
 // Os scripts novos estão no index.html, na ordem certa?
 // O conversao.js precisa vir depois do quadro.js e do clientes.js: é
 // acionado pelo quadro do funil e recarrega a Jornada ao converter.
-const ordem = ['js/cadastros.js', 'js/perda.js', 'js/quadro.js', 'js/clientes.js', 'js/stakeholders.js',
+const ordem = ['js/cadastros.js', 'js/perda.js', 'js/agenda.js', 'js/leads.js', 'js/quadro.js', 'js/clientes.js', 'js/stakeholders.js',
                'js/dossie-cx.js', 'js/conversao.js',
                'js/plano-acao.js'].map((s) => html.indexOf(s));
 
@@ -101,7 +107,7 @@ console.log('  OK    o modal de conversão e o bloco da ficha estão no HTML');
 const ARQUIVOS_JS = [
   'app.js', 'auth.js', 'cadastros.js', 'clientes.js', 'configuracoes.js',
   'conversao.js', 'dossie.js', 'dossie-cx.js', 'importar.js', 'leads.js',
-  'perda.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
+  'perda.js', 'agenda.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
 ];
 
 /* Duplicatas LEGITIMAS: mesmo nome, escopos diferentes.

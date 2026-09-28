@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 28/09/2026
-**Versão no ar:** 2.31.1 (desde 28/09/2026; migração 016 aplicada e conferida no D1 remoto)
+**Versão no ar:** 2.32.0 (desde 28/09/2026; migrações 016 e 017 aplicadas e conferidas no D1 remoto) · **falta:** o Time "Vendas" no hub, com os tipos de reunião de venda
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -69,6 +69,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.30.1** | Menu: "Jornada" passa a ser "Jornada do cliente" |
 | **JL¹** | **2.31.0** | **Funil arrumado** — CX responsável (quem cadastrou, trocável entre quem usa o CRM), admin pelo grupo do hub, motivos de perda obrigatórios (5 modelos, só admin edita), encerramento em ganho/perdido, "Finalizado" vira "Contrato emitido" e a conversão ao arrastar volta a existir (migração 016) |
 | — | **2.31.1** | **Admin pelo id do grupo** — a permissão `hub:user-groups:read` fica fechada (abre a árvore de acesso do hub); o CRM compara o id do grupo, que já vem com o usuário |
+| **JL²** | **2.32.0** | **Agenda do lead** — reuniões (tipos do hub, Time Vendas; local online/presencial/externo; dossiê dentro) e contatos; remarcar preserva o histórico; próximo contato derivado da agenda; visão Agenda semana/mês; aba Agenda na ficha; selo "sem agenda" (migração 017) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -83,7 +84,7 @@ emitido ou a perda. Uma versão por entrega, cada uma testável sozinha.
 | Versão | Entrega | Depende de |
 |---|---|---|
 | ~~2.31.0~~ | ~~Funil arrumado~~ — entregue (2.31.1: admin pelo id do grupo) | migração 016 |
-| **2.32.0** | **Agenda do lead** — reuniões (tipos do hub cujo Time é **Vendas**) e contatos (ligação, WhatsApp, e-mail); local **Online / Presencial / Externo** só como informação; status agendada/realizada/remarcada/cancelada/não compareceu; próximo contato vem da agenda (as datas de hoje viram contatos); visão **Agenda** ao lado de Tabela e Quadro; dossiê dentro da reunião (CPF fica sem); sinal de lead aberto sem nada agendado | o Time "Vendas" cadastrado no hub |
+| ~~2.32.0~~ | ~~Agenda do lead~~ — entregue | o Time "Vendas" cadastrado no hub (sem ele, a agenda funciona sem tipos) |
 | **2.33.0** | **Prospects do ERP, 1× por dia** — entram em "Novo Lead", canal "ERP (prospect)", **sem responsável**; mesmo CNPJ não duplica; excluído no CRM não volta; depois de importado o CRM é o dono. Um Worker pequeno com Cron Trigger chama o CRM | nada — `hub:customers:read` já está na chave |
 | **2.34.0** | **Chaves de IA e roteiros** (só admin) — chave cadastrada no CRM, nunca devolvida à tela, a da Cloudflare vale primeiro; **um roteiro .md por tipo de reunião**, com versões; Workers AI grátis para os testes | binding de Workers AI no painel do Pages |
 | **2.35.0** | **Gravação e transcrição ao vivo** — consentimento registrado; pedaços de 20–30 s; **só o texto é guardado**; no computador, microfone e áudio da aba separados (quem falou); no celular só o microfone, com aviso | 2.34.0 |

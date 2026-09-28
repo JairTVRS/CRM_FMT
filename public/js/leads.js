@@ -33,7 +33,9 @@ const Leads = (() => {
      precisam mostrar sempre o mesmo conjunto. */
   const CHAVE_MODO = 'crm_modo_leads';
   const ESTREITO = window.matchMedia('(max-width: 900px)');
-  let modo = localStorage.getItem(CHAVE_MODO) === 'quadro' ? 'quadro' : 'tabela';
+  // 'agenda' entrou na 2.32.0, como terceira visão dos mesmos filtros.
+  const MODOS = ['tabela', 'quadro', 'agenda'];
+  let modo = MODOS.includes(localStorage.getItem(CHAVE_MODO)) ? localStorage.getItem(CHAVE_MODO) : 'tabela';
 
   let leadsNaTela = [];
   let idEmEdicao = null;
@@ -171,6 +173,15 @@ const Leads = (() => {
     if (proxima) proxima.disabled = estado.pagina >= estado.totalPaginas;
   }
 
+  /**
+   * Lead em aberto sem nada agendado (2.32.0) — é o que esfria sem
+   * ninguém ver. Encerrado (ganho ou perdido) não precisa de agenda.
+   */
+  function semAgenda(lead) {
+    const encerrado = !!Cadastros.etapaPorId(lead.etapa_id)?.resultado;
+    return !encerrado && !lead.data_proximo_contato;
+  }
+
   function linha(lead) {
     const wa = linkWhatsApp(lead.telefone);
     const cnpj = String(lead.documento || '').replace(/\D/g, '');
@@ -181,7 +192,8 @@ const Leads = (() => {
 
     return `
     <tr data-id="${lead.id}">
-      <td><button type="button" class="celula-abrir" title="Abrir a ficha">${esc(lead.nome)}</button></td>
+      <td><button type="button" class="celula-abrir" title="Abrir a ficha">${esc(lead.nome)}</button>${
+        semAgenda(lead) ? ' <span class="selo-sem-agenda" title="Lead em aberto sem reunião nem contato agendado">sem agenda</span>' : ''}</td>
       <td>${esc(formatarDocumento(lead.documento))}</td>
       <td>${esc(lead.telefone || '—')}</td>
       <td>${canal ? `<span class="badge">${esc(canal)}</span>` : '—'}</td>
@@ -684,17 +696,21 @@ const Leads = (() => {
     // quadro.js. O módulo virou fábrica no Lote H para servir também a
     // jornada do cliente.
     if (modo === 'quadro' && typeof QuadroLeads !== 'undefined') QuadroLeads.carregar();
+    else if (modo === 'agenda' && typeof Agenda !== 'undefined') Agenda.carregar();
     else carregar();
   }
 
   function aplicarModo(novo, { recarregar = true } = {}) {
     // Um quadro de seis colunas não é usável em tela estreita, com ou
     // sem toque. Abaixo do limiar a tabela é a única visão.
-    modo = (novo === 'quadro' && !ESTREITO.matches) ? 'quadro' : 'tabela';
+    // A agenda cabe em tela estreita: os dias se empilham.
+    modo = MODOS.includes(novo) ? novo : 'tabela';
+    if (modo === 'quadro' && ESTREITO.matches) modo = 'tabela';
     localStorage.setItem(CHAVE_MODO, novo);
 
     el('view-tabela')?.classList.toggle('hidden', modo !== 'tabela');
     el('view-quadro')?.classList.toggle('hidden', modo !== 'quadro');
+    el('view-agenda')?.classList.toggle('hidden', modo !== 'agenda');
 
     document.querySelectorAll('[data-modo]').forEach((b) => {
       b.classList.toggle('active', b.dataset.modo === modo);
@@ -910,7 +926,7 @@ const Leads = (() => {
   return {
     carregar, salvar, excluir, porId,
     novo, editar, emEdicao,
-    preencherFormulario, irParaPagina, filtrar, filtros,
+    preencherFormulario, irParaPagina, filtrar, filtros, semAgenda,
     recarregarVisao
   };
 })();

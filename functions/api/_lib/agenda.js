@@ -1,0 +1,133 @@
+/**
+ * _lib/agenda.js — as regras da agenda do lead (2.32.0).
+ *
+ * Mora aqui, e não só no `api/agenda.js`, porque a importação de planilha
+ * também escreve na agenda: a coluna "Próximo contato" da planilha vira
+ * um contato agendado, como a migração 017 fez com os que já existiam.
+ * Duas cópias da regra "o próximo contato é a primeira data agendada"
+ * divergiriam na primeira manutenção.
+ */
+
+import { mapaDeTiposDeReuniao, mapaDeTimes, memorizar } from './hub.js';
+
+export const TIPOS = ['reuniao', 'contato'];
+export const STATUS = ['agendada', 'realizada', 'remarcada', 'cancelada', 'nao_compareceu'];
+export const LOCAIS = ['online', 'presencial', 'externo'];
+export const CANAIS = ['ligacao', 'whatsapp', 'email', 'outro'];
+
+/** Hora em que cai um contato que só tem data (planilha, migração). */
+export const HORA_PADRAO = '09:00';
+
+/**
+ * 'AAAA-MM-DDTHH:MM' (ou com espaço no lugar do T) → o mesmo texto,
+ * conferido. Rejeita 31/02 e 25:00 em vez de deixar o banco guardar uma
+ * data que a agenda não saberia onde desenhar.
+ */
+export function normalizarInicio(valor) {
+  const m = String(valor || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [, a, mes, d, h, min] = m.map(Number);
+  if (h > 23 || min > 59) return null;
+  const teste = new Date(Date.UTC(a, mes - 1, d));
+  if (teste.getUTCFullYear() !== a || teste.getUTCMonth() !== mes - 1 || teste.getUTCDate() !== d) return null;
+  return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`;
+}
+
+/**
+ * `leads.data_proximo_contato` é DERIVADO: a primeira data ainda
+ * agendada. Uma agendada vencida continua contando — é o contato que
+ * atrasou, e a ficha mostra "N dias em atraso", que é exatamente o aviso.
+ */
+export function comandoRecalcularProximo(db, leadId) {
+  return db.prepare(
+    `UPDATE leads SET data_proximo_contato = (
+       SELECT MIN(substr(inicio, 1, 10)) FROM agenda_lead
+        WHERE lead_id = ? AND ativo = 1 AND status = 'agendada')
+     WHERE id = ?`
+  ).bind(leadId, leadId);
+}
+
+/**
+ * Realizou: o "Último contato" anda para a frente, nunca para trás. A
+ * data que veio da planilha pode ser mais nova que a da agenda, e
+ * apagá-la seria perder informação.
+ */
+export function comandoUltimoContato(db, leadId, data) {
+  return db.prepare(
+    `UPDATE leads SET data_ultimo_contato = ?
+      WHERE id = ? AND (data_ultimo_contato IS NULL OR data_ultimo_contato < ?)`
+  ).bind(data, leadId, data);
+}
+
+/**
+ * O "Próximo contato" de uma linha da planilha vira contato agendado.
+ * Pelo documento, porque na importação o lead novo ainda não tem id no
+ * momento em que os comandos são montados. Não duplica: uma segunda
+ * importação com a mesma data não cria outro contato.
+ */
+export function comandosDoImportado(db, { documento, data, usuario, agora }) {
+  const dia = String(data || '').slice(0, 10);
+  return [
+    db.prepare(
+      `INSERT INTO agenda_lead (lead_id, tipo, inicio, responsavel, status, criado_por, criado_em)
+       SELECT l.id, 'contato', ?, l.responsavel, 'agendada', ?, ?
+         FROM leads l
+        WHERE l.documento = ? AND l.ativo = 1
+          AND NOT EXISTS (SELECT 1 FROM agenda_lead a
+                           WHERE a.lead_id = l.id AND a.ativo = 1 AND a.status = 'agendada'
+                             AND substr(a.inicio, 1, 10) = ?)`
+    ).bind(`${dia}T${HORA_PADRAO}`, usuario, agora, documento, dia),
+
+    db.prepare(
+      `UPDATE leads SET data_proximo_contato = (
+         SELECT MIN(substr(a.inicio, 1, 10)) FROM agenda_lead a
+          WHERE a.lead_id = leads.id AND a.ativo = 1 AND a.status = 'agendada')
+       WHERE documento = ? AND ativo = 1`
+    ).bind(documento)
+  ];
+}
+
+/** O e-mail é de alguém que já entrou no CRM? */
+export async function usuarioDoCrm(db, email) {
+  if (!email) return false;
+  const r = await db.prepare('SELECT email FROM usuarios_crm WHERE email = ?').bind(email).first();
+  return !!r;
+}
+
+/* ==========================================================================
+   OS TIPOS DE REUNIÃO DE VENDAS
+
+   Decidido em 28/09/2026: os tipos de reunião do lead são os do HUB cujo
+   Time é "Vendas". Cadastrar um tipo novo lá, no Time Vendas, o faz
+   aparecer aqui sem mexer no CRM. `TIME_VENDAS` no ambiente troca o nome
+   do Time, se um dia ele for renomeado.
+
+   Usa `hub:meeting-types:read` e `hub:teams:read`, que a chave já tem.
+   ========================================================================== */
+
+const semAcento = (t) => String(t || '')
+  .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+export function tiposDeVendas(env) {
+  const nomeDoTime = env?.TIME_VENDAS || 'Vendas';
+  return memorizar(`tipos-vendas:${nomeDoTime}`, 10 * 60 * 1000, async () => {
+    const [tipos, times] = await Promise.all([mapaDeTiposDeReuniao(env), mapaDeTimes(env)]);
+
+    const idsDoTime = [...times.values()]
+      .filter((t) => semAcento(t.nome) === semAcento(nomeDoTime))
+      .map((t) => String(t.erp_id));
+
+    const lista = [...tipos.values()]
+      .filter((t) => t.ativo && (t.timesErpIds || []).some((id) => idsDoTime.includes(String(id))))
+      .map((t) => ({ erp_id: t.erp_id, nome: t.nome }))
+      .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+
+    let aviso = null;
+    if (!idsDoTime.length) {
+      aviso = `O Time "${nomeDoTime}" não existe no hub. Cadastre-o e ligue a ele os tipos de reunião de venda.`;
+    } else if (!lista.length) {
+      aviso = `O Time "${nomeDoTime}" existe no hub, mas nenhum tipo de reunião ativo está ligado a ele.`;
+    }
+    return { tipos: lista, aviso };
+  });
+}

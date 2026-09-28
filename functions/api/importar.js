@@ -18,6 +18,7 @@
  */
 
 import { soDigitos, documentoValido } from './_lib/documento.js';
+import { comandosDoImportado } from './_lib/agenda.js';
 
 const MAX_LINHAS = 2000;
 
@@ -469,6 +470,17 @@ export async function onRequestPost(context) {
           )
         );
       }
+    }
+
+    // 2.32.0: o "Próximo contato" da planilha vira contato agendado na
+    // agenda do lead, e a coluna do lead passa a ser derivada dela — como
+    // a migração 017 fez com os que já existiam. Vem DEPOIS dos INSERT:
+    // o lead novo só tem id quando a linha dele já entrou no batch.
+    for (const l of linhas) {
+      if (!l.data_proximo_contato) continue;
+      comandos.push(...comandosDoImportado(db, {
+        documento: l.documento, data: l.data_proximo_contato, usuario: usuario.email, agora
+      }));
     }
 
     // batch é transacional no D1: ou tudo entra, ou nada entra.

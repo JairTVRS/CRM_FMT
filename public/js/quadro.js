@@ -801,7 +801,10 @@ const QuadroLeads = Quadro.criar({
 
   cartao: (lead) => {
     const esc = Quadro.esc;
-    const prazo = Quadro.rotuloPrazo(Quadro.diasPara(lead.data_proximo_contato));
+    // Sem data: se o lead está em aberto, isso é um aviso — nada agendado
+    // (2.32.0). O próximo contato vem da agenda do lead.
+    const prazo = Quadro.rotuloPrazo(Quadro.diasPara(lead.data_proximo_contato))
+      || ((typeof Leads !== 'undefined' && Leads.semAgenda?.(lead)) ? { texto: 'sem agenda', classe: 'sem-agenda' } : null);
     const responsavel = lead.responsavel && typeof Cadastros !== 'undefined'
       ? Cadastros.nomeDoUsuario(lead.responsavel) : null;
     const linhaBaixo = [

@@ -1,0 +1,198 @@
+/* ==========================================================================
+   Agenda do lead (2.32.0)
+
+   A visão Agenda da tela de Leads (semana e mês), a aba Agenda da ficha
+   e a janela do compromisso. As cores seguem os tokens do main.css, e as
+   do status repetem as do quadro (atrasado em vermelho, hoje em amarelo).
+   ========================================================================== */
+
+.agenda-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.agenda-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.agenda-periodo {
+  margin-left: 0.5rem;
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+.agenda-aviso {
+  font-size: 0.82rem;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 0.75rem 0;
+}
+
+/* --------------------------------------------------------------------------
+   Grade: semana (7 colunas) e mês (7 × 6)
+   -------------------------------------------------------------------------- */
+
+.agenda-grade {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.agenda-dia {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  cursor: pointer;          /* clicar no vazio agenda naquele dia */
+}
+
+.agenda-grade.semana .agenda-dia { min-height: 220px; }
+.agenda-grade.mes .agenda-dia { min-height: 96px; }
+
+.agenda-dia.hoje { border-color: var(--accent-color); }
+.agenda-dia.fora { opacity: 0.45; }
+
+.agenda-dia-topo {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.agenda-dia.hoje .agenda-dia-topo { color: var(--accent-color); font-weight: 600; }
+
+.agenda-mes-cabeca {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding-bottom: 0.2rem;
+}
+
+.agenda-dia-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.35rem;
+}
+
+.agenda-dia-vazio { color: var(--text-muted); font-size: 0.75rem; padding: 0.2rem; }
+
+/* Um compromisso na grade */
+.agenda-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  text-align: left;
+  width: 100%;
+  border: none;
+  border-left: 3px solid var(--accent-color);
+  border-radius: 4px;
+  background: var(--border-color);
+  color: var(--text-color);
+  padding: 0.3rem 0.4rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.agenda-item.tp-contato { border-left-color: #2563eb; }
+.agenda-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agenda-item-quando { font-weight: 600; }
+.agenda-item-cx { color: var(--text-muted); }
+
+.agenda-item.st-realizada { opacity: 0.7; border-left-color: #1f9d55; }
+.agenda-item.st-cancelada,
+.agenda-item.st-remarcada { opacity: 0.5; text-decoration: line-through; }
+.agenda-item.st-nao_compareceu { border-left-color: #d13438; }
+
+.agenda-mais {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-align: left;
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+
+/* Tela estreita: os dias da semana se empilham; o mês vira lista curta. */
+@media (max-width: 900px) {
+  .agenda-grade.semana { grid-template-columns: 1fr; }
+  .agenda-grade.semana .agenda-dia { min-height: 0; }
+  .agenda-grade.mes { gap: 0.2rem; }
+  .agenda-grade.mes .agenda-dia { min-height: 64px; }
+  .agenda-grade.mes .agenda-item-lead { display: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Aba Agenda da ficha
+   -------------------------------------------------------------------------- */
+
+.agenda-lead-acoes { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+
+.agenda-lead-lista { display: flex; flex-direction: column; gap: 0.35rem; }
+
+.agenda-linha {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-color);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.agenda-linha-quando { font-weight: 600; }
+.agenda-linha-status { color: var(--text-muted); font-size: 0.75rem; }
+.agenda-linha.st-cancelada, .agenda-linha.st-remarcada { opacity: 0.6; }
+
+/* --------------------------------------------------------------------------
+   Janela do compromisso
+   -------------------------------------------------------------------------- */
+
+.agenda-tipo { display: inline-flex; margin-bottom: 1rem; }
+.agenda-tipo button:disabled { cursor: default; }
+
+/* Reunião e contato mostram campos diferentes. */
+.modal-card.modo-reuniao .so-contato,
+.modal-card.modo-contato .so-reuniao { display: none; }
+
+.agenda-lead-nome { font-weight: 600; margin: 0; }
+
+.agenda-remarcar-campos { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.agenda-remarcar-campos .form-control { flex: 1; min-width: 8rem; }
+
+.agenda-rodape { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+.agenda-rodape > div { display: flex; gap: 0.5rem; }
+
+/* --------------------------------------------------------------------------
+   "Sem agenda": lead em aberto sem nada agendado — tabela e quadro
+   -------------------------------------------------------------------------- */
+
+.selo-sem-agenda,
+.cartao-prazo.sem-agenda {
+  background-color: rgba(234, 179, 8, 0.16);
+  color: #eab308;
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}

@@ -44,6 +44,7 @@ o que já saiu e o que vem. Estes manuais são o detalhe de cada linha dele.
 | 2.30.0 | [A reunião é do ERP](Manual-Reuniao-ERP-CRM-FMT-v1.0.md) | Cabeçalho da ata não gera mais aviso, responsável da reunião como reserva, status do cliente com filtro |
 | 2.31.0 | [Funil arrumado](Manual-Funil-Arrumado-CRM-FMT-v1.0.md) | CX responsável, admin pelo grupo do hub, motivos de perda, ganho/perdido e "Contrato emitido" |
 | 2.31.1 | [Funil arrumado, seção 1.2](Manual-Funil-Arrumado-CRM-FMT-v1.0.md) | Admin pelo id do grupo do hub, sem permissão nova |
+| 2.32.0 | [Agenda do lead](Manual-Agenda-Lead-CRM-FMT-v1.0.md) | Reuniões e contatos, visão Agenda, dossiê na reunião, próximo contato vindo da agenda |
 
 Os quatro primeiros são anteriores à convenção de registrar a versão do
 sistema no cabeçalho — estão na ordem de data.

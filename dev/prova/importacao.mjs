@@ -357,6 +357,8 @@ const fonteApi = readFileSync(`${RAIZ}/functions/api/importar.js`, 'utf8')
   .replace(/^import \{[\s\S]*?\} from '\.\/_lib\/documento\.js';$/m,
     'const soDigitos = (v) => String(v || "").replace(/\\D/g, "");'
     + ' const documentoValido = () => true;')
+  .replace(/^import \{ comandosDoImportado \} from '\.\/_lib\/agenda\.js';$/m,
+    'const comandosDoImportado = () => [];')
   + '\nexport { paraDataIso };';
 
 const api = await import(
@@ -592,6 +594,8 @@ const apiFonte = readFileSync(`${RAIZ}/functions/api/importar.js`, 'utf8')
   .replace(/^import \{[\s\S]*?\} from '\.\/_lib\/documento\.js';$/m,
     'const soDigitos = (v) => String(v || "").replace(/\\D/g, "");'
     + ' const documentoValido = () => true;')
+  .replace(/^import \{ comandosDoImportado \} from '\.\/_lib\/agenda\.js';$/m,
+    'const comandosDoImportado = () => [];')
   + '\nexport { lerApoio, examinarApoio, aplicarApoio, criarEtapa };';
 
 const srv = await import(

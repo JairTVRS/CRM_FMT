@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="/assets/css/quadro.css">
   <link rel="stylesheet" href="/assets/css/gaveta.css">
   <link rel="stylesheet" href="/assets/css/cx.css">
+  <link rel="stylesheet" href="/assets/css/agenda.css">
 </head>
 <body>
 
@@ -175,6 +176,7 @@
           <div class="view-toggle">
             <button type="button" data-modo="tabela" title="Ver como tabela">Tabela</button>
             <button type="button" data-modo="quadro" title="Ver como quadro">Quadro</button>
+            <button type="button" data-modo="agenda" title="Ver a agenda">Agenda</button>
           </div>
         </div>
 
@@ -218,6 +220,28 @@
             <button id="btn-gerenciar-etapas" class="btn btn-sm btn-secondary">Gerenciar etapas</button>
           </div>
           <div id="quadro-colunas" class="quadro"></div>
+        </div>
+
+        <!-- VISÃO 3: AGENDA (2.32.0) — reuniões e contatos dos leads.
+             O filtro de responsável e a busca da barra acima valem aqui. -->
+        <div id="view-agenda" class="hidden">
+          <div class="agenda-barra">
+            <div class="agenda-nav">
+              <button type="button" id="btn-agenda-anterior" class="btn btn-sm btn-secondary" aria-label="Anterior">‹</button>
+              <button type="button" id="btn-agenda-hoje" class="btn btn-sm btn-secondary">Hoje</button>
+              <button type="button" id="btn-agenda-proximo" class="btn btn-sm btn-secondary" aria-label="Próximo">›</button>
+              <strong id="agenda-periodo" class="agenda-periodo"></strong>
+            </div>
+            <div class="agenda-nav">
+              <div class="view-toggle">
+                <button type="button" data-escala="semana">Semana</button>
+                <button type="button" data-escala="mes">Mês</button>
+              </div>
+              <button type="button" id="btn-agenda-novo" class="btn btn-sm btn-primary">+ Agendar</button>
+            </div>
+          </div>
+          <p id="agenda-aviso" class="agenda-aviso hidden"></p>
+          <div id="agenda-grade" class="agenda-grade"></div>
         </div>
       </section>
 
@@ -554,6 +578,7 @@
       <nav class="modal-tabs">
         <button class="tab-btn active" data-tab="tab-dados">Dados Gerais</button>
         <button class="tab-btn" data-tab="tab-funil">Funil</button>
+        <button class="tab-btn" data-tab="tab-agenda">Agenda</button>
         <button class="tab-btn" data-tab="tab-contato">Contato & Endereço</button>
         <button class="tab-btn" data-tab="tab-proposta">Proposta</button>
         <button class="tab-btn" data-tab="tab-ia">Inteligência Artificial</button>
@@ -666,8 +691,12 @@
 
             <div class="form-group">
               <label for="lead-input-proximo-contato">Próximo contato</label>
-              <input type="date" id="lead-input-proximo-contato" class="form-control">
+              <!-- 2.32.0: vem da agenda — a primeira reunião ou contato
+                   ainda agendado. Para mudar, agende na aba Agenda. -->
+              <input type="date" id="lead-input-proximo-contato" class="form-control" readonly
+                     title="Vem da agenda do lead">
               <span id="dias-proximo-contato" class="dias-contato"></span>
+              <small class="campo-ajuda">Vem da agenda — agende na aba Agenda.</small>
             </div>
 
             <div class="form-group">
@@ -712,6 +741,17 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- ABA AGENDA (2.32.0): o histórico de reuniões e contatos do
+             lead, do mais recente para o mais antigo. Vai junto com o lead
+             quando ele vira cliente — é o histórico da pré-venda. -->
+        <div id="tab-agenda" class="tab-content hidden">
+          <div class="agenda-lead-acoes">
+            <button type="button" id="btn-lead-agendar-reuniao" class="btn btn-sm btn-primary">+ Reunião</button>
+            <button type="button" id="btn-lead-agendar-contato" class="btn btn-sm btn-secondary">+ Contato</button>
+          </div>
+          <div id="lead-agenda-lista" class="agenda-lead-lista"></div>
         </div>
 
         <!-- ABA 3: CONTATO & ENDEREÇO -->
@@ -994,6 +1034,135 @@
   <!-- Motivo da perda, pedido ao arrastar um lead para uma etapa de
        perda (2.31.0). Na ficha o mesmo pedido é feito pelos campos da
        aba Funil; aqui é o quadro que não tem onde perguntar. -->
+  <!-- Compromisso da agenda do lead (2.32.0): reunião ou contato.
+       Vem depois da ficha do lead no HTML para abrir POR CIMA dela. -->
+  <div id="modal-agenda" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 620px;">
+      <header class="modal-header">
+        <h2 id="agenda-titulo">Agendar</h2>
+        <button id="btn-agenda-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div class="view-toggle agenda-tipo">
+          <button type="button" data-agenda-tipo="reuniao">Reunião</button>
+          <button type="button" data-agenda-tipo="contato">Contato</button>
+        </div>
+
+        <div class="form-grid">
+          <!-- Lead: escolhido só quando o compromisso nasce na visão
+               Agenda; da ficha, o lead já é o da ficha. -->
+          <div class="form-group col-span-2" id="agenda-lead-bloco">
+            <label for="agenda-lead-busca">Lead *</label>
+            <input type="text" id="agenda-lead-busca" class="form-control" list="agenda-lead-opcoes"
+                   placeholder="Digite o nome do lead" autocomplete="off">
+            <datalist id="agenda-lead-opcoes"></datalist>
+          </div>
+          <p class="form-group col-span-2 agenda-lead-nome hidden" id="agenda-lead-nome"></p>
+
+          <div class="form-group">
+            <label for="agenda-data">Data *</label>
+            <input type="date" id="agenda-data" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="agenda-hora">Hora *</label>
+            <input type="time" id="agenda-hora" class="form-control" step="300">
+          </div>
+
+          <!-- Só reunião -->
+          <div class="form-group so-reuniao">
+            <label for="agenda-tipo-reuniao">Tipo de reunião</label>
+            <select id="agenda-tipo-reuniao" class="form-control"></select>
+          </div>
+          <div class="form-group so-reuniao">
+            <label for="agenda-duracao">Duração</label>
+            <select id="agenda-duracao" class="form-control">
+              <option value="30">30 min</option>
+              <option value="60">1 h</option>
+              <option value="90">1 h 30</option>
+              <option value="120">2 h</option>
+              <option value="180">3 h</option>
+            </select>
+          </div>
+          <div class="form-group so-reuniao">
+            <label for="agenda-local-tipo">Local *</label>
+            <select id="agenda-local-tipo" class="form-control">
+              <option value="online">Online</option>
+              <option value="presencial">Presencial</option>
+              <option value="externo">Externo</option>
+            </select>
+          </div>
+          <div class="form-group so-reuniao">
+            <label for="agenda-local-texto" id="agenda-local-rotulo">Link da sala</label>
+            <input type="text" id="agenda-local-texto" class="form-control" maxlength="500">
+          </div>
+
+          <!-- Só contato -->
+          <div class="form-group so-contato">
+            <label for="agenda-canal">Canal *</label>
+            <select id="agenda-canal" class="form-control">
+              <option value="ligacao">Ligação</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="email">E-mail</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="agenda-responsavel">CX responsável</label>
+            <select id="agenda-responsavel" class="form-control"></select>
+          </div>
+          <div class="form-group" id="agenda-status-bloco">
+            <label for="agenda-status">Situação</label>
+            <select id="agenda-status" class="form-control">
+              <option value="agendada">Agendada</option>
+              <option value="realizada">Realizada</option>
+              <option value="nao_compareceu">Não compareceu</option>
+              <option value="cancelada">Cancelada</option>
+              <option value="remarcada" disabled>Remarcada</option>
+            </select>
+          </div>
+
+          <div class="form-group col-span-2 so-reuniao">
+            <label for="agenda-participantes">Participantes do lado do lead</label>
+            <input type="text" id="agenda-participantes" class="form-control" maxlength="500"
+                   placeholder="Ex.: João (sócio), Maria (financeiro)">
+          </div>
+          <div class="form-group col-span-2">
+            <label for="agenda-pauta">Pauta / observações</label>
+            <textarea id="agenda-pauta" class="form-control" rows="3" maxlength="4000"></textarea>
+          </div>
+
+          <!-- O dossiê para o CX estudar antes da reunião. -->
+          <div class="form-group col-span-2 so-reuniao agenda-dossie" id="agenda-dossie">
+            <label>Dossiê do lead</label>
+            <p id="agenda-dossie-estado" class="campo-informativo"></p>
+            <button type="button" id="btn-agenda-dossie" class="btn btn-sm btn-secondary hidden">Abrir o dossiê</button>
+          </div>
+
+          <!-- Remarcar: esta vira "remarcada" e nasce outra na data nova. -->
+          <div class="form-group col-span-2 agenda-remarcar hidden" id="agenda-remarcar">
+            <label for="agenda-remarcar-data">Remarcar para</label>
+            <div class="agenda-remarcar-campos">
+              <input type="date" id="agenda-remarcar-data" class="form-control">
+              <input type="time" id="agenda-remarcar-hora" class="form-control" step="300">
+              <button type="button" id="btn-agenda-remarcar-confirmar" class="btn btn-sm btn-primary">Remarcar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="modal-footer agenda-rodape">
+        <div>
+          <button type="button" id="btn-agenda-excluir" class="btn btn-sm btn-secondary hidden">Excluir</button>
+          <button type="button" id="btn-agenda-remarcar" class="btn btn-sm btn-secondary hidden">Remarcar</button>
+        </div>
+        <div>
+          <button type="button" id="btn-agenda-cancelar" class="btn btn-secondary">Fechar</button>
+          <button type="button" id="btn-agenda-salvar" class="btn btn-primary">Salvar</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
   <div id="modal-motivo-perda" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 480px;">
       <header class="modal-header">
@@ -1326,6 +1495,7 @@
        clientes.js, que monta o quadro da jornada no fim do dele. -->
   <script src="js/cadastros.js"></script>
   <script src="js/perda.js"></script>
+  <script src="js/agenda.js"></script>
   <script src="js/leads.js"></script>
   <script src="js/quadro.js"></script>
   <script src="js/clientes.js"></script>

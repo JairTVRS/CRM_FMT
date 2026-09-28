@@ -170,7 +170,8 @@ const CAMPOS = [
   'email', 'contato_nome', 'cep', 'cidade', 'endereco',
   'site', 'instagram', 'ramo', 'segmento', 'resumo_ia',
   'canal', 'classificacao', 'atendente', 'advisor_id', 'etapa_id',
-  'data_cadastro', 'data_ultimo_contato', 'data_proximo_contato', 'data_fechamento',
+  // `data_proximo_contato` saiu na 2.32.0: é derivado da agenda (/api/agenda).
+  'data_cadastro', 'data_ultimo_contato', 'data_fechamento',
   'valor_proposta', 'valor_diagnostico', 'tags',
   'responsavel', 'motivo_perda_id', 'motivo_perda_obs'
 ];
