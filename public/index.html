@@ -460,6 +460,20 @@
 
           <hr class="divider">
 
+          <!-- 2.33.0: os prospects do ERP entram no funil uma vez por dia. -->
+          <div class="config-card">
+            <h3>Prospects do ERP</h3>
+            <p class="card-desc">
+              Todo dia às 06:00 os prospects do ERP que o CRM ainda não conhece entram
+              como leads em "Novo Lead", canal "ERP (prospect)", sem responsável.
+              CNPJ que já é lead não é duplicado; lead excluído no CRM não volta.
+            </p>
+            <div id="prospects-estado" class="prospects-estado"></div>
+            <button id="btn-prospects-importar" class="btn btn-primary btn-sm hidden">Importar agora</button>
+          </div>
+
+          <hr class="divider">
+
           <div class="config-card">
             <h3>Provedor Ativo de Inteligência Artificial</h3>
             <p class="card-desc">Escolha qual modelo de IA será utilizado para pesquisar e enriquecer os dados dos seus leads.</p>

@@ -21,6 +21,10 @@
  *   HUB_API_KEY       - Secret Key do hub com permissão hub:users:read  [SECRET]
  *   SESSAO_SECRET     - assina o cookie da sessão de 7 dias. Sem ela, o CRM
  *                       volta a pedir login a cada recarga.            [SECRET]
+ *   CRON_SECRET       - (2.33.0) o Worker da importação diária dos prospects
+ *                       se identifica com ele em POST /api/prospects. O
+ *                       mesmo valor fica no Worker. Sem ela, só a
+ *                       importação manual do admin funciona.          [SECRET]
  */
 
 import {
@@ -60,6 +64,23 @@ const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 
 // Rotas liberadas sem autenticação
 const ROTAS_PUBLICAS = ["/api/config", "/api/sair"];
+
+// A única rota que aceita o Worker da importação diária (ver passo 2b).
+const ROTA_CRON = "/api/prospects";
+
+/**
+ * Compara o segredo sem vazar, pelo tempo de resposta, quantos
+ * caracteres acertou: compara os resumos SHA-256, sempre inteiros.
+ */
+async function segredoConfere(enviado, esperado) {
+  const resumo = async (t) => new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(t)))
+  );
+  const [a, b] = await Promise.all([resumo(enviado), resumo(esperado)]);
+  let diferenca = 0;
+  for (let i = 0; i < a.length; i++) diferenca |= a[i] ^ b[i];
+  return diferenca === 0;
+}
 
 // Caches em memória do isolate. Não são compartilhados entre instâncias,
 // mas cortam a esmagadora maioria das chamadas repetidas.
@@ -236,6 +257,23 @@ export async function onRequest(context) {
   if (ROTAS_PUBLICAS.includes(caminho)) {
     context.data.cabecalhos = cabecalhos;
     return next();
+  }
+
+  // 2b. A importação diária dos prospects do ERP (2.33.0). Quem chama é
+  // um Worker com Cron Trigger (workers/prospects-diario), que não tem
+  // login do Google. Ele se identifica pelo segredo CRON_SECRET — o mesmo
+  // cadastrado nos dois lados — e SÓ nesta rota, SÓ em POST. Sem o
+  // segredo configurado, a porta não existe.
+  if (caminho === ROTA_CRON && request.method === "POST" && env.CRON_SECRET) {
+    const enviado = request.headers.get("X-Cron-Secret") || "";
+    if (enviado && await segredoConfere(enviado, env.CRON_SECRET)) {
+      context.data.cabecalhos = cabecalhos;
+      context.data.usuario = {
+        id: null, nome: "Importação diária", email: "importacao-diaria@crm", foto: null,
+        grupoId: null, sistema: true
+      };
+      return next();
+    }
   }
 
   // 3. Configuração do servidor

@@ -1,0 +1,26 @@
+# ==========================================================
+# CRM Formatar — Worker da importação diária dos prospects (2.33.0)
+#
+# O Cloudflare Pages não tem agendador. Este Worker tem: todo dia, às
+# 06:00 de Brasília (09:00 UTC), ele chama POST /api/prospects no CRM,
+# que lê os prospects do ERP e os traz para o funil.
+#
+# Ele NÃO fala com o hub nem com o banco: quem sabe a chave do hub e tem
+# o D1 é o CRM. O Worker só dá a hora. Por isso é tão pequeno.
+#
+# Publicar (desta pasta):
+#   npx wrangler deploy
+#
+# O segredo, o MESMO valor cadastrado no Pages como CRON_SECRET:
+#   npx wrangler secret put CRON_SECRET
+# ==========================================================
+
+name = "crm-fmt-prospects-diario"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+[triggers]
+crons = ["0 9 * * *"]
+
+[vars]
+CRM_URL = "https://crm-fmt.pages.dev"

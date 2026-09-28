@@ -27,6 +27,9 @@ dist/
 # repositorio, o Cloudflare Pages passaria a configurar o build por ele
 # em vez do painel — mudaria producao sem necessidade.
 wrangler.toml
+# Os Workers separados (ex.: a importacao diaria, 2.33.0) tem o proprio
+# wrangler.toml, que e codigo: nao tem segredo, e o Pages so le o da raiz.
+!workers/**/wrangler.toml
 
 # Bases locais em arquivo (persistencia do server.js)
 leads.json

@@ -60,7 +60,9 @@ const classes = [
   'agenda-item-quando', 'agenda-item-cx', 'agenda-mais', 'agenda-lead-acoes', 'agenda-lead-lista',
   'agenda-linha', 'agenda-linha-quando', 'agenda-linha-status', 'agenda-tipo', 'so-reuniao', 'so-contato',
   'agenda-lead-nome', 'agenda-remarcar-campos', 'agenda-rodape', 'selo-sem-agenda', 'sem-agenda',
-  'agenda-lead-escolha', 'agenda-lead-resultados', 'agenda-lead-opcao', 'agenda-lead-vazio'
+  'agenda-lead-escolha', 'agenda-lead-resultados', 'agenda-lead-opcao', 'agenda-lead-vazio',
+  // 2.33.0
+  'prospects-estado'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));

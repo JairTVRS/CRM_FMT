@@ -552,3 +552,7 @@ body.light-theme .btn-icone .icone-lua { display: block; }
 
 /* O motivo da perda na aba Funil: select e observação empilhados. */
 .perda-obs { margin-top: 0.4rem; }
+
+/* 2.33.0 — prospects do ERP nas Configurações. */
+.prospects-estado { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+.prospects-estado p { margin: 0 0 0.35rem 0; }
