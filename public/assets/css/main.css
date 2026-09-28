@@ -75,7 +75,8 @@ hr.divider {
 }
 
 .sidebar {
-  width: 240px;
+  width: 216px;
+  flex-shrink: 0;
   background-color: var(--card-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -87,7 +88,7 @@ hr.divider {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .brand img {
@@ -105,8 +106,10 @@ hr.divider {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.92rem;
+  white-space: nowrap;         /* "Jornada do cliente" numa linha só */
   color: var(--text-muted);
   text-decoration: none;
   border-radius: 6px;
@@ -119,58 +122,131 @@ hr.divider {
   color: var(--text-color);
 }
 
-.sidebar-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
+/* No claro, o branco translúcido do escuro some: escurece levemente. */
+html.light-theme .menu-item:hover, html.light-theme .menu-item.active {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* Rodapé da barra lateral: configurações e tema lado a lado, só ícones */
-.footer-acoes {
+/* --------------------------------------------------------------------------
+   Barra do topo (2.34.1)
+
+   Tema, configurações e o usuário no canto superior direito, como nos
+   outros sistemas da Formatar. Saíram do rodapé da barra lateral, que
+   ficou só com o menu — mais estreita.
+
+   A barra encosta no topo e nas laterais da área de conteúdo e fica
+   parada ao rolar. O .main-content não tem padding em cima por isso: com
+   padding + margem negativa, o `sticky` a deixava 2rem abaixo do topo,
+   cobrindo o título (visto na prévia de 28/09/2026).
+   -------------------------------------------------------------------------- */
+:root { --topo-altura: 3.25rem; }
+
+.topo {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
-  gap: 0.5rem;
+  justify-content: flex-end;
+  align-items: center;
+  height: var(--topo-altura);
+  margin: 0 -2rem 1.5rem -2rem;
+  padding: 0 1.25rem;
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.btn-icone {
-  flex: 1;
-  display: flex;
+.topo-acoes { display: flex; align-items: center; gap: 0.35rem; }
+
+/* Ícones sem moldura, como na referência: só o traço, e um fundo leve no hover. */
+.topo-botao {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--text-muted);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: none;
   background: transparent;
-  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
   text-decoration: none;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.btn-icone:hover,
-.btn-icone.active {
+.topo-botao:hover,
+.topo-botao.active {
   color: var(--accent-color);
-  border-color: var(--accent-color);
+  background-color: var(--border-color);
 }
 
 /* Mostra o ícone do tema para o qual se vai, não o atual:
    no escuro aparece o sol (clique para clarear), e vice-versa. */
-.btn-icone .icone-lua { display: none; }
-html.light-theme .btn-icone .icone-sol,
-body.light-theme .btn-icone .icone-sol { display: none; }
-html.light-theme .btn-icone .icone-lua,
-body.light-theme .btn-icone .icone-lua { display: block; }
+.topo-botao .icone-lua { display: none; }
+html.light-theme .topo-botao .icone-sol,
+body.light-theme .topo-botao .icone-sol { display: none; }
+html.light-theme .topo-botao .icone-lua,
+body.light-theme .topo-botao .icone-lua { display: block; }
 
-.version-tag {
+.topo-usuario { position: relative; margin-left: 0.35rem; }
+
+/* O avatar: iniciais num círculo, ou a foto do Google. */
+.topo-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-muted);
   font-size: 0.75rem;
-  color: var(--text-subtle);
-  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
 }
+
+.topo-avatar:hover { border-color: var(--accent-color); color: var(--accent-color); }
+.topo-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.topo-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  min-width: 15rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.topo-menu-quem { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.85rem; }
+.topo-menu-quem span { color: var(--text-muted); font-size: 0.78rem; word-break: break-all; }
+.topo-menu-selo { color: var(--accent-color) !important; }
+.topo-menu-versao { font-size: 0.72rem; color: var(--text-subtle); }
+
+.topo-menu-sair {
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 0.82rem;
+  text-align: left;
+}
+.topo-menu-sair:hover { border-color: var(--accent-color); color: var(--accent-color); }
 
 .main-content {
   flex: 1;
-  padding: 2rem;
+  min-width: 0;
+  padding: 0 2rem 2rem 2rem;   /* em cima quem dá o espaço é a barra do topo */
   overflow-y: auto;
 }
 

@@ -67,7 +67,10 @@ const classes = [
   // 2.34.0
   'ia-chaves', 'ia-linha', 'ia-linha-topo', 'ia-linha-form', 'ia-workers', 'roteiros-lista',
   'roteiro-linha', 'roteiro-linha-info', 'roteiro-linha-acoes', 'roteiro-topo', 'roteiro-meta',
-  'roteiro-texto', 'agenda-roteiro'
+  'roteiro-texto', 'agenda-roteiro',
+  // 2.34.1
+  'topo', 'topo-acoes', 'topo-botao', 'topo-usuario', 'topo-avatar', 'topo-menu',
+  'topo-menu-quem', 'topo-menu-selo', 'topo-menu-versao', 'topo-menu-sair'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));

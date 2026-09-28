@@ -22,13 +22,22 @@
   <link rel="stylesheet" href="/assets/css/gaveta.css">
   <link rel="stylesheet" href="/assets/css/cx.css">
   <link rel="stylesheet" href="/assets/css/agenda.css">
+  <!-- Tema: CLARO por padrão (2.34.1). O escuro só volta para quem
+       o escolheu neste navegador. Roda antes de a página pintar. -->
+  <script>
+    (function () {
+      var tema = 'claro';
+      try { tema = localStorage.getItem('crm_tema') || 'claro'; } catch (e) { /* sem storage */ }
+      if (tema !== 'escuro') document.documentElement.classList.add('light-theme');
+    })();
+  </script>
 </head>
 <body>
 
   <!-- ===== Tela de Login (controlada por js/auth.js) ===== -->
   <div id="auth-overlay" class="auth-overlay">
     <div class="auth-card">
-      <img class="auth-logo" src="logo-branca.png" alt="CRM Formatar">
+      <img class="auth-logo" src="logo-preta.png" alt="CRM Formatar">
       <h1>Acesso ao CRM</h1>
       <p class="auth-sub">Entre com sua conta Google. O acesso e liberado
         conforme seu cadastro na Formatar.</p>
@@ -43,7 +52,7 @@
     <!-- Sidebar / Navegação Principal -->
     <aside class="sidebar">
       <div class="brand">
-        <img id="brand-logo" src="logo-branca.png" alt="CRM Formatar">
+        <img id="brand-logo" src="logo-preta.png" alt="CRM Formatar">
       </div>
       
       <nav class="menu">
@@ -75,19 +84,18 @@
         </a>
       </nav>
 
-      <div class="sidebar-footer">
-        <div id="auth-usuario" class="auth-usuario"></div>
+    </aside>
 
-        <!-- Configuracoes e tema lado a lado, so icones -->
-        <div class="footer-acoes">
-          <a href="#" id="btn-configuracoes" class="btn-icone" data-target="view-configuracoes"
-             title="Configurações" aria-label="Configurações">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-          </a>
-          <button id="btn-theme" class="btn-icone" title="Alternar tema" aria-label="Alternar tema">
+    <!-- Áreas de Conteúdo -->
+    <main class="main-content">
+
+      <!-- BARRA DO TOPO (2.34.1): tema, configurações e o usuário no
+           canto superior direito, como nos outros sistemas da Formatar. Saíram
+           do rodapé da barra lateral, que ficou só com o menu. -->
+      <header class="topo">
+        <div class="topo-acoes">
+          <button type="button" id="btn-theme" class="topo-botao" title="Mudar para modo escuro"
+                  aria-label="Mudar para modo escuro">
             <svg class="icone-sol" viewBox="0 0 24 24" width="18" height="18" fill="none"
                  stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="5"></circle>
@@ -98,14 +106,27 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </button>
+          <a href="#" id="btn-configuracoes" class="topo-botao" data-target="view-configuracoes"
+             title="Configurações" aria-label="Configurações">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          </a>
+
+          <!-- O usuário: as iniciais (ou a foto do Google); o menu traz nome,
+               e-mail, versão do sistema e Sair. -->
+          <div class="topo-usuario">
+            <button type="button" id="btn-usuario" class="topo-avatar" aria-haspopup="true"
+                    aria-expanded="false" title="Sua conta"></button>
+            <div id="menu-usuario" class="topo-menu hidden" role="menu">
+              <div id="auth-usuario" class="topo-menu-quem"></div>
+              <span id="app-version" class="topo-menu-versao">—</span>
+              <button type="button" id="btn-logout" class="topo-menu-sair" role="menuitem">Sair</button>
+            </div>
+          </div>
         </div>
-
-        <span id="app-version" class="version-tag">—</span>
-      </div>
-    </aside>
-
-    <!-- Áreas de Conteúdo -->
-    <main class="main-content">
+      </header>
       
       <!-- TELA 1: GESTÃO DE LEADS -->
       <section id="view-leads" class="content-body">

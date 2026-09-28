@@ -83,16 +83,55 @@ const Auth = (() => {
     if (overlay) overlay.style.display = 'none';
     if (app) app.style.display = '';
 
-    const alvo = document.getElementById('auth-usuario');
-    if (alvo && usuario) {
-      alvo.innerHTML = `
-        ${usuario.foto ? `<img src="${usuario.foto}" alt="" class="auth-avatar">` : ''}
-        <span class="auth-nome">${usuario.nome}</span>
-        <button id="btn-logout" class="btn-logout" title="Sair">Sair</button>
-      `;
-      const btn = document.getElementById('btn-logout');
-      if (btn) btn.addEventListener('click', sair);
+    // Desde a 2.34.1 o usuário fica no canto superior direito: o botão
+    // redondo com as iniciais (ou a foto do Google) e, ao clicar, o menu
+    // com nome, e-mail, versão e Sair.
+    if (usuario) {
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const partes = String(usuario.nome || usuario.email || '?').trim().split(/\s+/);
+      const iniciais = ((partes[0]?.[0] || '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase();
+
+      const avatar = document.getElementById('btn-usuario');
+      if (avatar) {
+        avatar.innerHTML = usuario.foto
+          ? `<img src="${esc(usuario.foto)}" alt="" referrerpolicy="no-referrer">`
+          : esc(iniciais);
+        avatar.title = usuario.nome || usuario.email || 'Sua conta';
+      }
+
+      const alvo = document.getElementById('auth-usuario');
+      if (alvo) {
+        alvo.innerHTML = `
+          <strong>${esc(usuario.nome)}</strong>
+          <span>${esc(usuario.email)}</span>
+          ${usuario.admin ? `<span class="topo-menu-selo">Administrador${usuario.grupo ? ` · ${esc(usuario.grupo)}` : ''}</span>` : ''}
+        `;
+      }
     }
+  }
+
+  /** O menu do usuário: abre no avatar, fecha ao clicar fora ou no Esc. */
+  function ligarMenuDoUsuario() {
+    const botao = document.getElementById('btn-usuario');
+    const menu = document.getElementById('menu-usuario');
+    if (!botao || !menu) return;
+
+    const abrir = (sim) => {
+      menu.classList.toggle('hidden', !sim);
+      botao.setAttribute('aria-expanded', sim ? 'true' : 'false');
+    };
+    botao.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      abrir(menu.classList.contains('hidden'));
+    });
+    document.addEventListener('click', (ev) => {
+      if (!menu.classList.contains('hidden') && !menu.contains(ev.target)) abrir(false);
+    });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && !menu.classList.contains('hidden')) abrir(false);
+    });
+    document.getElementById('btn-logout')?.addEventListener('click', () => { abrir(false); sair(); });
   }
 
   /* ----------------------------------------------------------------
@@ -339,6 +378,7 @@ const Auth = (() => {
      ---------------------------------------------------------------- */
 
   async function iniciar() {
+    ligarMenuDoUsuario();
     mostrarLogin('');
     try {
       clientId = await carregarClientId();

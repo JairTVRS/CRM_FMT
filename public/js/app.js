@@ -52,27 +52,40 @@ function initSeletorDeData() {
    Navegação e Alternância de Temas
    ========================================================================== */
 
+/**
+ * Tema. CLARO por padrão desde a 2.34.1; o escuro só para quem o escolhe,
+ * e a escolha fica neste navegador (`crm_tema`). O <head> já aplicou a
+ * classe no <html> antes de a página pintar — aqui o <body> acompanha, e
+ * o botão, o logo e o rótulo se acertam com o tema em vigor.
+ */
 function initThemeToggle() {
   const btnTheme = document.getElementById('btn-theme');
   const logo = document.getElementById('brand-logo');
 
-  if (!btnTheme) return;
+  const aplicar = (claro) => {
+    document.documentElement.classList.toggle('light-theme', claro);
+    document.body.classList.toggle('light-theme', claro);
 
-  btnTheme.addEventListener('click', () => {
-    document.body.classList.toggle('light-theme');
-    document.documentElement.classList.toggle('light-theme');
-
-    const isLight = document.body.classList.contains('light-theme');
-
-    // O botao agora contem dois SVGs (sol e lua) e o CSS decide qual
-    // aparece. Escrever textContent aqui apagaria os dois — por isso
-    // so atualizamos o rotulo de acessibilidade.
-    btnTheme.title = isLight ? 'Mudar para modo escuro' : 'Mudar para modo claro';
-    btnTheme.setAttribute('aria-label', btnTheme.title);
-
-    if (logo) {
-      logo.src = isLight ? 'logo-preta.png' : 'logo-branca.png';
+    // O botao contem dois SVGs (sol e lua) e o CSS decide qual aparece.
+    // Escrever textContent aqui apagaria os dois — por isso so
+    // atualizamos o rotulo de acessibilidade.
+    if (btnTheme) {
+      btnTheme.title = claro ? 'Mudar para modo escuro' : 'Mudar para modo claro';
+      btnTheme.setAttribute('aria-label', btnTheme.title);
     }
+    // O logo da barra lateral e o da tela de login: branco no escuro,
+    // preto no claro — senão some no fundo.
+    const arquivo = claro ? 'logo-preta.png' : 'logo-branca.png';
+    if (logo) logo.src = arquivo;
+    document.querySelectorAll('.auth-logo').forEach((img) => { img.src = arquivo; });
+  };
+
+  aplicar(document.documentElement.classList.contains('light-theme'));
+
+  btnTheme?.addEventListener('click', () => {
+    const claro = !document.documentElement.classList.contains('light-theme');
+    aplicar(claro);
+    try { localStorage.setItem('crm_tema', claro ? 'claro' : 'escuro'); } catch (e) { /* sem storage */ }
   });
 }
 

@@ -741,7 +741,8 @@
 #view-plano:not(.hidden) {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 4rem);
+  /* 3.5rem = 1.5rem sob a barra do topo + 2rem de padding embaixo (2.34.1). */
+  height: calc(100vh - 3.5rem - var(--topo-altura, 0rem));
   min-height: 34rem;
 }
 
