@@ -3,6 +3,38 @@
 **Atualizado em:** 28/09/2026
 **Versão no ar:** 2.35.0 (desde 28/09/2026; migrações 016 a 020 aplicadas e conferidas no D1 remoto; Worker `crm-fmt-prospects-diario` com o Cron das 06:00) · **falta:** um transcritor — o binding **Workers AI** (`AI`) no projeto crm-fmt, ou uma chave da OpenAI nas Configurações
 
+## ▶ Retomada (28/09/2026, fim do dia)
+
+**Onde paramos:** o lote da jornada do lead (JL) está entregue até a
+**2.35.0** — funil com responsável e motivos de perda, agenda do lead,
+prospects do ERP todo dia às 06:00, chaves de IA e roteiros, barra do
+topo, "O que mudou" e a gravação/transcrição da reunião.
+
+**Antes de continuar:**
+
+1. **Transcritor** — ligar o binding **Workers AI** (`AI`) em Workers &
+   Pages → crm-fmt → Settings → Bindings, e fazer um deploy; ou cadastrar
+   uma chave da OpenAI nas Configurações. Sem isso a gravação não começa.
+2. **Primeiro teste real da gravação** (1 minuto, microfone de verdade):
+   ainda não foi feito. A prova e as capturas de tela passaram, mas
+   microfone e áudio da aba só se testam no navegador.
+
+**Próximas:** **2.36.0** — recortes das expectativas do lead e perguntas
+do roteiro durante a reunião (lê a transcrição, o roteiro da versão
+gravada e o dossiê; recorte só vale se a frase existir literalmente na
+transcrição). **2.37.0** — laudo pós-reunião em HTML versionado.
+
+**Como a gente trabalha (combinado):** plano primeiro quando o pedido
+diz "ainda não execute"; com "pode executar e subir", vai inteiro:
+migração no D1 remoto **e conferência**, segredos no Pages, prova
+(`npm run prova`), captura de tela no Edge sem janela para mudanças de
+tela, commit `vX.Y.Z - …`, push e espera o `/api/config` responder a
+versão nova. Cada versão entra no topo de `public/novidades.json` (a
+`ids.mjs` falha se não entrar). O token do `wrangler` desta máquina já
+tem escopo de D1 (as migrações 016–020 foram aplicadas por ele).
+
+---
+
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
 plano. Ver o [manual](Manuais/Manual-Plano-Gravado-CRM-FMT-v1.0.md).
