@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 28/09/2026
-**Versão no ar:** 2.30.1 (desde 28/09/2026) · **pronta para subir:** 2.31.0 (exige a **migração 016** antes do deploy e a permissão **`hub:user-groups:read`** na chave do hub)
+**Versão no ar:** 2.31.0 (desde 28/09/2026; migração 016 aplicada e conferida no D1 remoto) · **falta:** conceder `hub:user-groups:read` à chave do hub — sem ela ninguém é admin
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
