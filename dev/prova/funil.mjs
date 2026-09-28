@@ -23,8 +23,7 @@ import * as cadastros from '../../functions/api/cadastros.js';
 import { onRequestGet as convGet } from '../../functions/api/conversao.js';
 import { onRequestGet as meGet } from '../../functions/api/me.js';
 import { onRequestGet as usuariosGet } from '../../functions/api/usuarios.js';
-import { avaliarAdmin, normalizarGrupo } from '../../functions/api/_lib/admin.js';
-import { esquecerMemoria } from '../../functions/api/_lib/hub.js';
+import { avaliarAdmin } from '../../functions/api/_lib/admin.js';
 
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url)).replace(/[\/]$/, '');
 let falhas = 0;
@@ -58,23 +57,24 @@ function d1(db) {
 }
 
 /* ==========================================================================
-   O HUB FALSO — só o que o admin consulta
+   O HUB — nenhuma chamada
+
+   Desde a 2.31.1 o admin sai do id do grupo, que chega com o usuário. A
+   permissão de grupos do hub fica FECHADA (abre a árvore de acesso), e
+   esta prova registra toda chamada de rede para garantir que nada aqui
+   bate no hub.
    ========================================================================== */
 
-let hubResponde = 200;
-const GRUPOS = [
-  { id: 'g1', title: 'SÓCIOS' },
-  { id: 'g2', title: 'Operações' },
-  { id: 'g3', title: 'Planejamento e controle de producao' }
-];
+const chamadas = [];
 globalThis.fetch = async (url) => {
-  if (String(url).includes('/user-groups')) {
-    if (hubResponde !== 200) return new Response('{}', { status: hubResponde });
-    return new Response(JSON.stringify({ size: GRUPOS.length, data: GRUPOS }), { status: 200 });
-  }
+  chamadas.push(String(url));
   return new Response('{}', { status: 404 });
 };
 const ENV_HUB = { HUB_API_KEY: 'teste' };
+
+// Os ids reais dos grupos no hub (copiados do endereço de edição).
+const SOCIOS = '64e678a7d2042dae072ef102';
+const PCP = '6699523a12251d23d507cb91';
 
 /* ==========================================================================
    ESQUEMA — as migrações de verdade sobre um banco "de produção"
@@ -140,8 +140,8 @@ ok(bd.prepare('SELECT COUNT(*) n FROM motivos_perda').get().n === 5, 'reaplicar 
    CONTEXTO
    ========================================================================== */
 
-const JAIR = { email: 'jair@formatar.com.br', nome: 'Jair', id: 'u-jair', grupoId: 'g1' };
-const MARINA = { email: 'marina@formatar.com.br', nome: 'Marina', id: 'u-mar', grupoId: 'g2' };
+const JAIR = { email: 'jair@formatar.com.br', nome: 'Jair', id: 'u-jair', grupoId: SOCIOS };
+const MARINA = { email: 'marina@formatar.com.br', nome: 'Marina', id: 'u-mar', grupoId: '65aaaaaaaaaaaaaaaaaaaaaa' };
 
 const ctx = (metodo, url, corpo, usuario = JAIR, env = {}) => ({
   request: new Request(`https://crm-fmt.pages.dev${url}`, corpo === undefined ? { method: metodo } : {
@@ -253,22 +253,18 @@ ok(lead(NOVO).etapa_id === QUALIF && lead(NOVO).motivo_perda_id === null, 'arras
 
 console.log('\n=== 5. Quem é admin ===');
 
-ok(normalizarGrupo('  Planejamento e Controle   de Produção ') === 'planejamento e controle de producao', 'nome do grupo normalizado');
-
-esquecerMemoria();
-ok((await avaliarAdmin(ENV_HUB, JAIR)).admin === true, '"SÓCIOS" é admin (caixa e acento não importam)');
-ok((await avaliarAdmin(ENV_HUB, { ...JAIR, grupoId: 'g3' })).admin === true, '"Planejamento e controle de producao" é admin');
-ok((await avaliarAdmin(ENV_HUB, MARINA)).admin === false, 'Operações não é');
-ok((await avaliarAdmin({ ...ENV_HUB, ADMIN_GRUPOS: 'Operações' }, MARINA)).admin === true, 'ADMIN_GRUPOS no ambiente substitui o padrão');
+const socios = await avaliarAdmin(ENV_HUB, JAIR);
+ok(socios.admin === true && socios.grupo === 'Sócios', 'Sócios é admin, e a tela sabe dizer o nome', JSON.stringify(socios));
+const pcp = await avaliarAdmin(ENV_HUB, { ...JAIR, grupoId: PCP });
+ok(pcp.admin === true && pcp.grupo === 'Planejamento e Controle de Produção', 'PCP é admin');
+const outro = await avaliarAdmin(ENV_HUB, MARINA);
+ok(outro.admin === false && outro.grupo === null && outro.aviso === null, 'outro grupo não é admin — e não é erro');
+ok((await avaliarAdmin(ENV_HUB, { ...JAIR, grupoId: SOCIOS.toUpperCase() })).admin === true, 'o id vale sem diferenciar caixa');
+ok((await avaliarAdmin({ ...ENV_HUB, ADMIN_GRUPOS: ` ${MARINA.grupoId} ` }, MARINA)).admin === true, 'ADMIN_GRUPOS no ambiente substitui a lista');
+ok((await avaliarAdmin({ ...ENV_HUB, ADMIN_GRUPOS: MARINA.grupoId }, JAIR)).admin === false, '...e substitui mesmo: Sócios sai');
 const semGrupo = await avaliarAdmin(ENV_HUB, { ...JAIR, grupoId: null });
 ok(!semGrupo.admin && /grupo/.test(semGrupo.aviso), 'sem grupo, não é admin, e diz por quê');
-
-esquecerMemoria();
-hubResponde = 403;
-const semPermissao = await avaliarAdmin(ENV_HUB, JAIR);
-ok(!semPermissao.admin && /hub:user-groups:read/.test(semPermissao.aviso), 'sem a permissão no hub, ninguém é admin — e o aviso nomeia a permissão', semPermissao.aviso);
-hubResponde = 200;
-esquecerMemoria();
+ok(chamadas.length === 0, 'decidir quem é admin não chama o hub (a permissão de grupos fica fechada)', chamadas.join(', '));
 
 /* ==========================================================================
    6. MOTIVOS NAS CONFIGURAÇÕES — só admin
@@ -312,11 +308,13 @@ console.log('\n=== 7. Conversão e sessão ===');
 const conv = await ler(await convGet(ctx('GET', '/api/conversao?lead_id=2')));
 ok(conv.corpo.impedimento?.code === 'LEAD_PERDIDO', 'lead perdido não converte', conv.corpo.impedimento?.code);
 
-esquecerMemoria();
-const eu = await ler(await meGet(ctx('GET', '/api/me', undefined, { ...MARINA, nome: 'Marina Alves' })));
-ok(eu.corpo.usuario.admin === false && eu.corpo.usuario.grupo === 'Operações', 'o /api/me diz se é admin e o grupo');
+const eu = await ler(await meGet(ctx('GET', '/api/me', undefined, { ...JAIR, nome: 'Jair Tavares' })));
+ok(eu.corpo.usuario.admin === true && eu.corpo.usuario.grupo === 'Sócios', 'o /api/me diz se é admin e o grupo');
+const ela = await ler(await meGet(ctx('GET', '/api/me', undefined, { ...MARINA, nome: 'Marina Alves' })));
+ok(ela.corpo.usuario.admin === false && !ela.corpo.usuario.avisoAdmin, 'quem não é admin não recebe aviso de erro');
 const marina = bd.prepare("SELECT nome, grupo FROM usuarios_crm WHERE email = 'marina@formatar.com.br'").get();
-ok(marina.nome === 'Marina Alves' && marina.grupo === 'Operações', 'e registra o acesso com nome e grupo');
+ok(marina.nome === 'Marina Alves' && marina.grupo === MARINA.grupoId, 'e registra o acesso com nome e o id do grupo');
+ok(chamadas.length === 0, 'o /api/me também não chama o hub', chamadas.join(', '));
 
 const usuarios = await ler(await usuariosGet(ctx('GET', '/api/usuarios')));
 ok(usuarios.corpo.usuarios.map((u) => u.email).includes('marina@formatar.com.br'), 'a lista de responsáveis vem de quem usa o CRM');

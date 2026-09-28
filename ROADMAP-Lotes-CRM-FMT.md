@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 28/09/2026
-**Versão no ar:** 2.31.0 (desde 28/09/2026; migração 016 aplicada e conferida no D1 remoto) · **falta:** conceder `hub:user-groups:read` à chave do hub — sem ela ninguém é admin
+**Versão no ar:** 2.31.1 (desde 28/09/2026; migração 016 aplicada e conferida no D1 remoto)
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -68,6 +68,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.30.0** | **A reunião é do ERP** — cabeçalho da ata não é mais conferido onde o ERP já deu a informação, responsável = participantes da reunião quando a ata não nomeia, status do cliente em coluna e filtro (padrão: ativos) (migração 015) |
 | — | **2.30.1** | Menu: "Jornada" passa a ser "Jornada do cliente" |
 | **JL¹** | **2.31.0** | **Funil arrumado** — CX responsável (quem cadastrou, trocável entre quem usa o CRM), admin pelo grupo do hub, motivos de perda obrigatórios (5 modelos, só admin edita), encerramento em ganho/perdido, "Finalizado" vira "Contrato emitido" e a conversão ao arrastar volta a existir (migração 016) |
+| — | **2.31.1** | **Admin pelo id do grupo** — a permissão `hub:user-groups:read` fica fechada (abre a árvore de acesso do hub); o CRM compara o id do grupo, que já vem com o usuário |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -81,7 +82,7 @@ emitido ou a perda. Uma versão por entrega, cada uma testável sozinha.
 
 | Versão | Entrega | Depende de |
 |---|---|---|
-| ~~2.31.0~~ | ~~Funil arrumado~~ — entregue | migração 016, `hub:user-groups:read` |
+| ~~2.31.0~~ | ~~Funil arrumado~~ — entregue (2.31.1: admin pelo id do grupo) | migração 016 |
 | **2.32.0** | **Agenda do lead** — reuniões (tipos do hub cujo Time é **Vendas**) e contatos (ligação, WhatsApp, e-mail); local **Online / Presencial / Externo** só como informação; status agendada/realizada/remarcada/cancelada/não compareceu; próximo contato vem da agenda (as datas de hoje viram contatos); visão **Agenda** ao lado de Tabela e Quadro; dossiê dentro da reunião (CPF fica sem); sinal de lead aberto sem nada agendado | o Time "Vendas" cadastrado no hub |
 | **2.33.0** | **Prospects do ERP, 1× por dia** — entram em "Novo Lead", canal "ERP (prospect)", **sem responsável**; mesmo CNPJ não duplica; excluído no CRM não volta; depois de importado o CRM é o dono. Um Worker pequeno com Cron Trigger chama o CRM | nada — `hub:customers:read` já está na chave |
 | **2.34.0** | **Chaves de IA e roteiros** (só admin) — chave cadastrada no CRM, nunca devolvida à tela, a da Cloudflare vale primeiro; **um roteiro .md por tipo de reunião**, com versões; Workers AI grátis para os testes | binding de Workers AI no painel do Pages |
@@ -95,7 +96,9 @@ emitido ou a perda. Uma versão por entrega, cada uma testável sozinha.
 - **A agenda do lead mora no CRM.** O ERP só entra quando o lead vira
   cliente. As reuniões de venda **não entram no Painel de Operações** do
   ERP — decidido: "para o painel de operações será sem comercial".
-- **Admin = grupo do hub**: Planejamento e Controle de Produção, Sócios.
+- **Admin = grupo do hub**: Planejamento e Controle de Produção, Sócios —
+  comparados pelo **id**. `hub:user-groups:read` fica **fechada**: abre a
+  árvore de acesso dos usuários do hub.
 - **Ficamos na Cloudflare.** Cogitou-se a Vercel pelo agendamento; o Cron
   Trigger de um Worker resolve, e a troca custaria o D1 e o plano pago
   (o Hobby da Vercel não permite uso comercial).

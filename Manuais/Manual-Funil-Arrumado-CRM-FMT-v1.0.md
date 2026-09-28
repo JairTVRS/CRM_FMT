@@ -1,8 +1,8 @@
 # Manual — v2.31.0: o funil arrumado
 
-**Versão:** 1.0
+**Versão:** 1.1
 **Data:** 28/09/2026
-**Versão do sistema:** 2.31.0
+**Versão do sistema:** 2.31.0 · revisto na 2.31.1 (admin pelo id do grupo)
 **Responsável:** Jair Tavares
 
 Primeira entrega do lote da jornada do lead (agenda, gravação,
@@ -13,7 +13,7 @@ antes de a agenda entrar nele.
 
 ## 1. Instalação
 
-**Duas coisas, nesta ordem, antes do deploy.**
+**A migração, antes do deploy.**
 
 ### 1.1 Migração 016
 
@@ -39,14 +39,13 @@ leads importados antes por alguém sem e-mail registrado (normalmente 0).
 **Sem a 016 a 2.31.0 não funciona:** a lista de etapas e o quadro leem
 a coluna nova. Por isso a migração vem antes do push.
 
-### 1.2 Permissão `hub:user-groups:read` na chave do CRM
+### 1.2 Nenhuma permissão nova no hub (2.31.1)
 
-No hub, conceda à chave do CRM a permissão **`hub:user-groups:read`**
-(mesmo lugar em que foram concedidas as do Lote I).
-
-Sem ela o CRM funciona, mas **ninguém é admin**: as Configurações mostram
-"A chave do hub não tem a permissão hub:user-groups:read" e os motivos de
-perda ficam só de leitura.
+A 2.31.0 pedia `hub:user-groups:read` para ler o nome dos grupos. **Essa
+permissão fica fechada** — ela abre a árvore de acesso dos usuários do
+hub, que não é assunto do CRM. A 2.31.1 passou a comparar o **id** do
+grupo, que já vem com o usuário pela permissão do login. Nada a fazer no
+hub.
 
 ---
 
@@ -77,15 +76,23 @@ histórico da planilha.
 ### 2.2 Admin pelo grupo do hub
 
 Quem é admin no CRM é decidido pelo **grupo do usuário no hub**:
-**Planejamento e Controle de Produção** e **Sócios**. A comparação ignora
-maiúsculas e acentos.
 
-As Configurações dizem, no topo, se você é admin e qual é o seu grupo.
-Hoje o admin cuida dos motivos de perda; nas próximas entregas, das
-chaves de IA e dos roteiros.
+| Grupo | Id no hub |
+|---|---|
+| Sócios | `64e678a7d2042dae072ef102` |
+| Planejamento e Controle de Produção | `6699523a12251d23d507cb91` |
 
-Para mudar os grupos sem deploy: variável `ADMIN_GRUPOS` no painel da
-Cloudflare (nomes separados por vírgula). Fica fora do CRM de propósito —
+O id foi copiado do endereço de edição do grupo no hub. Entrar ou sair
+desses grupos no hub muda o acesso no CRM sozinho, em até 5 minutos (o
+tempo da memória do login).
+
+As Configurações dizem, no topo, se você é admin e por qual grupo. Hoje
+o admin cuida dos motivos de perda; nas próximas entregas, das chaves de
+IA e dos roteiros.
+
+Para trocar os grupos de admin sem mexer no código: variável
+`ADMIN_GRUPOS` no painel da Cloudflare, com os **ids** separados por
+vírgula (ela substitui a lista acima). Fica fora do CRM de propósito —
 numa tela, um admin poderia se descadastrar e ninguém mais voltaria.
 
 ### 2.3 Motivos de perda
@@ -145,8 +152,7 @@ conferida contra o código antigo, onde falha.
 | Arquivo | O quê |
 |---|---|
 | `db/migracao-016-funil-responsavel-perda.sql` | `etapas.resultado`, `leads.responsavel`/motivo, `motivos_perda`, `usuarios_crm` |
-| `functions/api/_lib/admin.js` | Novo: admin pelo grupo do hub, `exigirAdmin` |
-| `functions/api/_lib/hub.js` | `mapaDeGrupos`, permissão `hub:user-groups:read` |
+| `functions/api/_lib/admin.js` | Novo: admin pelo id do grupo no hub, `exigirAdmin` |
 | `functions/api/_middleware.js` | Pede `userGroup` ao hub no login |
 | `functions/api/me.js` | Devolve admin/grupo; registra o acesso em `usuarios_crm` |
 | `functions/api/usuarios.js` | Novo: a lista de responsáveis |

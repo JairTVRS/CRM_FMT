@@ -13,18 +13,22 @@
  * DESDE A 2.31.0, mais duas coisas, porque a página chama isto uma vez a
  * cada abertura:
  *
- *   - `usuario.admin` e `usuario.grupo`, lidos do grupo no hub. A tela
+ *   - `usuario.admin` e `usuario.grupo`, pelo id do grupo no hub. A tela
  *     usa para mostrar ou não os controles de admin; quem manda de
  *     verdade é a guarda em cada rota (`exigirAdmin`).
  *   - registra quem entrou em `usuarios_crm`. É dali que sai a lista de
  *     responsáveis do lead: quem usa o CRM, não todo operador do hub.
  *
- * Nenhuma das duas pode derrubar o login. Sem a migração 016 ou sem a
- * permissão de grupos, a pessoa entra do mesmo jeito — só não é admin.
+ * Nenhuma das duas pode derrubar o login. Sem a migração 016 a pessoa
+ * entra do mesmo jeito — só o acesso não fica registrado.
  */
 
 import { avaliarAdmin } from './_lib/admin.js';
 
+/**
+ * Grava quem entrou. `grupo` guarda o ID do grupo no hub — o nome o CRM
+ * só conhece para os grupos de admin (ver `_lib/admin.js`).
+ */
 async function registrarAcesso(db, usuario, grupo) {
   if (!db || !usuario?.email) return;
   const agora = new Date().toISOString();
@@ -50,7 +54,7 @@ export async function onRequestGet(context) {
   const usuario = context.data.usuario;
   const { admin, grupo, aviso } = await avaliarAdmin(context.env, usuario);
 
-  await registrarAcesso(context.env.DB, usuario, grupo);
+  await registrarAcesso(context.env.DB, usuario, usuario?.grupoId || null);
 
   return new Response(
     JSON.stringify({
