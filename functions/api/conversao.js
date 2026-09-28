@@ -96,7 +96,7 @@ async function examinar(db, leadId) {
 
   const [etapa, jaConvertido, mesmoCnpj] = await Promise.all([
     lead.etapa_id
-      ? db.prepare('SELECT id, nome, encerra, pipeline FROM etapas WHERE id = ?')
+      ? db.prepare('SELECT id, nome, encerra, resultado, pipeline FROM etapas WHERE id = ?')
           .bind(lead.etapa_id).first()
       : Promise.resolve(null),
 
@@ -126,6 +126,13 @@ async function examinar(db, leadId) {
       code: 'CNPJ_JA_E_CLIENTE',
       mensagem: `Já existe um cliente ativo com este CNPJ: "${mesmoCnpj.nome}".`,
       cliente: mesmoCnpj
+    };
+  } else if (etapa?.resultado === 'perdido') {
+    // 2.31.0: lead perdido não vira cliente. Se o negócio voltou, o lead
+    // volta para o funil primeiro — e o motivo da perda sai com ele.
+    impedimento = {
+      code: 'LEAD_PERDIDO',
+      mensagem: `Este lead está em "${etapa.nome}". Para converter, mova-o de volta para uma etapa em aberto.`
     };
   } else if (!documento) {
     impedimento = {
@@ -242,7 +249,7 @@ export async function onRequestGet(context) {
       },
 
       // Para a tela explicar por que o botão apareceu.
-      etapaAtual: etapa ? { id: etapa.id, nome: etapa.nome, encerra: !!etapa.encerra } : null
+      etapaAtual: etapa ? { id: etapa.id, nome: etapa.nome, encerra: !!etapa.encerra, resultado: etapa.resultado || null } : null
     }, 200, cabecalhos);
 
   } catch (e) {

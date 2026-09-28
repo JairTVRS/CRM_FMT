@@ -30,6 +30,9 @@ function initConfiguracoes() {
 
   // Verificar status de conexão com as APIs do backend
   verificarStatusBackend();
+
+  // Motivos de perda e o aviso de quem é admin (2.31.0)
+  if (typeof Perda !== 'undefined') Perda.montarConfig();
 }
 
 /**

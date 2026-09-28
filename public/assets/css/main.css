@@ -527,3 +527,28 @@ body.light-theme .btn-icone .icone-lua { display: block; }
 
 .celula-abrir:hover { color: var(--accent-color); text-decoration: underline; }
 .celula-abrir:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+
+/* 2.31.0 — motivos de perda e quem é admin, nas Configurações. */
+.config-acesso {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem 0;
+}
+.config-acesso.admin { color: var(--text-color); font-weight: 600; }
+
+.motivos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.motivo-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.motivo-linha .form-control { flex: 1; min-width: 0; }
+
+/* O motivo da perda na aba Funil: select e observação empilhados. */
+.perda-obs { margin-top: 0.4rem; }

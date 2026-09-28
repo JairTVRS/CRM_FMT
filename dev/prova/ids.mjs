@@ -15,7 +15,7 @@ let falhas = 0;
 
 for (const arquivo of ['public/js/stakeholders.js', 'public/js/dossie-cx.js',
                        'public/js/clientes.js', 'public/js/conversao.js',
-                       'public/js/plano-acao.js']) {
+                       'public/js/plano-acao.js', 'public/js/perda.js']) {
   const js = readFileSync(`${RAIZ}/${arquivo}`, 'utf8');
   const procurados = new Set([...js.matchAll(/\bel\('([^']+)'\)/g)].map((m) => m[1]));
 
@@ -51,7 +51,9 @@ const classes = [
   'pc-restaurar', 'pc-lista', 'pc-item', 'pc-alca', 'pc-nome', 'pc-botao', 'pc-nota',
   'p-prazo-ata', 'p-tipo', 'tp-estrategica', 'c-stcliente', 'c-reuniao', 'p-stcliente', 'sc-inactive',
   'dossie-modal', 'dossie-selo-versao', 'anel-preenchimento', 'dossie-etapa-nota',
-  'dossie-avisos', 'dossie-erro-codigo', 'espaco', 'hidden'
+  'dossie-avisos', 'dossie-erro-codigo', 'espaco', 'hidden',
+  // 2.31.0
+  'config-acesso', 'motivos-lista', 'motivo-linha', 'etapa-resultado', 'perda-obs', 'celula-secundaria'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));
@@ -65,7 +67,7 @@ if (semEstilo.length) {
 // Os scripts novos estão no index.html, na ordem certa?
 // O conversao.js precisa vir depois do quadro.js e do clientes.js: é
 // acionado pelo quadro do funil e recarrega a Jornada ao converter.
-const ordem = ['js/quadro.js', 'js/clientes.js', 'js/stakeholders.js',
+const ordem = ['js/cadastros.js', 'js/perda.js', 'js/quadro.js', 'js/clientes.js', 'js/stakeholders.js',
                'js/dossie-cx.js', 'js/conversao.js',
                'js/plano-acao.js'].map((s) => html.indexOf(s));
 
@@ -99,7 +101,7 @@ console.log('  OK    o modal de conversão e o bloco da ficha estão no HTML');
 const ARQUIVOS_JS = [
   'app.js', 'auth.js', 'cadastros.js', 'clientes.js', 'configuracoes.js',
   'conversao.js', 'dossie.js', 'dossie-cx.js', 'importar.js', 'leads.js',
-  'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
+  'perda.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
 ];
 
 /* Duplicatas LEGITIMAS: mesmo nome, escopos diferentes.
@@ -131,6 +133,36 @@ for (const arquivo of ARQUIVOS_JS) {
 }
 if (duplicadas === 0) {
   console.log(`  OK    nenhum dos ${ARQUIVOS_JS.length} arquivos declara a mesma funcao duas vezes`);
+}
+
+/* ==========================================================================
+   FUNCAO COM O NOME DE UM PARAMETRO DA FABRICA DO QUADRO
+
+   Achado na 2.31.0: dentro de `Quadro.criar({ ..., aoMover })`, o arraste
+   declarava `function aoMover(ev)`. A declaracao interna escondia o
+   parametro, e o aviso "cartao movido" chamava o tratador do ponteiro,
+   que saia no primeiro `if`. A oferta de conversao ao arrastar nunca
+   disparou -- de novo sem erro nenhum, como a `registroPorId` da 2.19.0.
+   ========================================================================== */
+
+{
+  const js = readFileSync(`${RAIZ}/public/js/quadro.js`, 'utf8');
+  const cabeca = js.match(/function criar\(\{([\s\S]*?)\}\)\s*\{/);
+  const params = cabeca
+    ? [...cabeca[1].matchAll(/^\s*([A-Za-z_$][\w$]*)/gm)].map((m) => m[1])
+    : [];
+  const internas = new Set([...js.matchAll(/^\s*function\s+([A-Za-z_$][\w$]*)\s*\(/gm)].map((m) => m[1]));
+  const sombreados = params.filter((p) => internas.has(p));
+
+  if (!params.length) {
+    console.log(' FALHA  nao achei os parametros de Quadro.criar() para conferir');
+    falhas++;
+  } else if (sombreados.length) {
+    console.log(` FALHA  quadro.js declara funcao com o nome de parametro da fabrica: ${sombreados.join(', ')}`);
+    falhas++;
+  } else {
+    console.log(`  OK    nenhum dos ${params.length} parametros de Quadro.criar() e escondido por funcao interna`);
+  }
 }
 
 console.log(falhas === 0 ? '\nTUDO PASSOU\n' : `\n${falhas} FALHA(S)\n`);

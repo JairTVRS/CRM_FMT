@@ -10,9 +10,11 @@
  *
  * DOIS GATILHOS, e os dois são necessários:
  *
- *   1. Arrastar o cartão para uma etapa de encerramento. Até a v2.17.0
- *      isso não produzia aviso nenhum — o comportamento estava certo,
- *      mas era mudo.
+ *   1. Arrastar o cartão para uma etapa de GANHO (Contrato emitido). Até
+ *      a 2.30 este gatilho estava escrito mas morto: uma função do
+ *      arraste tinha o mesmo nome do aviso e o escondia. Consertado na
+ *      2.31.0, que também o restringiu ao ganho — Perdido pede motivo,
+ *      não conversão.
  *
  *   2. Um botão na aba Funil da ficha. Sem ele, um lead que já estava
  *      parado em "Finalizado" desde antes de a conversão existir nunca
@@ -118,10 +120,12 @@ const Conversao = (() => {
       return;
     }
 
-    const encerra = dados.etapaAtual?.encerra;
-    estado.textContent = encerra
+    // 2.31.0: o que conta é o encerramento em GANHO. Perdido nem chega
+    // aqui — o servidor devolve o impedimento LEAD_PERDIDO.
+    const ganho = dados.etapaAtual?.resultado === 'ganho';
+    estado.textContent = ganho
       ? `Este lead está em "${dados.etapaAtual.nome}" e pode virar cliente.`
-      : 'Ainda não está numa etapa de encerramento — a conversão fica disponível, mas o normal é converter ao finalizar.';
+      : 'Ainda não chegou ao contrato emitido — a conversão fica disponível, mas o normal é converter ao emitir o contrato.';
 
     btnConverter?.classList.remove('hidden');
   }

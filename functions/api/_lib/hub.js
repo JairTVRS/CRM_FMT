@@ -40,6 +40,7 @@
  *   hub:portfolios:read  as carteiras
  *   hub:meeting-types:read  os tipos de reunião (os núcleos)
  *   hub:teams:read       os times
+ *   hub:user-groups:read os grupos de usuário — quem é admin no CRM (2.31.0)
  *
  * Faltando qualquer uma, o hub responde **403** e o CRM diz na tela qual
  * permissão falta — em vez de uma lista vazia sem explicação, que seria
@@ -91,6 +92,7 @@ function permissaoDe(caminho) {
   if (caminho.startsWith('/portfolios')) return 'hub:portfolios:read';
   if (caminho.startsWith('/meeting-types')) return 'hub:meeting-types:read';
   if (caminho.startsWith('/teams')) return 'hub:teams:read';
+  if (caminho.startsWith('/user-groups')) return 'hub:user-groups:read';
   if (caminho.startsWith('/users')) return 'hub:users:read';
   return null;
 }
@@ -217,6 +219,38 @@ export async function mapaDeUsuarios(env, { maxPaginas = 20 } = {}) {
     if (lote.length === 0 || mapa.size >= total) break;
   }
   return mapa;
+}
+
+/* ==========================================================================
+   GRUPOS DE USUÁRIO (2.31.0)
+
+   Cada usuário do hub tem UM `userGroup`, que chega como ObjectId. O nome
+   ("Sócios", "Planejamento e Controle de Produção") vem de
+   `GET /user-groups`, permissão `hub:user-groups:read`. É o nome do grupo
+   que decide quem é admin no CRM — ver `_lib/admin.js`.
+
+   Seis grupos no hub hoje: uma página resolve, e a lista fica na memória
+   curta porque cada abertura do app pergunta de novo.
+   ========================================================================== */
+
+/** Id → título, de todos os grupos do hub. */
+export function mapaDeGrupos(env, { maxPaginas = 5 } = {}) {
+  return memorizar('grupos-de-usuario', 10 * 60 * 1000, async () => {
+    const mapa = new Map();
+    let total = null;
+
+    for (let pagina = 1; pagina <= maxPaginas; pagina++) {
+      const corpo = await pedirAoHub(env, '/user-groups', { fields: 'id,title,isActive', page: pagina });
+      const lote = Array.isArray(corpo?.data) ? corpo.data : [];
+      if (total == null) total = Number(corpo?.size ?? lote.length);
+
+      for (const g of lote) {
+        if (g?.id != null) mapa.set(String(g.id), g.title || null);
+      }
+      if (lote.length === 0 || mapa.size >= total) break;
+    }
+    return mapa;
+  });
 }
 
 /**

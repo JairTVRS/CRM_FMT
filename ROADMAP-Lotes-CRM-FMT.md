@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 21/09/2026
-**Versão no ar:** 2.29.0 (desde 21/09/2026; migrações 012, 013 e 014 e `SESSAO_SECRET` aplicados) · **pronta para subir:** 2.30.0 (exige a migração 015, que volta o cursor da carga)
+**Atualizado em:** 28/09/2026
+**Versão no ar:** 2.30.1 (desde 28/09/2026) · **pronta para subir:** 2.31.0 (exige a **migração 016** antes do deploy e a permissão **`hub:user-groups:read`** na chave do hub)
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -66,12 +66,41 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.28.1** | **Uma rolagem só** — a tela do plano cabe na janela, só a tabela rola, painel mais baixo e recolhível |
 | — | **2.29.0** | **Datas e tipo de ação** — prazo da ata lido em 01/01/2026 ("dez/26" = último dia do mês), "Quando" e "Data prevista" numa coluna só, e Tipo de ação Operacional/Tática/Estratégica (migração 014) |
 | — | **2.30.0** | **A reunião é do ERP** — cabeçalho da ata não é mais conferido onde o ERP já deu a informação, responsável = participantes da reunião quando a ata não nomeia, status do cliente em coluna e filtro (padrão: ativos) (migração 015) |
+| — | **2.30.1** | Menu: "Jornada" passa a ser "Jornada do cliente" |
+| **JL¹** | **2.31.0** | **Funil arrumado** — CX responsável (quem cadastrou, trocável entre quem usa o CRM), admin pelo grupo do hub, motivos de perda obrigatórios (5 modelos, só admin edita), encerramento em ganho/perdido, "Finalizado" vira "Contrato emitido" e a conversão ao arrastar volta a existir (migração 016) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
 frente. Quando o F sair, será a próxima da fila — não a 2.15.
 
-### A seguir
+### A seguir: o lote da jornada do lead (JL)
+
+Decidido com o usuário entre 28/09/2026 e a entrega da 2.31.0. Foco:
+**organizar o setor de CX**, que conduz o lead da entrada até o contrato
+emitido ou a perda. Uma versão por entrega, cada uma testável sozinha.
+
+| Versão | Entrega | Depende de |
+|---|---|---|
+| ~~2.31.0~~ | ~~Funil arrumado~~ — entregue | migração 016, `hub:user-groups:read` |
+| **2.32.0** | **Agenda do lead** — reuniões (tipos do hub cujo Time é **Vendas**) e contatos (ligação, WhatsApp, e-mail); local **Online / Presencial / Externo** só como informação; status agendada/realizada/remarcada/cancelada/não compareceu; próximo contato vem da agenda (as datas de hoje viram contatos); visão **Agenda** ao lado de Tabela e Quadro; dossiê dentro da reunião (CPF fica sem); sinal de lead aberto sem nada agendado | o Time "Vendas" cadastrado no hub |
+| **2.33.0** | **Prospects do ERP, 1× por dia** — entram em "Novo Lead", canal "ERP (prospect)", **sem responsável**; mesmo CNPJ não duplica; excluído no CRM não volta; depois de importado o CRM é o dono. Um Worker pequeno com Cron Trigger chama o CRM | nada — `hub:customers:read` já está na chave |
+| **2.34.0** | **Chaves de IA e roteiros** (só admin) — chave cadastrada no CRM, nunca devolvida à tela, a da Cloudflare vale primeiro; **um roteiro .md por tipo de reunião**, com versões; Workers AI grátis para os testes | binding de Workers AI no painel do Pages |
+| **2.35.0** | **Gravação e transcrição ao vivo** — consentimento registrado; pedaços de 20–30 s; **só o texto é guardado**; no computador, microfone e áudio da aba separados (quem falou); no celular só o microfone, com aviso | 2.34.0 |
+| **2.36.0** | **Recortes e insights durante a reunião** — frases do lead que captam a expectativa, conferidas por código contra a transcrição; perguntas do roteiro ainda não cobertas | 2.35.0 |
+| **2.37.0** | **Laudo pós-reunião** — HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão, como histórico da pré-venda | 2.35.0 |
+| depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |
+
+**Decisões que valem para o lote:**
+
+- **A agenda do lead mora no CRM.** O ERP só entra quando o lead vira
+  cliente. As reuniões de venda **não entram no Painel de Operações** do
+  ERP — decidido: "para o painel de operações será sem comercial".
+- **Admin = grupo do hub**: Planejamento e Controle de Produção, Sócios.
+- **Ficamos na Cloudflare.** Cogitou-se a Vercel pelo agendamento; o Cron
+  Trigger de um Worker resolve, e a troca custaria o D1 e o plano pago
+  (o Hobby da Vercel não permite uso comercial).
+
+### Depois do lote
 
 **A ordem mudou duas vezes**, sempre pela mesma razão: entregar o que não
 depende de material externo. Em 04/09 o H passou na frente do F; em 05/09
@@ -84,7 +113,7 @@ o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
 | Versao | Entrega | Depende de |
 |---|---|---|
 | **2.24.0 — ENTREGUE em 15/09/2026, Fases 1 e 2** | **Identidade do ERP, avaliacao do CRM** — as pessoas vem do `contacts` de `/customers` e a ligacao delas com o nucleo sai do `customerParticipants` das reunioes; o CRM nao cria nem renomeia pessoa. Nucleo, no dossie, e o **Time** | nada — as quatro permissoes ja estavam na chave |
-| **Fase 3 (proxima versao)** | **Migracao 016** (era 012; a 2.25.0, a 2.28.0, a 2.29.0 e a 2.30.0 tomaram os números) — aposentar o campo de nucleos da ficha e o cadastro de **Papeis** (vale o Cargo do ERP), e amarrar influencia/postura ao id do contato do ERP em vez de casar por e-mail em tempo de leitura | escopo de D1 no `wrangler`, e o `contacts` ter id estavel — que a primeira geracao real responde |
+| **Fase 3** | **Proxima migracao livre** (era 012; a 2.25.0, a 2.28.0, a 2.29.0, a 2.30.0 e a 2.31.0 tomaram os números) — aposentar o campo de nucleos da ficha e o cadastro de **Papeis** (vale o Cargo do ERP), e amarrar influencia/postura ao id do contato do ERP em vez de casar por e-mail em tempo de leitura | escopo de D1 no `wrangler`, e o `contacts` ter id estavel — que a primeira geracao real responde |
 | **2.31.0** (era 2.25.0) | **O dossie le as atas** + **Balanca Avaliativa**, aba propria no cliente: positivos e negativos lado a lado, cada um ancorado em acao, ata ou registro com data | nada — `hub:meetings:read` ja esta na chave |
 
 A 2.31.0 nao depende da 2.24.0. Se o `contacts` der problema, a ordem
@@ -339,6 +368,23 @@ guarda. As funções legitimamente repetidas entre arquivos (`renderizar`,
 todos partilham o mesmo escopo global. Não há linter no caminho do
 deploy, e a redeclaração é legal na linguagem. Enquanto for assim, a
 prova é o único lugar onde isso pode ser pego.
+
+### A mesma família, achada na 2.31.0: a conversão ao arrastar nunca disparou
+
+Dentro de `Quadro.criar({ ..., aoMover })`, o arraste declarava
+`function aoMover(ev)` — o tratador do ponteiro. A declaração interna
+esconde o parâmetro, e a linha que devia oferecer a conversão depois de
+gravar o movimento chamava o tratador do ponteiro, que saía no primeiro
+`if`. **A oferta de conversão ao soltar em "Finalizado" nunca funcionou**
+desde que foi escrita; só o botão da ficha convertia.
+
+A guarda da v2.19.0 não pegava porque não havia duas funções com o mesmo
+nome — havia uma função e um parâmetro. Achado lendo o código para a
+2.31.0, não por sintoma.
+
+**O que passou a existir:** a `ids.mjs` confere que nenhum parâmetro de
+`Quadro.criar()` é escondido por função interna. Verificada contra o
+código antigo, onde falha.
 
 ---
 

@@ -456,14 +456,16 @@ export async function onRequestPost(context) {
               (nome, documento, telefone, cidade, segmento, canal, atendente, advisor_id,
                etapa_id, observacoes, site, instagram, data_cadastro, data_ultimo_contato,
                data_proximo_contato, data_fechamento, valor_proposta, valor_diagnostico,
-               tags, criado_por, criado_em, ativo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?, ?, 1)`
+               tags, criado_por, criado_em, responsavel, ativo)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?, ?, ?, 1)`
           ).bind(
             l.nome, l.documento, l.telefone, l.cidade, l.segmento, l.canal,
             l.atendente || usuario.email, advisorId, etapaId, l.observacoes,
             l.site, l.instagram, l.data_cadastro || agora.slice(0, 10),
             l.data_ultimo_contato, l.data_proximo_contato, l.data_fechamento,
-            l.valor_proposta, l.valor_diagnostico, usuario.email, agora
+            l.valor_proposta, l.valor_diagnostico, usuario.email, agora,
+            // 2.31.0: quem importa é o responsável, como no cadastro à mão.
+            String(usuario.email || '').toLowerCase() || null
           )
         );
       }

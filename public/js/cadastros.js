@@ -12,6 +12,10 @@
  * Núcleos e papéis entraram no Lote H, com a trilha de CX. Núcleo é o
  * Tipo de Reunião; papel é a função da pessoa do cliente.
  *
+ * Desde a 2.31.0, mais duas listas: os MOTIVOS de perda (só admin
+ * altera, nas Configurações) e os USUÁRIOS do CRM, que são os
+ * responsáveis possíveis de um lead.
+ *
  * `etapas` aqui é sempre a do funil COMERCIAL. As etapas da jornada
  * pertencem ao outro pipeline e quem as carrega é o clientes.js — uma
  * lista só de etapas para duas trilhas devolveria a coluna errada em
@@ -21,21 +25,28 @@
  */
 
 const Cadastros = (() => {
-  let dados = { advisors: [], tags: [], etapas: [], nucleos: [], papeis: [] };
+  let dados = { advisors: [], tags: [], etapas: [], nucleos: [], papeis: [], motivos: [], usuarios: [] };
   let carregado = false;
 
   /** Uma requisição só para todas — é o que a ficha precisa ao abrir. */
   async function carregar() {
     try {
-      const r = await fetch('/api/cadastros?tipo=todos&pipeline=comercial');
+      // Os usuários vêm de outra rota; buscar junto não atrasa nada.
+      const [r, ru] = await Promise.all([
+        fetch('/api/cadastros?tipo=todos&pipeline=comercial'),
+        fetch('/api/usuarios').catch(() => null)
+      ]);
       if (!r.ok) return false;
       const d = await r.json();
+      const u = ru && ru.ok ? await ru.json() : { usuarios: [] };
       dados = {
         advisors: d.advisors || [],
         tags: d.tags || [],
         etapas: d.etapas || [],
         nucleos: d.nucleos || [],
-        papeis: d.papeis || []
+        papeis: d.papeis || [],
+        motivos: d.motivos || [],
+        usuarios: u.usuarios || []
       };
       carregado = true;
       document.dispatchEvent(new CustomEvent('crm:cadastros'));
@@ -50,6 +61,8 @@ const Cadastros = (() => {
   const etapas = () => dados.etapas;
   const nucleos = () => dados.nucleos;
   const papeis = () => dados.papeis;
+  const motivos = () => dados.motivos;
+  const usuarios = () => dados.usuarios;
   const pronto = () => carregado;
 
   const acharPorNome = (lista, nome) => {
@@ -61,6 +74,21 @@ const Cadastros = (() => {
   const tagPorId = (id) => dados.tags.find((t) => t.id === Number(id)) || null;
   const etapaPorId = (id) => dados.etapas.find((e) => e.id === Number(id)) || null;
   const nucleoPorId = (id) => dados.nucleos.find((n) => n.id === Number(id)) || null;
+  const motivoPorId = (id) => dados.motivos.find((m) => m.id === Number(id)) || null;
+
+  /** A etapa é de perda? Só o funil comercial tem `resultado`. */
+  const etapaDePerda = (id) => etapaPorId(id)?.resultado === 'perdido';
+
+  /**
+   * Como mostrar um responsável: o nome de quem já entrou no CRM, ou o
+   * e-mail quando o nome ainda não chegou (quem não abriu o CRM desde a
+   * 2.31.0 só tem o e-mail registrado).
+   */
+  function nomeDoUsuario(email) {
+    if (!email) return null;
+    const u = dados.usuarios.find((x) => x.email === String(email).toLowerCase());
+    return u?.nome || email;
+  }
 
   /**
    * Recarrega só uma lista, sem refazer a chamada inteira.
@@ -125,8 +153,9 @@ const Cadastros = (() => {
 
   return {
     carregar, pronto, recarregarLista,
-    advisors, tags, etapas, nucleos, papeis,
-    advisorPorNome, tagPorId, etapaPorId, nucleoPorId,
+    advisors, tags, etapas, nucleos, papeis, motivos, usuarios,
+    advisorPorNome, tagPorId, etapaPorId, nucleoPorId, motivoPorId,
+    etapaDePerda, nomeDoUsuario,
     criarAdvisor, criarTag, criarNucleo, criarPapel
   };
 })();

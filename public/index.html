@@ -166,6 +166,10 @@
               <option value="5">Classificação 5</option>
               <option value="6">Classificação 6</option>
             </select>
+            <!-- Opções vêm de quem já entrou no CRM (2.31.0). -->
+            <select id="filter-responsavel" class="form-control" title="CX responsável">
+              <option value="">Todos os responsáveis</option>
+            </select>
           </div>
 
           <div class="view-toggle">
@@ -184,6 +188,7 @@
                 <th>Documento (CNPJ/CPF)</th>
                 <th>Telefone</th>
                 <th>Canal</th>
+                <th>Responsável</th>
                 <th class="text-center">Classif.</th>
                 <th>Ramo</th>
                 <th>Segmento</th>
@@ -191,7 +196,7 @@
               </tr>
             </thead>
             <tbody id="table-leads-body">
-              <tr><td colspan="8" class="leads-vazio">Carregando…</td></tr>
+              <tr><td colspan="9" class="leads-vazio">Carregando…</td></tr>
             </tbody>
           </table>
         </div>
@@ -410,6 +415,27 @@
         </header>
 
         <div class="config-panel">
+          <!-- 2.31.0: quem administra é o grupo do usuário no hub
+               (Planejamento e Controle de Produção, Sócios). -->
+          <p id="config-acesso" class="config-acesso"></p>
+
+          <div class="config-card">
+            <h3>Motivos de perda</h3>
+            <p class="card-desc">
+              Pedidos sempre que um lead vai para uma etapa de perda. Só
+              administradores alteram a lista; um motivo que já explica perdas
+              não pode ser excluído, só renomeado.
+            </p>
+            <div id="motivos-lista" class="motivos-lista"></div>
+            <div id="motivo-novo" class="etapa-nova hidden">
+              <input type="text" id="motivo-novo-nome" class="form-control"
+                     placeholder="Novo motivo de perda" maxlength="120">
+              <button id="btn-motivo-criar" class="btn btn-primary btn-sm">Adicionar</button>
+            </div>
+          </div>
+
+          <hr class="divider">
+
           <div class="config-card">
             <h3>Provedor Ativo de Inteligência Artificial</h3>
             <p class="card-desc">Escolha qual modelo de IA será utilizado para pesquisar e enriquecer os dados dos seus leads.</p>
@@ -596,6 +622,21 @@
             <div class="form-group">
               <label for="lead-input-etapa">Etapa do funil</label>
               <select id="lead-input-etapa" class="form-control"></select>
+            </div>
+
+            <!-- 2.31.0: o CX que conduz o lead até o contrato ou a perda.
+                 Nasce com quem cadastrou; a lista é de quem usa o CRM. -->
+            <div class="form-group">
+              <label for="lead-input-responsavel">CX responsável</label>
+              <select id="lead-input-responsavel" class="form-control"></select>
+            </div>
+
+            <!-- Aparece só quando a etapa escolhida é de perda. -->
+            <div class="form-group col-span-2 hidden" id="lead-perda">
+              <label for="lead-input-motivo-perda">Motivo da perda *</label>
+              <select id="lead-input-motivo-perda" class="form-control"></select>
+              <textarea id="lead-input-motivo-perda-obs" class="form-control perda-obs" rows="2"
+                        maxlength="1000" placeholder="Observação (opcional)"></textarea>
             </div>
 
             <div class="form-group">
@@ -930,9 +971,12 @@
 
       <div class="modal-body">
         <p class="etapas-aviso">
-          Cada etapa é uma coluna do quadro. As marcadas como <strong>terminal</strong>
-          nascem recolhidas — são as que só acumulam, como Finalizado, Perdido
-          e Encerrado. Etapa com registro dentro não pode ser excluída.
+          Cada etapa é uma coluna do quadro. As de <strong>encerramento</strong>
+          nascem recolhidas — são as que só acumulam, como Contrato emitido,
+          Perdido e Encerrado. No funil comercial, o encerramento diz se o lead
+          foi <strong>ganho</strong> (oferece a conversão em cliente) ou
+          <strong>perdido</strong> (pede o motivo). Etapa com registro dentro
+          não pode ser excluída.
         </p>
 
         <div id="etapas-lista" class="etapas-lista"></div>
@@ -944,6 +988,33 @@
           <button id="btn-etapa-criar" class="btn btn-primary btn-sm">Adicionar</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Motivo da perda, pedido ao arrastar um lead para uma etapa de
+       perda (2.31.0). Na ficha o mesmo pedido é feito pelos campos da
+       aba Funil; aqui é o quadro que não tem onde perguntar. -->
+  <div id="modal-motivo-perda" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 480px;">
+      <header class="modal-header">
+        <h2 id="motivo-perda-titulo">Por que este lead foi perdido?</h2>
+        <button id="btn-motivo-perda-fechar" class="btn-close" aria-label="Cancelar">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="motivo-perda-select">Motivo *</label>
+          <select id="motivo-perda-select" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label for="motivo-perda-obs">Observação</label>
+          <textarea id="motivo-perda-obs" class="form-control" rows="3" maxlength="1000"
+                    placeholder="Opcional: o que o lead disse, com quem fechou…"></textarea>
+        </div>
+      </div>
+      <footer class="modal-footer">
+        <button id="btn-motivo-perda-cancelar" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-motivo-perda-confirmar" class="btn btn-primary">Registrar a perda</button>
+      </footer>
     </div>
   </div>
 
@@ -1254,6 +1325,7 @@
        do proprio arquivo, entao vem depois do leads.js e antes do
        clientes.js, que monta o quadro da jornada no fim do dele. -->
   <script src="js/cadastros.js"></script>
+  <script src="js/perda.js"></script>
   <script src="js/leads.js"></script>
   <script src="js/quadro.js"></script>
   <script src="js/clientes.js"></script>

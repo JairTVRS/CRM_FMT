@@ -56,11 +56,22 @@ const PORTA = 8787;
  * fielmente o comportamento do hub.
  */
 const USUARIOS = [
-  { id: 1, name: 'Jair Tavares', email: 'jairdasilvatj@gmail.com', isActive: true },
+  { id: 1, name: 'Jair Tavares', email: 'jairdasilvatj@gmail.com', isActive: true, userGroup: 'g-socios' },
   // Os `participants` das reuniões apontam para estes (2.30.0): é assim
   // que a ação sem "Resp.:" ganha o responsável da reunião.
-  { id: 'u1', name: 'Marina Alves', email: 'marina@formatar.com.br', isActive: true },
-  { id: 'u2', name: 'Paulo Reis', email: 'paulo@formatar.com.br', isActive: true }
+  { id: 'u1', name: 'Marina Alves', email: 'marina@formatar.com.br', isActive: true, userGroup: 'g-operacoes' },
+  { id: 'u2', name: 'Paulo Reis', email: 'paulo@formatar.com.br', isActive: true, userGroup: 'g-pcp' }
+];
+
+/**
+ * Grupos de usuário (2.31.0), no formato do `GET /user-groups`. Os nomes
+ * vêm sem acento e em caixa diferente de propósito: a comparação do CRM
+ * tem que ignorar as duas coisas.
+ */
+const GRUPOS = [
+  { id: 'g-socios', nid: 1, title: 'SOCIOS', isActive: true },
+  { id: 'g-operacoes', nid: 2, title: 'Operações', isActive: true },
+  { id: 'g-pcp', nid: 3, title: 'Planejamento e controle de producao', isActive: true }
 ];
 
 /**
@@ -293,7 +304,7 @@ const servidor = createServer((req, res) => {
   };
 
   const ROTAS = ['/v1/users', '/v1/customers', '/v1/meetings',
-                 '/v1/portfolios', '/v1/meeting-types', '/v1/teams'];
+                 '/v1/portfolios', '/v1/meeting-types', '/v1/teams', '/v1/user-groups'];
 
   // `GET /customers/{id}` — a rota de DETALHE, que a documentação que
   // temos não registra. `--sem-detalhe` a desliga, para provar que o CRM
@@ -372,6 +383,16 @@ const servidor = createServer((req, res) => {
     return responder(200, {
       size: lista.length, data: pagina > 1 ? [] : lista.map(projetar)
     });
+  }
+
+  /* ---------------- Grupos de usuário (2.31.0) ---------------- */
+  if (url.pathname === '/v1/user-groups') {
+    if (semPermissao) return responder(403, { error: 'Sem permissão para esta operação.' });
+    if (!url.searchParams.get('fields')) {
+      return responder(400, { error: 'API_FIELDS_VALIDATION: o parâmetro fields é obrigatório.' });
+    }
+    const pagina = Number(url.searchParams.get('page') || 1);
+    return responder(200, { size: GRUPOS.length, data: pagina > 1 ? [] : GRUPOS.map(projetar) });
   }
 
   /* ---------------- Tipos de reunião e times ---------------- */

@@ -14,13 +14,32 @@
  * Carteira (cliente + núcleo). Papel é a função da pessoa do cliente, e
  * quem vai consumi-lo de verdade é o mapa de stakeholders do Lote L.
  *
- * GET    ?tipo=advisors|tags|etapas|nucleos|papeis   lista
+ * Motivos de perda (2.31.0) são a EXCEÇÃO à regra acima: só admin
+ * cria, renomeia ou exclui. Eles moram nas Configurações e alimentam a
+ * leitura de por que o funil perde — uma lista que qualquer um alarga
+ * digitando deixa de ser uma lista. A leitura continua livre.
+ *
+ * GET    ?tipo=advisors|tags|etapas|nucleos|papeis|motivos   lista
  * POST   ?tipo=...                    cria
  * PUT    ?tipo=...&id=N               renomeia / altera cor / reordena
  * DELETE ?tipo=...&id=N               remove (bloqueado se estiver em uso)
  */
 
-const TIPOS = ['advisors', 'tags', 'etapas', 'nucleos', 'papeis'];
+import { exigirAdmin } from './_lib/admin.js';
+
+const TIPOS = ['advisors', 'tags', 'etapas', 'nucleos', 'papeis', 'motivos'];
+
+/** O tipo da URL é curto; a tabela diz o que é. */
+const tabelaDe = (tipo) => (tipo === 'motivos' ? 'motivos_perda' : tipo);
+
+/** Tipos que só admin altera. */
+const SO_ADMIN = new Set(['motivos']);
+
+/** 'ganho' | 'perdido' | null — o que o encerramento de uma etapa comercial significa. */
+const RESULTADOS = ['ganho', 'perdido'];
+
+/** Motivos na ordem em que foram cadastrados, não alfabética: os modelos vêm primeiro. */
+const SQL_MOTIVOS = 'SELECT id, nome, ordem FROM motivos_perda WHERE ativo = 1 ORDER BY ordem, nome COLLATE NOCASE';
 
 /**
  * Quem tem coluna `cor`. Advisors e papéis são só nome — mandar `cor`
@@ -77,22 +96,24 @@ export async function onRequestGet(context) {
     try {
       // As etapas saem filtradas pelo pipeline pedido; as demais listas
       // são globais e valem para as duas trilhas.
-      const [advisors, tags, etapas, nucleos, papeis] = await Promise.all([
+      const [advisors, tags, etapas, nucleos, papeis, motivos] = await Promise.all([
         db.prepare('SELECT id, nome FROM advisors WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
         db.prepare('SELECT id, nome, cor FROM tags WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
         db.prepare(
-          `SELECT id, nome, cor, ordem, encerra, pipeline FROM etapas
+          `SELECT id, nome, cor, ordem, encerra, resultado, pipeline FROM etapas
            WHERE ativo = 1 AND pipeline = ? ORDER BY ordem`
         ).bind(pipelineDe(searchParams)).all(),
         db.prepare('SELECT id, nome, cor FROM nucleos WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
-        db.prepare('SELECT id, nome FROM papeis WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all()
+        db.prepare('SELECT id, nome FROM papeis WHERE ativo = 1 ORDER BY nome COLLATE NOCASE').all(),
+        db.prepare(SQL_MOTIVOS).all()
       ]);
       return json({
         advisors: advisors.results || [],
         tags: tags.results || [],
         etapas: etapas.results || [],
         nucleos: nucleos.results || [],
-        papeis: papeis.results || []
+        papeis: papeis.results || [],
+        motivos: motivos.results || []
       }, 200, cabecalhos);
     } catch (e) {
       return json({ error: 'Falha ao carregar os cadastros.', details: e.message }, 500, cabecalhos);
@@ -108,12 +129,17 @@ export async function onRequestGet(context) {
     if (tipo === 'etapas') {
       const { results } = await db
         .prepare(
-          `SELECT id, nome, cor, ordem, encerra, pipeline FROM etapas
+          `SELECT id, nome, cor, ordem, encerra, resultado, pipeline FROM etapas
            WHERE ativo = 1 AND pipeline = ? ORDER BY ordem`
         )
         .bind(pipelineDe(searchParams))
         .all();
       return json({ etapas: results || [] }, 200, cabecalhos);
+    }
+
+    if (tipo === 'motivos') {
+      const { results } = await db.prepare(SQL_MOTIVOS).all();
+      return json({ motivos: results || [] }, 200, cabecalhos);
     }
 
     const colunas = COM_COR.has(tipo) ? 'id, nome, cor' : 'id, nome';
@@ -142,12 +168,17 @@ export async function onRequestPost(context) {
 
   const { tipo, erro } = validarTipo(searchParams, cabecalhos);
   if (erro) return erro;
+  if (SO_ADMIN.has(tipo)) {
+    const recusa = await exigirAdmin(context);
+    if (recusa) return recusa;
+  }
 
   let corpo;
   try { corpo = await context.request.json(); }
   catch (e) { return json({ error: 'Corpo inválido.' }, 400, cabecalhos); }
 
-  const nome = texto(corpo.nome, 60);
+  // Motivo de perda é frase ("Preço acima do esperado"), não etiqueta.
+  const nome = texto(corpo.nome, tipo === 'motivos' ? 120 : 60);
   if (!nome) return json({ error: 'Informe um nome.', code: 'NOME_OBRIGATORIO' }, 400, cabecalhos);
 
   const agora = new Date().toISOString();
@@ -171,6 +202,19 @@ export async function onRequestPost(context) {
            VALUES (?, ?, ?, ?, ?, 1) RETURNING id, nome, cor, ordem, encerra, pipeline`
         )
         .bind(nome, cor(corpo.cor) || '#6e6e6e', Number(ultima?.n || 0) + 1, corpo.encerra ? 1 : 0, pipeline)
+        .first();
+
+    } else if (tipo === 'motivos') {
+      // Entra no fim da lista, depois dos modelos.
+      const ultima = await db
+        .prepare('SELECT COALESCE(MAX(ordem), 0) AS n FROM motivos_perda WHERE ativo = 1')
+        .first();
+      registro = await db
+        .prepare(
+          `INSERT INTO motivos_perda (nome, ordem, criado_por, criado_em, ativo)
+           VALUES (?, ?, ?, ?, 1) RETURNING id, nome, ordem`
+        )
+        .bind(nome, Number(ultima?.n || 0) + 1, usuario.email, agora)
         .first();
 
     } else if (COM_COR.has(tipo)) {
@@ -201,7 +245,7 @@ export async function onRequestPost(context) {
       // Já existe: devolve o existente em vez de erro. Quem está
       // digitando quer o item na lista, não uma mensagem.
       const existente = await db
-        .prepare(`SELECT * FROM ${tipo} WHERE nome = ? COLLATE NOCASE AND ativo = 1`)
+        .prepare(`SELECT * FROM ${tabelaDe(tipo)} WHERE nome = ? COLLATE NOCASE AND ativo = 1`)
         .bind(nome)
         .first();
       return json({ registro: existente, jaExistia: true }, 200, cabecalhos);
@@ -223,6 +267,10 @@ export async function onRequestPut(context) {
 
   const { tipo, erro } = validarTipo(searchParams, cabecalhos);
   if (erro) return erro;
+  if (SO_ADMIN.has(tipo)) {
+    const recusa = await exigirAdmin(context);
+    if (recusa) return recusa;
+  }
 
   let corpo;
   try { corpo = await context.request.json(); }
@@ -245,17 +293,31 @@ export async function onRequestPut(context) {
   const id = Number(searchParams.get('id'));
   if (!id) return json({ error: 'ID ausente.' }, 400, cabecalhos);
 
-  const nome = texto(corpo.nome, 60);
+  const nome = texto(corpo.nome, tipo === 'motivos' ? 120 : 60);
   const novaCor = cor(corpo.cor);
   // `undefined` distingue "não mandou o campo" de "mandou false".
   // Sem isso, desmarcar uma etapa terminal seria impossível.
-  const mudaEncerra = tipo === 'etapas' && corpo.encerra !== undefined;
+  //
+  // `resultado` (2.31.0) é o encerramento do funil comercial dito por
+  // inteiro: 'ganho', 'perdido' ou nulo (em aberto). Ele manda no
+  // `encerra` — uma etapa ganha ou perdida é terminal por definição, e
+  // deixar os dois campos soltos permitiria "perdido, mas não terminal".
+  const mudaResultado = tipo === 'etapas' && corpo.resultado !== undefined;
+  const mudaEncerra = tipo === 'etapas' && corpo.encerra !== undefined && !mudaResultado;
+
+  if (mudaResultado && corpo.resultado !== null && !RESULTADOS.includes(corpo.resultado)) {
+    return json({ error: 'Resultado inválido: use ganho, perdido ou nenhum.', code: 'RESULTADO_INVALIDO' }, 400, cabecalhos);
+  }
 
   const campos = [];
   const valores = [];
   if (nome) { campos.push('nome = ?'); valores.push(nome); }
   if (novaCor && COM_COR.has(tipo)) { campos.push('cor = ?'); valores.push(novaCor); }
   if (mudaEncerra) { campos.push('encerra = ?'); valores.push(corpo.encerra ? 1 : 0); }
+  if (mudaResultado) {
+    campos.push('resultado = ?', 'encerra = ?');
+    valores.push(corpo.resultado, corpo.resultado ? 1 : 0);
+  }
 
   // A conferência é sobre o que SOBROU depois do filtro por tipo, não
   // sobre o que veio no corpo. Uma cor mandada para advisors ou papéis
@@ -266,7 +328,7 @@ export async function onRequestPut(context) {
 
   try {
     const registro = await db
-      .prepare(`UPDATE ${tipo} SET ${campos.join(', ')} WHERE id = ? AND ativo = 1 RETURNING *`)
+      .prepare(`UPDATE ${tabelaDe(tipo)} SET ${campos.join(', ')} WHERE id = ? AND ativo = 1 RETURNING *`)
       .bind(...valores, id)
       .first();
 
@@ -294,6 +356,10 @@ export async function onRequestDelete(context) {
 
   const { tipo, erro } = validarTipo(searchParams, cabecalhos);
   if (erro) return erro;
+  if (SO_ADMIN.has(tipo)) {
+    const recusa = await exigirAdmin(context);
+    if (recusa) return recusa;
+  }
 
   const id = Number(searchParams.get('id'));
   if (!id) return json({ error: 'ID ausente.' }, 400, cabecalhos);
@@ -303,7 +369,16 @@ export async function onRequestDelete(context) {
     let emUso = 0;
     let mensagem = '';
 
-    if (tipo === 'advisors') {
+    if (tipo === 'motivos') {
+      // Um motivo que explica perdas registradas não pode sumir: a ficha
+      // desses leads passaria a dizer "não informado", o que é falso.
+      const r = await db
+        .prepare('SELECT COUNT(*) AS n FROM leads WHERE motivo_perda_id = ? AND ativo = 1')
+        .bind(id).first();
+      emUso = Number(r?.n || 0);
+      mensagem = `Este motivo explica a perda de ${emUso} lead(s). Ele não pode ser excluído, mas pode ser renomeado.`;
+
+    } else if (tipo === 'advisors') {
       const r = await db
         .prepare('SELECT COUNT(*) AS n FROM leads WHERE advisor_id = ? AND ativo = 1')
         .bind(id).first();
@@ -391,7 +466,7 @@ export async function onRequestDelete(context) {
     }
 
     const removido = await db
-      .prepare(`UPDATE ${tipo} SET ativo = 0 WHERE id = ? AND ativo = 1 RETURNING id`)
+      .prepare(`UPDATE ${tabelaDe(tipo)} SET ativo = 0 WHERE id = ? AND ativo = 1 RETURNING id`)
       .bind(id).first();
 
     if (!removido) return json({ error: 'Registro não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);

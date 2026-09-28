@@ -12,6 +12,14 @@
  *
  * Exclusão é lógica (ativo = 0). Histórico comercial não se apaga sem
  * rastro, e um lead excluído por engano precisa ter volta.
+ *
+ * DESDE A 2.31.0 (migração 016):
+ *   - `responsavel` é o e-mail de um usuário do CRM. Nasce com quem
+ *     cadastrou e pode ser trocado por qualquer outro de `usuarios_crm`.
+ *   - Entrar numa etapa de PERDA exige motivo — no PUT da ficha e no
+ *     arraste do quadro, as duas portas. Sair dela apaga o motivo: um lead
+ *     reaberto não está perdido. Quem já estava em Perdido antes da regra
+ *     segue sem motivo ("não informado") e pode ser editado normalmente.
  */
 
 import { limparCnpj } from './_lib/cnpj.js';
@@ -108,8 +116,19 @@ function normalizarLead(corpo) {
     valor_proposta: paraCentavos(corpo.valor_proposta),
     valor_diagnostico: paraCentavos(corpo.valor_diagnostico),
 
-    tags: normalizarTags(corpo.tags)
+    tags: normalizarTags(corpo.tags),
+
+    // --- 2.31.0 ---
+    responsavel: normalizarEmail(corpo.responsavel),
+    motivo_perda_id: Number(corpo.motivo_perda_id) > 0 ? Number(corpo.motivo_perda_id) : null,
+    motivo_perda_obs: texto(corpo.motivo_perda_obs, 1000)
   };
+}
+
+/** E-mail em minúsculas, que é como se compara com `usuarios_crm`. */
+function normalizarEmail(valor) {
+  const t = texto(valor, 160);
+  return t && t.includes('@') ? t.toLowerCase() : null;
 }
 
 /** SERVIÇO (planilha) e SERVIÇOS (sistema) são o mesmo segmento. */
@@ -152,7 +171,8 @@ const CAMPOS = [
   'site', 'instagram', 'ramo', 'segmento', 'resumo_ia',
   'canal', 'classificacao', 'atendente', 'advisor_id', 'etapa_id',
   'data_cadastro', 'data_ultimo_contato', 'data_proximo_contato', 'data_fechamento',
-  'valor_proposta', 'valor_diagnostico', 'tags'
+  'valor_proposta', 'valor_diagnostico', 'tags',
+  'responsavel', 'motivo_perda_id', 'motivo_perda_obs'
 ];
 
 /**
@@ -197,6 +217,7 @@ function montarFiltro(searchParams) {
   const canal = texto(searchParams.get('canal'), 60);
   const classificacao = normalizarClassificacao(searchParams.get('classificacao'));
   const etapaId = Number(searchParams.get('etapa_id')) || null;
+  const responsavel = texto(searchParams.get('responsavel'), 160);
 
   if (busca) {
     // Busca por nome, documento ou telefone — o que o campo da tela promete
@@ -212,6 +233,9 @@ function montarFiltro(searchParams) {
   if (canal) { condicoes.push('COALESCE(canal, origem) = ?'); valores.push(canal); }
   if (classificacao) { condicoes.push('classificacao = ?'); valores.push(classificacao); }
   if (etapaId) { condicoes.push('etapa_id = ?'); valores.push(etapaId); }
+  // "Sem responsável" é um valor do filtro, não a ausência dele.
+  if (responsavel === SEM_RESPONSAVEL) condicoes.push('responsavel IS NULL');
+  else if (responsavel) { condicoes.push('responsavel = ?'); valores.push(responsavel.toLowerCase()); }
 
   return { onde: `WHERE ${condicoes.join(' AND ')}`, valores };
 }
@@ -226,6 +250,73 @@ function montarFiltro(searchParams) {
  * registros da outra. Cada endpoint responde pela sua trilha.
  */
 const PIPELINE_LEADS = 'comercial';
+
+/** Valor do filtro para os leads sem responsável. */
+const SEM_RESPONSAVEL = '__sem__';
+
+/* ==========================================================================
+   REGRAS DO FUNIL (2.31.0)
+
+   Valem nas duas portas por onde um lead muda de etapa — o PUT da ficha
+   e o arraste do quadro. Uma função só, para as duas não divergirem.
+   ========================================================================== */
+
+async function resultadoDaEtapa(db, etapaId) {
+  if (!etapaId) return null;
+  const e = await db.prepare('SELECT resultado FROM etapas WHERE id = ?').bind(Number(etapaId)).first();
+  return e?.resultado || null;
+}
+
+/**
+ * Confere e ajusta o motivo da perda.
+ *
+ * @param anterior  { etapa_id } de como o lead está no banco (null ao criar)
+ * @param destino   id da etapa para onde ele vai
+ * @param motivo    { motivo_perda_id, motivo_perda_obs } pedidos
+ * @returns { erro } ou { motivo } já ajustado para gravar
+ */
+async function conferirPerda(db, anterior, destino, motivo) {
+  const vaiPerder = (await resultadoDaEtapa(db, destino)) === 'perdido';
+
+  // Fora da perda, motivo não existe. Apagar em vez de guardar: um lead
+  // reaberto com "Fechou com concorrente" na ficha contaria duas vezes.
+  if (!vaiPerder) return { motivo: { motivo_perda_id: null, motivo_perda_obs: null } };
+
+  if (motivo.motivo_perda_id) {
+    const existe = await db
+      .prepare('SELECT id FROM motivos_perda WHERE id = ?')
+      .bind(motivo.motivo_perda_id).first();
+    if (!existe) {
+      return { erro: { error: 'O motivo de perda escolhido não existe mais. Escolha outro.', code: 'MOTIVO_INVALIDO' } };
+    }
+    return { motivo: { motivo_perda_id: motivo.motivo_perda_id, motivo_perda_obs: motivo.motivo_perda_obs } };
+  }
+
+  // Sem motivo só passa se o lead JÁ estava perdido antes da regra.
+  const jaEstava = anterior && (await resultadoDaEtapa(db, anterior.etapa_id)) === 'perdido';
+  if (jaEstava) return { motivo: { motivo_perda_id: null, motivo_perda_obs: motivo.motivo_perda_obs } };
+
+  return { erro: { error: 'Informe o motivo da perda.', code: 'MOTIVO_OBRIGATORIO' } };
+}
+
+/**
+ * O responsável tem que ser alguém que usa o CRM.
+ *
+ * Só confere quando MUDA: um lead cujo responsável ainda não abriu o CRM
+ * depois da migração continua editável, sem a ficha trocá-lo sozinha.
+ */
+async function conferirResponsavel(db, anterior, responsavel) {
+  if (!responsavel || responsavel === anterior?.responsavel) return null;
+  try {
+    const existe = await db
+      .prepare('SELECT email FROM usuarios_crm WHERE email = ?')
+      .bind(responsavel).first();
+    if (existe) return null;
+  } catch (e) {
+    return { error: 'Falta aplicar a migração 016 para escolher o responsável.', code: 'SEM_MIGRACAO' };
+  }
+  return { error: 'O responsável escolhido não é um usuário do CRM.', code: 'RESPONSAVEL_INVALIDO' };
+}
 
 function erroDeBanco(e) {
   const msg = String(e?.message || '');
@@ -371,6 +462,17 @@ export async function onRequestPost(context) {
   if (!lead.data_cadastro) lead.data_cadastro = agora.slice(0, 10);
   if (!lead.atendente) lead.atendente = usuario.email;
 
+  // Quem cadastra é o responsável, a menos que a ficha já tenha escolhido
+  // outro. Comparar com o próprio e-mail dispensa a consulta nesse caso.
+  const quemCadastra = normalizarEmail(usuario.email);
+  if (!lead.responsavel) lead.responsavel = quemCadastra;
+  const recusaResp = await conferirResponsavel(db, { responsavel: quemCadastra }, lead.responsavel);
+  if (recusaResp) return json(recusaResp, 400, cabecalhos);
+
+  const perda = await conferirPerda(db, null, lead.etapa_id, lead);
+  if (perda.erro) return json(perda.erro, 400, cabecalhos);
+  Object.assign(lead, perda.motivo);
+
   try {
     const marcadores = CAMPOS.map(() => '?').join(', ');
     const resultado = await db
@@ -439,15 +541,39 @@ export async function onRequestPut(context) {
     }
 
     try {
+      const anterior = await db
+        .prepare('SELECT etapa_id FROM leads WHERE id = ? AND ativo = 1')
+        .bind(idMovido).first();
+      if (!anterior) return json({ error: 'Lead não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
+
+      // Reordenar DENTRO da mesma coluna não é entrar nem sair de etapa
+      // nenhuma: nem pede motivo, nem apaga o que existe.
+      const mudouDeEtapa = Number(anterior.etapa_id) !== etapaId;
+      let motivo = null;
+
+      if (mudouDeEtapa) {
+        const perda = await conferirPerda(db, anterior, etapaId, {
+          motivo_perda_id: Number(corpo.motivo_perda_id) > 0 ? Number(corpo.motivo_perda_id) : null,
+          motivo_perda_obs: texto(corpo.motivo_perda_obs, 1000)
+        });
+        if (perda.erro) return json(perda.erro, 400, cabecalhos);
+        motivo = perda.motivo;
+      }
+
       const agora = new Date().toISOString();
-      await db.batch(comandosDeMover(db, {
-        tabela: 'leads',
-        id: idMovido,
-        etapaId,
-        ordem,
-        usuario: usuario.email,
-        agora
-      }));
+      await db.batch([
+        ...comandosDeMover(db, {
+          tabela: 'leads',
+          id: idMovido,
+          etapaId,
+          ordem,
+          usuario: usuario.email,
+          agora
+        }),
+        ...(motivo ? [db.prepare(
+          'UPDATE leads SET motivo_perda_id = ?, motivo_perda_obs = ? WHERE id = ? AND ativo = 1'
+        ).bind(motivo.motivo_perda_id, motivo.motivo_perda_obs, idMovido)] : [])
+      ]);
 
       console.log(`[leads] movido ${idMovido} para etapa ${etapaId} por ${usuario.email}`);
       return json({ ok: true }, 200, cabecalhos);
@@ -463,6 +589,18 @@ export async function onRequestPut(context) {
 
   const invalido = validarObrigatorios(lead);
   if (invalido) return json(invalido, 400, cabecalhos);
+
+  const anterior = await db
+    .prepare('SELECT etapa_id, responsavel FROM leads WHERE id = ? AND ativo = 1')
+    .bind(id).first();
+  if (!anterior) return json({ error: 'Lead não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
+
+  const recusaResp = await conferirResponsavel(db, anterior, lead.responsavel);
+  if (recusaResp) return json(recusaResp, 400, cabecalhos);
+
+  const perda = await conferirPerda(db, anterior, lead.etapa_id, lead);
+  if (perda.erro) return json(perda.erro, 400, cabecalhos);
+  Object.assign(lead, perda.motivo);
 
   try {
     const atribuicoes = CAMPOS.map((c) => `${c} = ?`).join(', ');

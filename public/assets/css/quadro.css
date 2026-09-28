@@ -399,3 +399,11 @@ body.arrastando-cartao {
   #view-quadro { display: none !important; }
   .view-toggle { display: none; }
 }
+
+/* 2.31.0 — no funil comercial, o encerramento é ganho ou perdido. */
+.etapa-resultado {
+  width: auto;
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  padding: 0.25rem 0.4rem;
+}

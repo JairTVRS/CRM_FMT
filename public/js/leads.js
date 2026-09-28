@@ -22,6 +22,7 @@ const Leads = (() => {
     segmento: '',
     canal: '',
     classificacao: '',
+    responsavel: '',
     total: 0,
     totalPaginas: 1,
     carregando: false
@@ -102,7 +103,7 @@ const Leads = (() => {
 
     const corpo = el('table-leads-body');
     if (corpo) {
-      corpo.innerHTML = `<tr><td colspan="8" class="leads-vazio">Carregando…</td></tr>`;
+      corpo.innerHTML = `<tr><td colspan="9" class="leads-vazio">Carregando…</td></tr>`;
     }
 
     const params = new URLSearchParams({
@@ -114,6 +115,7 @@ const Leads = (() => {
     if (estado.segmento) params.set('segmento', estado.segmento);
     if (estado.canal) params.set('canal', estado.canal);
     if (estado.classificacao) params.set('classificacao', estado.classificacao);
+    if (estado.responsavel) params.set('responsavel', estado.responsavel);
 
     try {
       const r = await fetch(`/api/leads?${params}`);
@@ -129,7 +131,7 @@ const Leads = (() => {
 
     } catch (e) {
       if (corpo) {
-        corpo.innerHTML = `<tr><td colspan="8" class="leads-vazio">
+        corpo.innerHTML = `<tr><td colspan="9" class="leads-vazio">
           Não foi possível carregar os leads. Recarregue a página.</td></tr>`;
       }
     } finally {
@@ -147,8 +149,8 @@ const Leads = (() => {
 
     if (leadsNaTela.length === 0) {
       const filtrando = estado.busca || estado.ramo || estado.segmento
-                     || estado.canal || estado.classificacao;
-      corpo.innerHTML = `<tr><td colspan="8" class="leads-vazio">${
+                     || estado.canal || estado.classificacao || estado.responsavel;
+      corpo.innerHTML = `<tr><td colspan="9" class="leads-vazio">${
         filtrando
           ? 'Nenhum lead encontrado com esses filtros.'
           : 'Nenhum lead cadastrado ainda. Clique em “+ Incluir Lead” para começar.'
@@ -183,6 +185,9 @@ const Leads = (() => {
       <td>${esc(formatarDocumento(lead.documento))}</td>
       <td>${esc(lead.telefone || '—')}</td>
       <td>${canal ? `<span class="badge">${esc(canal)}</span>` : '—'}</td>
+      <td>${lead.responsavel
+        ? esc(Cadastros.nomeDoUsuario(lead.responsavel))
+        : '<span class="celula-secundaria">sem responsável</span>'}</td>
       <td class="text-center">${lead.classificacao
         ? `<span class="badge-classificacao">${lead.classificacao}</span>` : '—'}</td>
       <td>${esc(lead.ramo || '—')}</td>
@@ -254,6 +259,9 @@ const Leads = (() => {
       endereco: v('lead-input-endereco'),
       // --- Funil (aba nova do Lote D) ---
       etapa_id: v('lead-input-etapa'),
+      responsavel: v('lead-input-responsavel'),
+      motivo_perda_id: v('lead-input-motivo-perda'),
+      motivo_perda_obs: v('lead-input-motivo-perda-obs'),
       atendente: v('lead-input-atendente'),
       data_cadastro: v('lead-input-data-cadastro'),
       data_ultimo_contato: v('lead-input-ultimo-contato'),
@@ -329,6 +337,8 @@ const Leads = (() => {
 
     montarEtapas(lead.etapa_id);
     montarAdvisors();
+    montarResponsaveis(lead.responsavel);
+    atualizarPerda(lead);
 
     p('lead-input-atendente', lead.atendente);
     p('lead-input-data-cadastro', soData(lead.data_cadastro));
@@ -532,6 +542,9 @@ const Leads = (() => {
     montarEtapas(null);
     montarAdvisors();
     montarTags();
+    // Quem cadastra é o responsável — pode trocar antes de salvar.
+    montarResponsaveis(Auth?.usuario?.email);
+    atualizarPerda(null);
 
     const hoje = new Date();
     const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
@@ -555,12 +568,13 @@ const Leads = (() => {
     carregar();
   }
 
-  function filtrar({ busca, ramo, segmento, canal, classificacao }) {
+  function filtrar({ busca, ramo, segmento, canal, classificacao, responsavel }) {
     if (busca !== undefined) estado.busca = busca;
     if (ramo !== undefined) estado.ramo = ramo;
     if (segmento !== undefined) estado.segmento = segmento;
     if (canal !== undefined) estado.canal = canal;
     if (classificacao !== undefined) estado.classificacao = classificacao;
+    if (responsavel !== undefined) estado.responsavel = responsavel;
     estado.pagina = 1;      // filtro novo sempre volta ao início
     recarregarVisao();
   }
@@ -572,8 +586,68 @@ const Leads = (() => {
       ramo: estado.ramo,
       segmento: estado.segmento,
       canal: estado.canal,
-      classificacao: estado.classificacao
+      classificacao: estado.classificacao,
+      responsavel: estado.responsavel
     };
+  }
+
+  /**
+   * O filtro de responsável: "Meus leads" primeiro, depois cada usuário
+   * do CRM, e "Sem responsável" no fim — é onde vão cair os prospects
+   * que vierem do ERP.
+   */
+  function montarFiltroResponsavel() {
+    const select = el('filter-responsavel');
+    if (!select) return;
+    const eu = String(Auth?.usuario?.email || '').toLowerCase();
+    const outros = Cadastros.usuarios().filter((u) => u.email !== eu);
+
+    select.innerHTML = '<option value="">Todos os responsáveis</option>'
+      + (eu ? `<option value="${esc(eu)}">Meus leads</option>` : '')
+      + outros.map((u) => `<option value="${esc(u.email)}">${esc(u.nome || u.email)}</option>`).join('')
+      + '<option value="__sem__">Sem responsável</option>';
+    select.value = estado.responsavel;
+  }
+
+  /**
+   * O select de responsável na ficha.
+   *
+   * Um responsável que não está na lista (cadastrou leads, mas ainda não
+   * abriu o CRM desde a 2.31.0) entra como opção mesmo assim: a ficha não
+   * pode trocar o responsável sozinha só porque a lista não o conhece.
+   * "Sem responsável" só aparece para quem já está sem — escolher um é
+   * um caminho de ida.
+   */
+  function montarResponsaveis(selecionado) {
+    const select = el('lead-input-responsavel');
+    if (!select) return;
+    const atual = String(selecionado || '').toLowerCase();
+    const lista = Cadastros.usuarios();
+
+    let html = atual ? '' : '<option value="">Sem responsável</option>';
+    if (atual && !lista.some((u) => u.email === atual)) {
+      html += `<option value="${esc(atual)}">${esc(atual)} (ainda não abriu o CRM)</option>`;
+    }
+    html += lista.map((u) => `<option value="${esc(u.email)}">${esc(u.nome || u.email)}</option>`).join('');
+
+    select.innerHTML = html;
+    select.value = atual;
+  }
+
+  /**
+   * O bloco do motivo aparece quando a etapa escolhida é de perda.
+   * Guardar o motivo fora da perda não faz sentido — o servidor apaga.
+   */
+  function atualizarPerda(lead) {
+    const bloco = el('lead-perda');
+    if (!bloco) return;
+    const perdendo = Cadastros.etapaDePerda(el('lead-input-etapa')?.value);
+    bloco.classList.toggle('hidden', !perdendo);
+
+    if (lead !== undefined) {
+      el('lead-input-motivo-perda').innerHTML = Perda.opcoesMotivos(lead?.motivo_perda_id);
+      el('lead-input-motivo-perda-obs').value = lead?.motivo_perda_obs || '';
+    }
   }
 
   /**
@@ -794,9 +868,17 @@ const Leads = (() => {
     // aberta, remonta a aba com o mesmo lead — sem isto, a etapa e o
     // advisor de quem abriu rápido demais ficariam em branco.
     document.addEventListener('crm:cadastros', () => {
+      montarFiltroResponsavel();
       if (leadNaFicha) preencherFunil(leadNaFicha);
-      else { montarEtapas(null); montarAdvisors(); montarTags(); }
+      else { montarEtapas(null); montarAdvisors(); montarTags(); montarResponsaveis(Auth?.usuario?.email); }
+      // A coluna Responsável mostra o nome, que só existe depois da lista.
+      if (modo === 'tabela' && leadsNaTela.length) renderizar();
     });
+
+    // Etapa de perda na ficha: o motivo aparece. O que já estava escolhido
+    // continua lá se a pessoa for e voltar.
+    el('lead-input-etapa')?.addEventListener('change', () => atualizarPerda());
+    el('filter-responsavel')?.addEventListener('change', (ev) => filtrar({ responsavel: ev.target.value }));
 
     el('filter-canal')?.addEventListener('change', (ev) => filtrar({ canal: ev.target.value }));
     el('filter-classificacao')?.addEventListener('change', (ev) => filtrar({ classificacao: ev.target.value }));

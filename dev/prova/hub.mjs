@@ -79,7 +79,7 @@ const ler = async (r) => ({ status: r.status, corpo: await r.json() });
 
 bd.exec(`
   CREATE TABLE etapas (id INTEGER PRIMARY KEY, nome TEXT, cor TEXT, ordem INTEGER,
-                       encerra INTEGER DEFAULT 0, pipeline TEXT, ativo INTEGER DEFAULT 1);
+                       encerra INTEGER DEFAULT 0, resultado TEXT, pipeline TEXT, ativo INTEGER DEFAULT 1);
   CREATE TABLE leads (id INTEGER PRIMARY KEY, nome TEXT, documento TEXT, telefone TEXT,
                       email TEXT, contato_nome TEXT, cidade TEXT, classificacao INTEGER,
                       etapa_id INTEGER, ativo INTEGER DEFAULT 1);

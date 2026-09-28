@@ -184,7 +184,10 @@ async function buscarUsuarioNoHub(email, apiKey, base = HUB_USERS_URL) {
   const emCache = usuarioCache.get(email);
   if (emCache && emCache.expiraEm > agora) return emCache.usuario;
 
-  const url = `${base}?fields=id,name,email,isActive&search=${encodeURIComponent(email)}`;
+  // `userGroup` (2.31.0): o grupo decide quem é admin no CRM. Vem como
+  // ObjectId; o nome é resolvido no /api/me, não aqui — o middleware roda
+  // em toda requisição e não precisa saber disso.
+  const url = `${base}?fields=id,name,email,isActive,userGroup&search=${encodeURIComponent(email)}`;
 
   const resposta = await fetch(url, {
     headers: {
@@ -297,7 +300,8 @@ export async function onRequest(context) {
     id: usuario.id,
     nome: usuario.name || payload.name || payload.email,
     email: usuario.email,
-    foto: payload.picture || null
+    foto: payload.picture || null,
+    grupoId: usuario.userGroup || null
   };
   context.data.cabecalhos = cabecalhos;
 

@@ -147,10 +147,19 @@ const Quadro = (() => {
                  title="Cor da coluna">
           <input type="text" class="form-control etapa-nome" value="${esc(e.nome)}"
                  data-campo="nome" maxlength="60">
-          <label class="etapa-terminal">
-            <input type="checkbox" data-campo="encerra" ${e.encerra ? 'checked' : ''}>
-            terminal
-          </label>
+          ${pipeline === 'comercial'
+            // 2.31.0: no funil, encerrar é ganhar ou perder — e cada um
+            // leva a um lugar (conversão em cliente, motivo da perda).
+            ? `<select class="form-control etapa-resultado" data-campo="resultado"
+                       title="Como esta etapa encerra o lead">
+                 <option value=""${!e.resultado ? ' selected' : ''}>em aberto</option>
+                 <option value="ganho"${e.resultado === 'ganho' ? ' selected' : ''}>encerra: ganho</option>
+                 <option value="perdido"${e.resultado === 'perdido' ? ' selected' : ''}>encerra: perdido</option>
+               </select>`
+            : `<label class="etapa-terminal">
+                 <input type="checkbox" data-campo="encerra" ${e.encerra ? 'checked' : ''}>
+                 terminal
+               </label>`}
           <div class="etapa-acoes">
             <button class="btn-action" data-acao="subir" title="Subir"
                     ${i === 0 ? 'disabled' : ''}>↑</button>
@@ -256,6 +265,12 @@ const Quadro = (() => {
         const id = Number(linha.dataset.id);
         if (campo === 'cor') await salvar(id, { cor: ev.target.value });
         if (campo === 'encerra') await salvar(id, { encerra: ev.target.checked });
+        if (campo === 'resultado') {
+          if (await salvar(id, { resultado: ev.target.value || null })) {
+            // A ficha e o quadro leem o resultado das etapas em memória.
+            if (pipeline === 'comercial' && typeof Cadastros !== 'undefined') Cadastros.carregar();
+          }
+        }
       });
 
       // Nome grava ao sair do campo: gravar por tecla seria uma
@@ -318,6 +333,11 @@ const Quadro = (() => {
    *                     com (registro, etapaDestino). O funil comercial
    *                     usa para oferecer a conversão em cliente quando
    *                     o lead cai numa etapa de encerramento.
+   * @param antesDeMover chamado ANTES de gravar, só quando o cartão muda
+   *                     de coluna, com (registro, etapaDestino). Devolve
+   *                     (ou promete) campos extras para a gravação, ou
+   *                     `null` para desistir. O funil pede aqui o motivo
+   *                     da perda (2.31.0).
    * @param porColuna    teto de cartões por coluna
    */
   function criar({
@@ -331,6 +351,7 @@ const Quadro = (() => {
     cartao,
     aoAbrir = () => {},
     aoMover = () => {},
+    antesDeMover = async () => ({}),
     porColuna = 50
   }) {
     let colunas = [];
@@ -501,7 +522,7 @@ const Quadro = (() => {
       };
 
       alca.setPointerCapture(ev.pointerId);
-      alca.addEventListener('pointermove', aoMover);
+      alca.addEventListener('pointermove', aoArrastar);
       alca.addEventListener('pointerup', aoSoltar);
       alca.addEventListener('pointercancel', aoSoltar);
     }
@@ -552,7 +573,12 @@ const Quadro = (() => {
       else if (ev.clientX > r.right - MARGEM_AUTOSCROLL) faixa.scrollLeft += 18;
     }
 
-    function aoMover(ev) {
+    /* Chamava-se `aoMover` até a 2.30 — o mesmo nome do parâmetro da
+       fábrica. A declaração interna escondia o parâmetro, e o aviso de
+       "cartão movido" chamava ESTA função, que saía no primeiro `if`: a
+       oferta de conversão ao arrastar nunca disparou. A prova ids.mjs
+       agora recusa função com o nome de um parâmetro da fábrica. */
+    function aoArrastar(ev) {
       if (!arraste) return;
 
       if (!arraste.ativo) {
@@ -600,7 +626,7 @@ const Quadro = (() => {
 
       const { alca, cartao: cartaoEl, id, ativo, colunaAlvo, marcador } = arraste;
 
-      alca.removeEventListener('pointermove', aoMover);
+      alca.removeEventListener('pointermove', aoArrastar);
       alca.removeEventListener('pointerup', aoSoltar);
       alca.removeEventListener('pointercancel', aoSoltar);
       try { alca.releasePointerCapture(ev.pointerId); } catch (e) { /* já solto */ }
@@ -634,6 +660,18 @@ const Quadro = (() => {
 
       if (!destino) return;                      // soltou fora do quadro
 
+      // Mudou de coluna? Quem configurou o quadro pode querer perguntar
+      // algo antes de gravar (o motivo da perda, no funil). Desistir
+      // devolve o cartão para onde estava: nada foi mexido ainda.
+      const registro = registroPorId(id);
+      const etapaDestino = colunas.find((c) => c.etapa.id === destino)?.etapa || null;
+      const mudouDeColuna = registro && Number(registro.etapa_id) !== destino;
+      let extras = {};
+      if (mudouDeColuna) {
+        extras = await antesDeMover(registro, etapaDestino);
+        if (extras === null) { renderizar(); return; }
+      }
+
       const coluna = moverNoModelo(id, destino, indice);
       if (!coluna) return;
       renderizar();
@@ -643,21 +681,27 @@ const Quadro = (() => {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            ...(extras || {}),
             id,
             etapa_id: destino,
             ordem: coluna.registros.map((x) => x.id)
           })
         });
-        if (!r.ok) throw new Error('recusado');
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          throw new Error(d.error || 'recusado');
+        }
+        if (mudouDeColuna) Object.assign(registro, extras || {});
 
         // Só DEPOIS de gravado. Avisar antes ofereceria uma conversão
         // apoiada num movimento que o banco talvez tenha recusado.
-        aoMover(registroPorId(id), colunas.find((c) => c.etapa.id === destino)?.etapa || null);
+        aoMover(registroPorId(id), etapaDestino);
 
       } catch (e) {
         // O quadro já mostrava o cartão no lugar novo. Se a gravação
         // falhou, recarregar é o único jeito honesto de voltar à verdade.
-        alert('Não foi possível mover o cartão. O quadro será recarregado.');
+        const motivo = e.message && e.message !== 'recusado' ? `\n\n${e.message}` : '';
+        alert(`Não foi possível mover o cartão. O quadro será recarregado.${motivo}`);
         carregar();
       }
     }
@@ -751,15 +795,19 @@ const QuadroLeads = Quadro.criar({
     if (f.segmento) p.set('segmento', f.segmento);
     if (f.canal) p.set('canal', f.canal);
     if (f.classificacao) p.set('classificacao', f.classificacao);
+    if (f.responsavel) p.set('responsavel', f.responsavel);
     return p;
   },
 
   cartao: (lead) => {
     const esc = Quadro.esc;
     const prazo = Quadro.rotuloPrazo(Quadro.diasPara(lead.data_proximo_contato));
+    const responsavel = lead.responsavel && typeof Cadastros !== 'undefined'
+      ? Cadastros.nomeDoUsuario(lead.responsavel) : null;
     const linhaBaixo = [
       lead.cidade ? esc(lead.cidade) : null,
-      lead.canal ? esc(lead.canal) : (lead.origem ? esc(lead.origem) : null)
+      lead.canal ? esc(lead.canal) : (lead.origem ? esc(lead.origem) : null),
+      responsavel ? `CX: ${esc(responsavel)}` : null
     ].filter(Boolean).join(' · ');
 
     return `
@@ -788,17 +836,27 @@ const QuadroLeads = Quadro.criar({
   },
 
   /**
-   * Lead que cai numa etapa de encerramento é candidato a virar cliente.
+   * Entrar numa etapa de perda pede o motivo ANTES de gravar (2.31.0).
+   * Desistir no modal devolve o cartão para onde estava.
+   */
+  antesDeMover: async (lead, etapa) => {
+    if (etapa?.resultado !== 'perdido' || typeof Perda === 'undefined') return {};
+    return Perda.pedir(lead?.nome, etapa.nome);
+  },
+
+  /**
+   * Lead que cai numa etapa de GANHO é candidato a virar cliente.
    *
    * NÃO converte sozinho — abre a tela de conversão, e só com ela
    * preenchida grava. A conversão pede o que o funil não tem: etapa da
    * jornada, núcleos de atendimento e data de início da relação.
    *
-   * Até a v2.17.0 mover para "Finalizado" não produzia aviso nenhum. O
-   * comportamento estava certo, mas era mudo.
+   * Até a 2.30 a condição era `encerra`, que valia também para Perdido —
+   * mas o aviso nunca chegou a disparar (ver `aoArrastar`). Desde a
+   * 2.31.0 dispara, e só no ganho.
    */
   aoMover: (lead, etapa) => {
-    if (!lead || !etapa?.encerra) return;
+    if (!lead || etapa?.resultado !== 'ganho') return;
     if (typeof Conversao !== 'undefined') Conversao.oferecer(lead.id, etapa.nome);
   }
 });

@@ -44,7 +44,7 @@ export async function montarQuadro(db, {
 
   const [etapas, totais, cartoes] = await Promise.all([
     db.prepare(
-      `SELECT id, nome, cor, ordem, encerra FROM etapas
+      `SELECT id, nome, cor, ordem, encerra, resultado FROM etapas
        WHERE ativo = 1 AND pipeline = ? ORDER BY ordem`
     ).bind(pipeline).all(),
 
