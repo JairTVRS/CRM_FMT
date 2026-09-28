@@ -41,3 +41,14 @@ direito — e o CRM abrindo no tema claro. Sem migração.
 2. Clique no círculo: nome, e-mail, versão e Sair.
 3. Clique na lua: fica escuro; F5 — continua escuro. Clique no sol para
    voltar.
+
+## 2.34.2 — a versão no canto e "O que mudou"
+
+O número da versão fica no **canto inferior esquerdo**, no pé da barra
+lateral (que agora acompanha a rolagem). Clicar nele abre **O que
+mudou**: cada versão, da mais nova para a mais antiga, com a data e um
+resumo em linguagem de quem usa o CRM; a versão em uso fica marcada.
+
+A lista mora em `public/novidades.json`. **A cada versão nova, a
+primeira entrada tem que ser ela** — a prova `ids.mjs` falha se o
+arquivo não começar pela versão do `package.json`.

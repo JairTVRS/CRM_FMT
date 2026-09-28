@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 28/09/2026
-**Versão no ar:** 2.34.1 (desde 28/09/2026; migrações 016 a 019 aplicadas e conferidas no D1 remoto; Worker `crm-fmt-prospects-diario` com o Cron das 06:00) · **falta:** o binding **Workers AI** (`AI`) no projeto crm-fmt, para a 2.35.0
+**Versão no ar:** 2.34.2 (desde 28/09/2026; migrações 016 a 019 aplicadas e conferidas no D1 remoto; Worker `crm-fmt-prospects-diario` com o Cron das 06:00) · **falta:** o binding **Workers AI** (`AI`) no projeto crm-fmt, para a 2.35.0
 
 **A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
 Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
@@ -74,6 +74,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **JL³** | **2.33.0** | **Prospects do ERP, 1× por dia** — Worker com Cron às 06:00 chama o CRM pelo `CRON_SECRET`; novo vira lead em Novo Lead, canal ERP, sem responsável; mesmo CNPJ vincula; excluído não volta; "Importar agora" para admin (migração 018) |
 | **JL⁴** | **2.34.0** | **Chaves de IA e roteiros** — provedor em uso no servidor (valia por navegador, e o dossiê o ignorava); chave cadastrada pelo admin, cifrada (AES-GCM, `CHAVES_SECRET`), nunca devolvida à tela, a do painel vale primeiro; roteiro .md por tipo de reunião, versionado, visível na reunião (migração 019) |
 | — | **2.34.1** | **Barra do topo** — tema, configurações e o usuário (iniciais, menu com Sair) no canto superior direito; barra lateral só com o menu, mais estreita; **tema claro por padrão**, o escuro lembrado por navegador |
+| — | **2.34.2** | **A versão no canto inferior esquerdo** e, ao clicar, "O que mudou" (`public/novidades.json`, conferido pela `ids.mjs` contra o package.json) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

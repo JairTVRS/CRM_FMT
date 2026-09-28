@@ -16,7 +16,7 @@ let falhas = 0;
 for (const arquivo of ['public/js/stakeholders.js', 'public/js/dossie-cx.js',
                        'public/js/clientes.js', 'public/js/conversao.js',
                        'public/js/plano-acao.js', 'public/js/perda.js', 'public/js/agenda.js',
-                       'public/js/roteiros.js']) {
+                       'public/js/roteiros.js', 'public/js/novidades.js']) {
   const js = readFileSync(`${RAIZ}/${arquivo}`, 'utf8');
   const procurados = new Set([...js.matchAll(/\bel\('([^']+)'\)/g)].map((m) => m[1]));
 
@@ -70,7 +70,9 @@ const classes = [
   'roteiro-texto', 'agenda-roteiro',
   // 2.34.1
   'topo', 'topo-acoes', 'topo-botao', 'topo-usuario', 'topo-avatar', 'topo-menu',
-  'topo-menu-quem', 'topo-menu-selo', 'topo-menu-versao', 'topo-menu-sair'
+  'topo-menu-quem', 'topo-menu-selo', 'topo-menu-versao', 'topo-menu-sair',
+  // 2.34.2
+  'versao-rodape', 'novidades-lista', 'novidade', 'novidade-topo', 'novidade-selo', 'novidade-titulo'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));
@@ -118,7 +120,7 @@ console.log('  OK    o modal de conversão e o bloco da ficha estão no HTML');
 const ARQUIVOS_JS = [
   'app.js', 'auth.js', 'cadastros.js', 'clientes.js', 'configuracoes.js',
   'conversao.js', 'dossie.js', 'dossie-cx.js', 'importar.js', 'leads.js',
-  'perda.js', 'agenda.js', 'roteiros.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
+  'perda.js', 'agenda.js', 'roteiros.js', 'novidades.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
 ];
 
 /* Duplicatas LEGITIMAS: mesmo nome, escopos diferentes.
@@ -179,6 +181,31 @@ if (duplicadas === 0) {
     falhas++;
   } else {
     console.log(`  OK    nenhum dos ${params.length} parametros de Quadro.criar() e escondido por funcao interna`);
+  }
+}
+
+/* ==========================================================================
+   O QUE MUDOU (2.34.2)
+
+   A lista que aparece ao clicar na versao tem que comecar pela versao do
+   package.json -- senao nada aparece como "em uso", e a lista fica para
+   tras sem ninguem notar.
+   ========================================================================== */
+
+{
+  const pacote = JSON.parse(readFileSync(`${RAIZ}/package.json`, 'utf8'));
+  const novidades = JSON.parse(readFileSync(`${RAIZ}/public/novidades.json`, 'utf8'));
+  const primeira = novidades.versoes?.[0];
+  const completas = (novidades.versoes || [])
+    .every((v) => /^\d{2}\/\d{2}\/\d{4}$/.test(v.data) && v.titulo && v.itens?.length);
+  if (primeira?.versao !== pacote.version) {
+    console.log(` FALHA  novidades.json comeca em ${primeira?.versao}, mas o sistema e ${pacote.version}`);
+    falhas++;
+  } else if (!completas) {
+    console.log(' FALHA  novidades.json tem entrada sem data dd/mm/aaaa, titulo ou itens');
+    falhas++;
+  } else {
+    console.log(`  OK    novidades.json comeca na versao do sistema (${pacote.version})`);
   }
 }
 

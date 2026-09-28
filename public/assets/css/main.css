@@ -680,3 +680,34 @@ body.light-theme .topo-botao .icone-lua { display: block; }
 
 /* Na reunião: o roteiro do tipo escolhido. */
 .agenda-roteiro { font-size: 0.82rem; margin: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+/* 2.34.2 — a versão no canto inferior esquerdo, e o que mudou. */
+.sidebar {
+  position: sticky;            /* a barra acompanha a rolagem: a versão fica sempre no canto */
+  top: 0;
+  height: 100vh;
+  align-self: flex-start;
+}
+
+.versao-rodape {
+  align-self: flex-start;
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.versao-rodape:hover { color: var(--accent-color); background-color: var(--border-color); }
+
+.novidades-lista { display: flex; flex-direction: column; gap: 0.9rem; }
+.novidade { border-left: 3px solid var(--border-color); padding-left: 0.85rem; }
+.novidade.atual { border-left-color: var(--accent-color); }
+.novidade-topo { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; }
+.novidade-topo span { color: var(--text-muted); font-size: 0.78rem; }
+.novidade-topo .novidade-selo { color: var(--accent-color); font-weight: 600; }
+.novidade-titulo { font-weight: 600; margin: 0.15rem 0 0.25rem; }
+.novidade ul { margin: 0 0 0 1.1rem; font-size: 0.85rem; color: var(--text-muted); }
+.novidade li { margin-bottom: 0.15rem; }

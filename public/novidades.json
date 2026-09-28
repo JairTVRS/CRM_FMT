@@ -1,0 +1,205 @@
+{
+  "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
+  "versoes": [
+    {
+      "versao": "2.34.2",
+      "data": "28/09/2026",
+      "titulo": "Versão no canto e o que mudou",
+      "itens": [
+        "O número da versão fica no canto inferior esquerdo; clicando nele aparece este resumo das versões."
+      ]
+    },
+    {
+      "versao": "2.34.1",
+      "data": "28/09/2026",
+      "titulo": "Barra do topo e tema claro",
+      "itens": [
+        "Tema, configurações e usuário no canto superior direito, como nos outros sistemas da Formatar.",
+        "O menu lateral ficou mais compacto.",
+        "O CRM abre no tema claro; quem preferir o escuro, clica na lua."
+      ]
+    },
+    {
+      "versao": "2.34.0",
+      "data": "28/09/2026",
+      "titulo": "Chaves de IA e roteiros de reunião",
+      "itens": [
+        "O provedor de IA vale para todos e é escolhido nas Configurações; o admin pode cadastrar as chaves ali.",
+        "Cada tipo de reunião de venda ganha um roteiro (.md), com versões; a reunião da agenda mostra o roteiro."
+      ]
+    },
+    {
+      "versao": "2.33.0",
+      "data": "28/09/2026",
+      "titulo": "Prospects do ERP no funil",
+      "itens": [
+        "Todo dia às 06:00 os prospects novos do ERP entram como leads em Novo Lead, sem responsável.",
+        "Não duplica quem já é lead, e lead excluído não volta. O admin pode importar na hora, nas Configurações."
+      ]
+    },
+    {
+      "versao": "2.32.1",
+      "data": "28/09/2026",
+      "titulo": "Escolher o lead na agenda",
+      "itens": ["Ao agendar, o lead é escolhido numa lista que abre abaixo do campo."]
+    },
+    {
+      "versao": "2.32.0",
+      "data": "28/09/2026",
+      "titulo": "Agenda do lead",
+      "itens": [
+        "Reuniões (tipo, local online/presencial/externo, dossiê dentro) e contatos (ligação, WhatsApp, e-mail).",
+        "Visão Agenda, por semana ou mês, ao lado de Tabela e Quadro; aba Agenda na ficha do lead.",
+        "O próximo contato do lead passa a vir da agenda; lead em aberto sem nada marcado mostra \"sem agenda\"."
+      ]
+    },
+    {
+      "versao": "2.31.1",
+      "data": "28/09/2026",
+      "titulo": "Administradores pelo grupo do hub",
+      "itens": ["Sócios e Planejamento e Controle de Produção administram o CRM."]
+    },
+    {
+      "versao": "2.31.0",
+      "data": "28/09/2026",
+      "titulo": "Funil arrumado",
+      "itens": [
+        "Cada lead tem um CX responsável.",
+        "Levar um lead para Perdido pede o motivo da perda.",
+        "\"Finalizado\" virou \"Contrato emitido\", e arrastar o lead para lá oferece a conversão em cliente."
+      ]
+    },
+    {
+      "versao": "2.30.1",
+      "data": "28/09/2026",
+      "titulo": "Jornada do cliente",
+      "itens": ["O menu \"Jornada\" passou a se chamar \"Jornada do cliente\"."]
+    },
+    {
+      "versao": "2.30.0",
+      "data": "21/09/2026",
+      "titulo": "A reunião é do ERP",
+      "itens": ["No Plano de Ação: menos avisos da ata, responsável da reunião quando a ata não diz, e o status do cliente com filtro."]
+    },
+    {
+      "versao": "2.29.0",
+      "data": "21/09/2026",
+      "titulo": "Datas e tipo de ação",
+      "itens": ["Prazos da ata lidos como data; ação Operacional, Tática ou Estratégica."]
+    },
+    {
+      "versao": "2.28.0",
+      "data": "21/09/2026",
+      "titulo": "Colunas do plano do seu jeito",
+      "itens": ["Ordem, exibição e ordenação das colunas do Plano de Ação, salvas por usuário (2.28.1: a tela cabe na janela)."]
+    },
+    {
+      "versao": "2.27.0",
+      "data": "21/09/2026",
+      "titulo": "Login de 7 dias",
+      "itens": ["Recarregar a página não pede login de novo."]
+    },
+    {
+      "versao": "2.26.0",
+      "data": "21/09/2026",
+      "titulo": "Painel do plano",
+      "itens": ["Gráficos que filtram a tabela e colunas que ordenam."]
+    },
+    {
+      "versao": "2.25.0",
+      "data": "21/09/2026",
+      "titulo": "Plano de ação editável",
+      "itens": ["Cada campo da ação se edita, com histórico de quem mudou o quê."]
+    },
+    {
+      "versao": "2.24.0",
+      "data": "15/09/2026",
+      "titulo": "A conta é do ERP",
+      "itens": ["O Dossiê de Experiência lê pessoas e núcleos direto do ERP."]
+    },
+    {
+      "versao": "2.23.0",
+      "data": "07/09/2026",
+      "titulo": "Sessão estável e dossiê fiel",
+      "itens": ["A sessão para de cair; o dossiê não afirma o que não tem fonte (2.23.2: a importação lê a planilha que existe)."]
+    },
+    {
+      "versao": "2.21.0",
+      "data": "06/09/2026",
+      "titulo": "Plano de Ação",
+      "itens": ["As atas das reuniões viram um plano de ação em 5W2H, com todas as carteiras numa tela."]
+    },
+    {
+      "versao": "2.19.0",
+      "data": "05/09/2026",
+      "titulo": "Clientes do ERP na Jornada",
+      "itens": ["Os clientes ativos do ERP aparecem na Jornada do cliente (2.20.0: trazer todos de uma vez)."]
+    },
+    {
+      "versao": "2.18.0",
+      "data": "05/09/2026",
+      "titulo": "O lead vira cliente",
+      "itens": ["Conversão do lead em cliente da Jornada."]
+    },
+    {
+      "versao": "2.15.0",
+      "data": "05/09/2026",
+      "titulo": "Stakeholders e Dossiê de Experiência",
+      "itens": ["Mapa das pessoas do cliente e o dossiê do relacionamento."]
+    },
+    {
+      "versao": "2.14.0",
+      "data": "04/09/2026",
+      "titulo": "Jornada do cliente",
+      "itens": ["A segunda trilha: clientes, núcleos e o quadro da jornada."]
+    },
+    {
+      "versao": "2.13.0",
+      "data": "03/09/2026",
+      "titulo": "Proposta comercial",
+      "itens": ["Proposta com a identidade da Formatar, pronta para PDF."]
+    },
+    {
+      "versao": "2.12.0",
+      "data": "03/09/2026",
+      "titulo": "Ficha completa do lead",
+      "itens": ["A ficha abre como gaveta lateral, com a aba do Funil."]
+    },
+    {
+      "versao": "2.11.0",
+      "data": "03/09/2026",
+      "titulo": "Quadro do funil",
+      "itens": ["O funil como quadro de colunas, com arrastar e soltar, e a classificação do lead."]
+    },
+    {
+      "versao": "2.10.0",
+      "data": "29/08/2026",
+      "titulo": "Importação de planilhas",
+      "itens": ["Leads importados de planilha."]
+    },
+    {
+      "versao": "2.9.0",
+      "data": "28/08/2026",
+      "titulo": "Base do funil",
+      "itens": ["Etapas, advisors, tags e os campos do funil comercial."]
+    },
+    {
+      "versao": "2.8.0",
+      "data": "28/08/2026",
+      "titulo": "Leads guardados no banco",
+      "itens": ["Os leads deixam de se perder ao recarregar a página."]
+    },
+    {
+      "versao": "2.7.0",
+      "data": "27/08/2026",
+      "titulo": "Dossiê Executivo",
+      "itens": ["O dossiê do lead, com histórico de versões."]
+    },
+    {
+      "versao": "2.6.0",
+      "data": "26/08/2026",
+      "titulo": "Login com Google",
+      "itens": ["Entrada com a conta Google, liberada pelo cadastro da Formatar."]
+    }
+  ]
+}

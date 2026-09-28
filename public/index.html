@@ -84,6 +84,9 @@
         </a>
       </nav>
 
+      <!-- A versão, no canto inferior esquerdo (2.34.2). Clicar mostra o que
+           mudou em cada versão (public/novidades.json). -->
+      <button type="button" id="app-version" class="versao-rodape" title="O que mudou em cada versão">—</button>
     </aside>
 
     <!-- Áreas de Conteúdo -->
@@ -121,7 +124,6 @@
                     aria-expanded="false" title="Sua conta"></button>
             <div id="menu-usuario" class="topo-menu hidden" role="menu">
               <div id="auth-usuario" class="topo-menu-quem"></div>
-              <span id="app-version" class="topo-menu-versao">—</span>
               <button type="button" id="btn-logout" class="topo-menu-sair" role="menuitem">Sair</button>
             </div>
           </div>
@@ -1047,6 +1049,19 @@
   <!-- Motivo da perda, pedido ao arrastar um lead para uma etapa de
        perda (2.31.0). Na ficha o mesmo pedido é feito pelos campos da
        aba Funil; aqui é o quadro que não tem onde perguntar. -->
+  <!-- O que mudou em cada versão (2.34.2). -->
+  <div id="modal-novidades" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 640px;">
+      <header class="modal-header">
+        <h2>O que mudou</h2>
+        <button id="btn-novidades-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div id="novidades-lista" class="novidades-lista"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Leitura de um roteiro (2.34.0), das Configurações ou da reunião. -->
   <div id="modal-roteiro" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 780px;">
@@ -1535,6 +1550,7 @@
   <script src="js/perda.js"></script>
   <script src="js/agenda.js"></script>
   <script src="js/roteiros.js"></script>
+  <script src="js/novidades.js"></script>
   <script src="js/leads.js"></script>
   <script src="js/quadro.js"></script>
   <script src="js/clientes.js"></script>
