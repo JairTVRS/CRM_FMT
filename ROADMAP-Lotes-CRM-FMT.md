@@ -1,12 +1,12 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 29/09/2026
-**Versão no ar:** 2.35.0 (desde 28/09/2026; migrações 008 a 020 aplicadas no D1 remoto (a 011 em 29/09/2026); Worker `crm-fmt-prospects-diario` com o Cron das 06:00) · **falta:** um transcritor — o binding **Workers AI** (`AI`) no projeto crm-fmt, ou uma chave da OpenAI nas Configurações
+**Versão no ar:** 2.35.0 (desde 28/09/2026; deploy `ae20e63` em 29/09/2026 com o binding **Workers AI** `AI` ligado; migrações 008 a 020 aplicadas no D1 remoto, a 011 em 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
 
-## ▶ Retomada (29/09/2026)
+## ▶ Retomada (29/09/2026, fim do dia)
 
 **Onde paramos:** o lote da jornada do lead (JL) está entregue até a
 **2.35.0**: funil com responsável e motivos de perda, agenda do lead,
@@ -22,15 +22,21 @@ segredos do Pages).
 
 | # | O quê | Quem | Estado em 29/09 |
 |---|---|---|---|
-| 1.1 | **Transcritor.** Binding **Workers AI** com o nome `AI` em Workers & Pages → crm-fmt → Settings → Bindings (Production) **e um deploy novo**; ou uma chave da OpenAI em Configurações → Inteligência artificial (vale na hora, sem deploy) | Jair no painel; o deploy é com o Claude | **Falta.** A gravação recusa começar ("Não há como transcrever"). Nenhum deploy desde 28/09. `CHAVES_SECRET` já está no Pages, então a chave da OpenAI pode ser cadastrada. A da DeepSeek não transcreve |
-| 1.2 | **Primeiro teste real da gravação**: 1 minuto, microfone de verdade, nos dois modos (online com a aba; um microfone só) | Jair | Falta; depende da 1.1 |
+| 1.1 | **Transcritor**: binding **Workers AI** `AI` no crm-fmt (Pages → Configurações → Associações) | Jair | **Feito em 29/09/2026.** Deploy `ae20e63`; Configurações mostram "Workers AI: ligado" |
+| 1.2 | **Teste real da gravação**: o roteiro de teste está abaixo, em "O teste da gravação" | Jair | **Parcial.** Em 29/09 a gravação 1 (reunião 79, modo online) transcreveu em português pelo Workers AI; o PC reiniciou no meio e ela ficou em `gravando`, sem encerrar (não bloqueia gravar de novo). Viu-se um defeito: com pouca fala, o Whisper devolveu a dica ("Jair da Silva Jair da Silva"). **Retomar aqui: rodar os testes 1 e 2** |
 | 1.3 | **Migração 011** (`etapa_desde` em `leads` e `clientes`) no D1 remoto | Claude | **Feita em 29/09/2026.** Conferida: coluna nas duas tabelas e os 4 gatilhos no remoto. As 112 linhas de leads e as 186 de clientes seguem com `etapa_desde` nulo, que é o certo ("não sei desde quando"); a data passa a ser gravada na próxima mudança de etapa |
+
+**O teste da gravação (1.2)** — Ctrl+F5, fone de ouvido, reunião do dia 29 às 16:00 (encerrar a torna "Realizada").
+
+- **Teste 1, um microfone só (~2 min):** 0–40 s ler *"A Formatar vai separar o custo do cimento por unidade. O CNPJ do cliente começa com 12. O valor do quilômetro é um real e sessenta."* → texto aos ~20 e ~40 s, nomes e números certos · 40–60 s em silêncio → nada aparece (nem "Jair da Silva", nem "Obrigado por assistir") · Pausar, falar 10 s, Continuar, falar 20 s → a fala da pausa não aparece · Encerrar → "marcada como realizada" · reabrir a reunião → a transcrição em Gravação.
+- **Teste 2, reunião online (~2 min):** vídeo do YouTube em português noutra aba, fazendo o papel do lead · escolher a aba e marcar "Compartilhar áudio da guia" · 30 s de vídeo, 30 s de você → "Lead:" e "Formatar:" separados, sem a sua fala repetida no lado do lead · "Parar de compartilhar" → aviso de que o lead não está mais sendo gravado · Encerrar.
+- **Mandar:** a captura da janela no fim de cada teste e o que pareceu estranho. O Claude confere os pedaços no D1 (`gravacoes`, `transcricao_trechos`).
 
 **2. Lote JL (jornada do lead): o que falta**
 
 | Versão | Entrega | Depende de |
 |---|---|---|
-| **2.35.1** *(proposta em 29/09, não decidida)* | **Texto frase a frase na gravação.** Cortar o áudio na pausa entre frases (~3–8 s) em vez de a cada 20 s; balões Formatar/Lead, com "•••" enquanto transcreve. Mesmo transcritor e mesmo custo. Palavra por palavra (streaming) fica de fora: só se isto ficar lento | 1.1 |
+| **2.35.1** *(desenhada em 29/09; falta o "pode executar e subir")* | **Texto a cada 3 s, crescendo.** A captura é contínua; a cada 3 s manda a frase **inteira até ali** (sem cortar palavra) e o balão mostra o texto provisório, em cinza, substituído pelo maior; a pausa de ~0,6 s fecha a frase (teto ~12 s) e só o texto final vai ao banco. Provisório = opção na `gravacoes.js` que transcreve sem salvar. Custo ≈ 2× os minutos (dentro da cota grátis nos testes). Junto: descartar o eco da dica (texto que é só o nome do lead repetido) e o que os testes da 1.2 mostrarem; ver o que fazer com gravação que ficou em `gravando` | 1.2 |
 | **2.36.0** | **Recortes e insights durante a reunião**: frases do lead que captam a expectativa, conferidas por código contra a transcrição (o recorte só vale se a frase existir literalmente); perguntas do roteiro ainda não cobertas. Lê a transcrição, o roteiro da versão gravada e o dossiê | 1.1 e 1.2 |
 | **2.37.0** | **Laudo pós-reunião**: HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão | 2.35.0 (melhor depois da 2.36.0) |
 | depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |
