@@ -1,62 +1,74 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 28/09/2026
-**Versão no ar:** 2.35.0 (desde 28/09/2026; migrações 016 a 020 aplicadas e conferidas no D1 remoto; Worker `crm-fmt-prospects-diario` com o Cron das 06:00) · **falta:** um transcritor — o binding **Workers AI** (`AI`) no projeto crm-fmt, ou uma chave da OpenAI nas Configurações
-
-## ▶ Retomada (28/09/2026, fim do dia)
-
-**Onde paramos:** o lote da jornada do lead (JL) está entregue até a
-**2.35.0** — funil com responsável e motivos de perda, agenda do lead,
-prospects do ERP todo dia às 06:00, chaves de IA e roteiros, barra do
-topo, "O que mudou" e a gravação/transcrição da reunião.
-
-**Antes de continuar:**
-
-1. **Transcritor** — ligar o binding **Workers AI** (`AI`) em Workers &
-   Pages → crm-fmt → Settings → Bindings, e fazer um deploy; ou cadastrar
-   uma chave da OpenAI nas Configurações. Sem isso a gravação não começa.
-2. **Primeiro teste real da gravação** (1 minuto, microfone de verdade):
-   ainda não foi feito. A prova e as capturas de tela passaram, mas
-   microfone e áudio da aba só se testam no navegador.
-
-**Próximas:** **2.36.0** — recortes das expectativas do lead e perguntas
-do roteiro durante a reunião (lê a transcrição, o roteiro da versão
-gravada e o dossiê; recorte só vale se a frase existir literalmente na
-transcrição). **2.37.0** — laudo pós-reunião em HTML versionado.
-
-**Como a gente trabalha (combinado):** plano primeiro quando o pedido
-diz "ainda não execute"; com "pode executar e subir", vai inteiro:
-migração no D1 remoto **e conferência**, segredos no Pages, prova
-(`npm run prova`), captura de tela no Edge sem janela para mudanças de
-tela, commit `vX.Y.Z - …`, push e espera o `/api/config` responder a
-versão nova. Cada versão entra no topo de `public/novidades.json` (a
-`ids.mjs` falha se não entrar). O token do `wrangler` desta máquina já
-tem escopo de D1 (as migrações 016–020 foram aplicadas por ele).
-
----
-
-**A 2.25.0 EXIGE a migração 012 ANTES do deploy** (plano de ação gravado).
-Sem ela, a tela do Plano de Ação mostra "falta a migração 012" em vez do
-plano. Ver o [manual](Manuais/Manual-Plano-Gravado-CRM-FMT-v1.0.md).
-
-**Migrações:** 008, 009 e 010 aplicadas e conferidas no D1 remoto. **A
-011 está PENDENTE** — o token `wrangler` desta máquina não tem escopo de
-D1 (erro 7403). A 2.23.0 é segura sem ela: sem a coluna, o dossiê trata
-como "o CRM não sabe", que é a verdade de hoje. **A 2.24.0 não tem
-migração**. A Fase 3 da 2.24.0 passou a ser a migração **013**: a 012
-foi tomada pela 2.25.0.
-
-**`hub:portfolios:read` foi concedida:** o print do Plano de Ação de
-21/09/2026 mostra 608 carteiras lidas. O parágrafo abaixo é histórico.
-
-**Da chave do hub faltava UMA permissão: `hub:portfolios:read`.** As outras
-quatro (`customers`, `meetings`, `meeting-types`, `teams`) foram
-concedidas e estão provadas em produção. A que falta bloqueia só o Plano
-de Ação — e **não é tarefa na Cloudflare**: a chave está lá e funciona, o
-que falta é a permissão concedida a ela no hub.
+**Atualizado em:** 29/09/2026
+**Versão no ar:** 2.35.0 (desde 28/09/2026; migrações 008 a 020 aplicadas no D1 remoto (a 011 em 29/09/2026); Worker `crm-fmt-prospects-diario` com o Cron das 06:00) · **falta:** um transcritor — o binding **Workers AI** (`AI`) no projeto crm-fmt, ou uma chave da OpenAI nas Configurações
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
+
+## ▶ Retomada (29/09/2026)
+
+**Onde paramos:** o lote da jornada do lead (JL) está entregue até a
+**2.35.0**: funil com responsável e motivos de perda, agenda do lead,
+prospects do ERP todo dia às 06:00, chaves de IA e roteiros, barra do
+topo, "O que mudou" e a gravação/transcrição da reunião.
+
+### Pendências, em ordem
+
+Conferido em 29/09/2026 contra a produção (D1 remoto, lista de deploys e
+segredos do Pages).
+
+**1. Passos operacionais: sem código, destravam o que vem depois**
+
+| # | O quê | Quem | Estado em 29/09 |
+|---|---|---|---|
+| 1.1 | **Transcritor.** Binding **Workers AI** com o nome `AI` em Workers & Pages → crm-fmt → Settings → Bindings (Production) **e um deploy novo**; ou uma chave da OpenAI em Configurações → Inteligência artificial (vale na hora, sem deploy) | Jair no painel; o deploy é com o Claude | **Falta.** A gravação recusa começar ("Não há como transcrever"). Nenhum deploy desde 28/09. `CHAVES_SECRET` já está no Pages, então a chave da OpenAI pode ser cadastrada. A da DeepSeek não transcreve |
+| 1.2 | **Primeiro teste real da gravação**: 1 minuto, microfone de verdade, nos dois modos (online com a aba; um microfone só) | Jair | Falta; depende da 1.1 |
+| 1.3 | **Migração 011** (`etapa_desde` em `leads` e `clientes`) no D1 remoto | Claude | **Feita em 29/09/2026.** Conferida: coluna nas duas tabelas e os 4 gatilhos no remoto. As 112 linhas de leads e as 186 de clientes seguem com `etapa_desde` nulo, que é o certo ("não sei desde quando"); a data passa a ser gravada na próxima mudança de etapa |
+
+**2. Lote JL (jornada do lead): o que falta**
+
+| Versão | Entrega | Depende de |
+|---|---|---|
+| **2.35.1** *(proposta em 29/09, não decidida)* | **Texto frase a frase na gravação.** Cortar o áudio na pausa entre frases (~3–8 s) em vez de a cada 20 s; balões Formatar/Lead, com "•••" enquanto transcreve. Mesmo transcritor e mesmo custo. Palavra por palavra (streaming) fica de fora: só se isto ficar lento | 1.1 |
+| **2.36.0** | **Recortes e insights durante a reunião**: frases do lead que captam a expectativa, conferidas por código contra a transcrição (o recorte só vale se a frase existir literalmente); perguntas do roteiro ainda não cobertas. Lê a transcrição, o roteiro da versão gravada e o dossiê | 1.1 e 1.2 |
+| **2.37.0** | **Laudo pós-reunião**: HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão | 2.35.0 (melhor depois da 2.36.0) |
+| depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |
+
+**3. Desenhados e sem material externo: podem entrar quando o JL fechar**
+
+| Entrega | O quê | Depende de |
+|---|---|---|
+| **Dossiê lê as atas + Balança Avaliativa** | Aba própria no cliente: positivos e negativos lado a lado, cada um ancorado em ação, ata ou registro com data. Com o plano gravado (2.25.0), lê as ações do banco em vez de reler as atas | nada: `hub:meetings:read` já está na chave |
+| **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**021**) | o `contacts` do ERP ter id estável |
+| **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
+
+**4. Travados, esperando material**
+
+| Lote | Entrega | Falta |
+|---|---|---|
+| **G** | Contrato e boas-vindas (casca do Lote E) | template do contrato em Word; e decidir qual texto vale (km R$ 1,60 × R$ 1,75; cláusula de rescisão), que é do jurídico |
+| **J** | Webhooks e notas | endpoint das notas da carteira + estrutura dos webhooks |
+| **K** | KPIs Empresariais | endpoint de indicadores |
+| **M** | Saúde de CX | J e K |
+| **O** | Relatório de Valor Gerado | G e K |
+| **P** | Dashboard de CX, CX Review e Expansão | tudo acima |
+
+### Como a gente trabalha (combinado)
+
+Plano primeiro quando o pedido diz "ainda não execute"; com "pode
+executar e subir", vai inteiro: migração no D1 remoto **e conferência**,
+segredos no Pages, prova (`npm run prova`), captura de tela no Edge sem
+janela para mudanças de tela, commit `vX.Y.Z - …`, push e espera o
+`/api/config` responder a versão nova. Cada versão entra no topo de
+`public/novidades.json` (a `ids.mjs` falha se não entrar). O token do
+`wrangler` desta máquina tem escopo de D1 (as migrações 016–020 foram
+aplicadas por ele).
+
+**Histórico resolvido:** a chave do hub tem as cinco permissões
+(`customers`, `portfolios`, `meetings`, `meeting-types`, `teams`); o
+Plano de Ação leu 608 carteiras em 21/09/2026. A migração 012 (plano
+gravado) está aplicada.
 
 ---
 
@@ -144,6 +156,8 @@ emitido ou a perda. Uma versão por entrega, cada uma testável sozinha.
 
 ### Depois do lote
 
+> **Consolidado em 29/09/2026** em "▶ Retomada → Pendências, em ordem", no topo. O texto abaixo é o histórico das decisões; os números de versão citados nele já foram tomados por outras entregas.
+
 **A ordem mudou duas vezes**, sempre pela mesma razão: entregar o que não
 depende de material externo. Em 04/09 o H passou na frente do F; em 05/09
 o L passou na frente do I. Os lotes abaixo não têm mais versão reservada
@@ -180,6 +194,8 @@ nao replica o ERP" estava aplicado em todo lugar menos ali.
 
 ### A chave do hub: o que já vale e o que ainda falta
 
+> **Resolvido.** As cinco permissões foram concedidas e o Lote I saiu entre a 2.21.0 e a 2.30.0. Seção mantida como histórico.
+
 **O Lote F está fechado, e funcionando de verdade.** O escopo
 `hub:customers:read` foi cadastrado e os clientes do ERP listam na
 Jornada — deixou de ser promessa contra dublê.
@@ -209,9 +225,10 @@ aparece sozinho (2.19.0) e o cadastro manual (Lote H).
 
 ## Travado, esperando material
 
+> A lista viva está no topo ("Pendências, em ordem", grupo 4). A linha da chave do hub saiu em 29/09/2026: resolvida.
+
 | O quê | Bloqueia |
 |---|---|
-| **Chave do hub com os quatro escopos do Lote I** — carteiras, reuniões, tipos de reunião, times | I, e por tabela M e N |
 | **Endpoint das notas da carteira** (em desenvolvimento) | J |
 | **Estrutura dos webhooks** | J |
 | **Endpoint de indicadores** (em desenvolvimento) | K |
