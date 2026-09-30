@@ -3,18 +3,23 @@
  *
  * GET  ?disponivel=1            há transcritor? (Workers AI ou OpenAI)
  * GET  ?reuniao_id=N            as gravações da reunião e a transcrição
- * POST                          começa: { reuniao_id, consentimento, modo }
+ * POST                          começa: { reuniao_id, consentimento, modo } —
+ *                               só com a reunião INICIADA por quem grava (2.36.0)
  * POST ?id=N&trecho=1           um pedaço de ~20 s: { origem, seq, inicio_s,
  *                               fim_s, audio (WAV base64) } → o texto
  * PUT  ?id=N                    encerra: { encerrar: true, duracao_s }
  *
  * Só o texto é guardado — o áudio passa pela transcrição e é descartado.
  * Sem consentimento registrado não há gravação.
+ *
+ * Desde a 2.36.0 a gravação acompanha a reunião: começa com "Iniciar
+ * reunião" e quem torna a reunião realizada é "Finalizar" (/api/agenda),
+ * não o fim da gravação. Uma reunião pode ter mais de uma gravação — a
+ * de antes de o navegador fechar e a retomada.
  */
 
 import { ambienteDeIA } from './_lib/chaves-ia.js';
 import { transcritorDisponivel, transcrever } from './_lib/transcricao.js';
-import { comandoRecalcularProximo, comandoUltimoContato } from './_lib/agenda.js';
 
 const MODOS = ['online', 'presencial'];
 const ORIGENS = ['formatar', 'lead', 'sala'];
@@ -29,7 +34,8 @@ function json(objeto, status, cabecalhos) {
 
 async function reuniaoDoLead(db, id) {
   return db.prepare(
-    `SELECT a.id, a.lead_id, a.tipo, a.status, a.inicio, a.tipo_reuniao_erp_id, l.nome AS lead_nome
+    `SELECT a.id, a.lead_id, a.tipo, a.status, a.inicio, a.tipo_reuniao_erp_id,
+            a.iniciada_em, a.iniciada_por, a.finalizada_em, l.nome AS lead_nome
        FROM agenda_lead a JOIN leads l ON l.id = a.lead_id
       WHERE a.id = ? AND a.ativo = 1`
   ).bind(Number(id)).first();
@@ -139,6 +145,14 @@ export async function onRequestPost(context) {
   if (!MODOS.includes(corpo.modo)) {
     return json({ error: 'Modo de gravação inválido.', code: 'MODO_INVALIDO' }, 400, cabecalhos);
   }
+  // A gravação é da reunião em andamento, e de quem a iniciou.
+  const eu = String(usuario.email || '').toLowerCase();
+  if (!reuniao.iniciada_em || reuniao.finalizada_em) {
+    return json({ error: 'Inicie a reunião para gravar.', code: 'NAO_INICIADA' }, 409, cabecalhos);
+  }
+  if (reuniao.iniciada_por !== eu) {
+    return json({ error: `Quem grava é quem iniciou a reunião (${reuniao.iniciada_por}).`, code: 'DE_OUTRA_PESSOA' }, 403, cabecalhos);
+  }
 
   const transcritor = transcritorDisponivel(envIA);
   if (!transcritor) {
@@ -160,6 +174,10 @@ export async function onRequestPost(context) {
 
   try {
     const agora = new Date().toISOString();
+    // Retomar depois de o navegador fechar: a gravação que ficou aberta
+    // termina aqui, e a nova segue na mesma reunião.
+    await db.prepare(`UPDATE gravacoes SET status = 'encerrada', encerrada_em = ? WHERE reuniao_id = ? AND status = 'gravando'`)
+      .bind(agora, reuniao.id).run();
     const g = await db.prepare(
       `INSERT INTO gravacoes (reuniao_id, lead_id, modo, consentimento_por, consentimento_em, roteiro_id,
                               roteiro_versao, transcritor, status, iniciada_por, iniciada_em)
@@ -181,7 +199,6 @@ export async function onRequestPost(context) {
 
 export async function onRequestPut(context) {
   const cabecalhos = context.data.cabecalhos;
-  const usuario = context.data.usuario;
   const db = context.env.DB;
   const { searchParams } = new URL(context.request.url);
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
@@ -198,23 +215,11 @@ export async function onRequestPut(context) {
   const agora = new Date().toISOString();
   const duracao = Number.isFinite(Number(corpo.duracao_s)) ? Math.max(0, Math.round(Number(corpo.duracao_s))) : null;
 
-  // Gravou e encerrou: a reunião aconteceu. Se ainda estava "agendada",
-  // vira "realizada" — e o próximo e o último contato do lead acompanham.
-  const reuniao = await reuniaoDoLead(db, g.reuniao_id);
-  const comandos = [
-    db.prepare(`UPDATE gravacoes SET status = 'encerrada', encerrada_em = ?, duracao_s = ? WHERE id = ?`)
-      .bind(agora, duracao, id)
-  ];
-  if (reuniao?.status === 'agendada') {
-    comandos.push(
-      db.prepare(`UPDATE agenda_lead SET status = 'realizada', atualizado_por = ?, atualizado_em = ? WHERE id = ?`)
-        .bind(usuario.email, agora, reuniao.id),
-      comandoRecalcularProximo(db, reuniao.lead_id),
-      comandoUltimoContato(db, reuniao.lead_id, String(reuniao.inicio).slice(0, 10))
-    );
-  }
-  await db.batch(comandos);
+  // Só a gravação termina. A reunião vira realizada em "Finalizar"
+  // (/api/agenda), que guarda a hora de fim — desde a 2.36.0.
+  await db.prepare(`UPDATE gravacoes SET status = 'encerrada', encerrada_em = ?, duracao_s = ? WHERE id = ?`)
+    .bind(agora, duracao, id).run();
 
   const atual = await db.prepare('SELECT * FROM gravacoes WHERE id = ?').bind(id).first();
-  return json({ gravacao: atual, reuniaoRealizada: reuniao?.status === 'agendada' }, 200, cabecalhos);
+  return json({ gravacao: atual }, 200, cabecalhos);
 }

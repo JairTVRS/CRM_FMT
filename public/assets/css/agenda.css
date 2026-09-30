@@ -88,33 +88,87 @@
 
 .agenda-dia-vazio { color: var(--text-muted); font-size: 0.75rem; padding: 0.2rem; }
 
-/* Um compromisso na grade */
+/* Um compromisso na grade (2.36.0: o formato e as cores do Painel de
+   Operações do ERP). A cor vem da situação — ver o topo do agenda.js. */
 .agenda-item {
+  --cartao-fundo: var(--border-color);
+  --cartao-borda: var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.15rem;
   text-align: left;
   width: 100%;
-  border: none;
-  border-left: 3px solid var(--accent-color);
-  border-radius: 4px;
-  background: var(--border-color);
+  border: 1px solid var(--cartao-borda);
+  border-radius: 6px;
+  background: var(--cartao-fundo);
   color: var(--text-color);
-  padding: 0.3rem 0.4rem;
+  padding: 0.4rem 0.5rem;
   font-size: 0.72rem;
   cursor: pointer;
   min-width: 0;
 }
+.agenda-item:hover { filter: brightness(0.97); }
+.agenda-item.compacto { padding: 0.25rem 0.4rem; gap: 0.05rem; border-radius: 4px; }
 
-.agenda-item.tp-contato { border-left-color: #2563eb; }
 .agenda-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.agenda-item-quando { font-weight: 600; }
-.agenda-item-cx { color: var(--text-muted); }
+.agenda-item-tipo { color: var(--text-muted); }
+.agenda-item.compacto .agenda-item-tipo { color: var(--text-color); font-weight: 600; }
+.agenda-item-lead { font-weight: 700; text-transform: uppercase; font-size: 0.74rem; }
+.agenda-item.compacto .agenda-item-lead { font-weight: 500; text-transform: none; }
+.agenda-item-part { color: var(--text-muted); }
+.agenda-item-cx {
+  align-self: flex-start;
+  max-width: 100%;
+  background: rgba(127, 127, 127, 0.16);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+}
+/* O horário nunca corta: em coluna estreita, o local desce de linha. */
+.agenda-item-rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.2rem 0.3rem; margin-top: 0.1rem; }
+.agenda-item .agenda-item-rodape,
+.agenda-item .agenda-item-hora { overflow: visible; }
+.agenda-item-hora { display: inline-flex; align-items: center; gap: 0.25rem; }
+.agenda-relogio { width: 0.8rem; height: 0.8rem; flex-shrink: 0; }
+.agenda-item-hora .gravacao-ponto { width: 0.5rem; height: 0.5rem; flex-shrink: 0; background: #1f9d55; }
+.agenda-item-local {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  border: 1px solid var(--cartao-borda);
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  background: rgba(255, 255, 255, 0.35);
+}
 
-.agenda-item.st-realizada { opacity: 0.7; border-left-color: #1f9d55; }
-.agenda-item.st-cancelada,
-.agenda-item.st-remarcada { opacity: 0.5; text-decoration: line-through; }
-.agenda-item.st-nao_compareceu { border-left-color: #d13438; }
+/* As cores. Tema escuro (o padrão das variáveis): fundos translúcidos. */
+.cor-futura    { --cartao-fundo: rgba(234, 179, 8, 0.16);  --cartao-borda: rgba(234, 179, 8, 0.55); }
+.cor-atrasada  { --cartao-fundo: rgba(209, 52, 56, 0.20);  --cartao-borda: rgba(209, 52, 56, 0.60); }
+.cor-andamento { --cartao-fundo: rgba(31, 157, 85, 0.30);  --cartao-borda: rgba(31, 157, 85, 0.85); }
+.cor-realizada { --cartao-fundo: rgba(31, 157, 85, 0.12);  --cartao-borda: rgba(31, 157, 85, 0.40); }
+.cor-encerrada { --cartao-fundo: rgba(127, 127, 127, 0.12); --cartao-borda: rgba(127, 127, 127, 0.35); }
+
+/* Tema claro: os tons pastel do Painel de Operações. */
+.light-theme .cor-futura    { --cartao-fundo: #fdf6c3; --cartao-borda: #e8d45c; }
+.light-theme .cor-atrasada  { --cartao-fundo: #fbd3d3; --cartao-borda: #e38b8b; }
+.light-theme .cor-andamento { --cartao-fundo: #c6efd0; --cartao-borda: #5fbf7a; }
+.light-theme .cor-realizada { --cartao-fundo: #e6f5ea; --cartao-borda: #a9dcb6; }
+.light-theme .cor-encerrada { --cartao-fundo: #f1efea; --cartao-borda: #d9d4c9; }
+
+.agenda-item.cor-andamento { box-shadow: 0 0 0 1px var(--cartao-borda); }
+.agenda-item.st-cancelada .agenda-item-lead,
+.agenda-item.st-remarcada .agenda-item-lead { text-decoration: line-through; }
+.agenda-item.cor-encerrada { opacity: 0.7; }
+
+/* A legenda acima da grade. */
+.agenda-legenda { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; margin: 0 0 0.6rem; font-size: 0.75rem; color: var(--text-muted); }
+.agenda-legenda span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.agenda-legenda span::before {
+  content: '';
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  background: var(--cartao-fundo);
+  border: 1px solid var(--cartao-borda);
+}
 
 .agenda-mais {
   background: none;
@@ -162,6 +216,8 @@
 .agenda-linha-quando { font-weight: 600; }
 .agenda-linha-status { color: var(--text-muted); font-size: 0.75rem; }
 .agenda-linha.st-cancelada, .agenda-linha.st-remarcada { opacity: 0.6; }
+/* As cores da situação (2.36.0), também na ficha. */
+.agenda-linha[class*="cor-"] { background: var(--cartao-fundo); border-color: var(--cartao-borda); }
 
 /* --------------------------------------------------------------------------
    Janela do compromisso
@@ -247,6 +303,34 @@
    -------------------------------------------------------------------------- */
 
 .agenda-gravacao-topo { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+/* O andamento da reunião, na janela dela (2.36.0). */
+.agenda-andamento { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--text-muted); }
+.agenda-andamento.em-andamento { color: #1f9d55; font-weight: 600; }
+#agenda-gravacao .gravacao-acoes { margin-top: 0.25rem; }
+
+/* O aviso do canto: a minha reunião em andamento, em qualquer tela. */
+.aviso-em-andamento {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100vw - 2rem);
+  background: #1f9d55;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.aviso-em-andamento.hidden { display: none; }
+.aviso-em-andamento .gravacao-ponto { background: #fff; }
+.aviso-em-andamento > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .gravacao-opcao {
   display: flex;

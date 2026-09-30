@@ -90,6 +90,8 @@ ok(migrados.length === 1 && migrados[0].lead_id === 1 && migrados[0].inicio === 
 ok(migrados[0].responsavel === 'jair@formatar.com.br', 'com o responsável do lead');
 bd.exec(M017);
 ok(bd.prepare('SELECT COUNT(*) n FROM agenda_lead').get().n === 1, 'rodar de novo não duplica');
+// Iniciar e finalizar (2.36.0): as colunas que a API lê. Provado em reuniao.mjs.
+bd.exec(readFileSync(`${RAIZ}/db/migracao-021-reuniao-iniciar-finalizar.sql`, 'utf8'));
 
 /* ==========================================================================
    CONTEXTO

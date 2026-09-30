@@ -58,7 +58,7 @@ const classes = [
   // 2.32.0
   'agenda-barra', 'agenda-nav', 'agenda-periodo', 'agenda-aviso', 'agenda-grade', 'agenda-dia',
   'agenda-dia-topo', 'agenda-dia-lista', 'agenda-dia-vazio', 'agenda-mes-cabeca', 'agenda-item',
-  'agenda-item-quando', 'agenda-item-cx', 'agenda-mais', 'agenda-lead-acoes', 'agenda-lead-lista',
+  'agenda-item-cx', 'agenda-mais', 'agenda-lead-acoes', 'agenda-lead-lista',
   'agenda-linha', 'agenda-linha-quando', 'agenda-linha-status', 'agenda-tipo', 'so-reuniao', 'so-contato',
   'agenda-lead-nome', 'agenda-remarcar-campos', 'agenda-rodape', 'selo-sem-agenda', 'sem-agenda',
   'agenda-lead-escolha', 'agenda-lead-resultados', 'agenda-lead-opcao', 'agenda-lead-vazio',
@@ -76,7 +76,11 @@ const classes = [
   // 2.35.0
   'agenda-gravacao', 'agenda-gravacao-topo', 'gravacao-opcao', 'gravacao-rotulo', 'gravacao-acoes',
   'gravacao-barra', 'gravacao-estado', 'gravacao-ponto', 'gravacao-avisos', 'gravacao-final',
-  'transcricao', 'transcricao-curta', 'trecho', 'trecho-quando'
+  'transcricao', 'transcricao-curta', 'trecho', 'trecho-quando',
+  // 2.36.0
+  'agenda-item-tipo', 'agenda-item-lead', 'agenda-item-part', 'agenda-item-rodape', 'agenda-item-hora',
+  'agenda-item-local', 'agenda-relogio', 'compacto', 'cor-futura', 'cor-atrasada', 'cor-andamento',
+  'cor-realizada', 'cor-encerrada', 'agenda-legenda', 'agenda-andamento', 'em-andamento', 'aviso-em-andamento'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));

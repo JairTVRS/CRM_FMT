@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.36.0",
+      "data": "30/09/2026",
+      "titulo": "Iniciar e finalizar a reunião",
+      "itens": [
+        "Na reunião da agenda, \"Iniciar reunião\" guarda a hora de início e já começa a transcrever (com o consentimento do lead marcado). \"Finalizar reunião\" guarda a hora de fim e a marca como realizada.",
+        "Cada pessoa tem uma reunião em andamento por vez: para iniciar outra, finalize a que está aberta. Enquanto houver uma, um aviso verde no canto leva a ela.",
+        "Na agenda, as cores dizem a situação: amarelo agendada, vermelho atrasada, verde em andamento, verde-claro realizada. Os cartões mostram tipo, lead, CX, horário e local."
+      ]
+    },
+    {
       "versao": "2.35.0",
       "data": "28/09/2026",
       "titulo": "Gravação e transcrição da reunião",

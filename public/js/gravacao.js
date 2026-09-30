@@ -1,17 +1,27 @@
 /**
- * gravacao.js — gravar e transcrever a reunião do lead (2.35.0).
+ * gravacao.js — iniciar, gravar e finalizar a reunião do lead
+ * (gravação 2.35.0; iniciar e finalizar 2.36.0).
  *
- * Abre pela reunião da agenda ("Gravar a reunião"). O fluxo:
+ * Tudo acontece a partir da reunião da agenda, no bloco "Andamento da
+ * reunião":
  *
- *   1. PREPARAR: o CX confirma que o lead concordou (obrigatório) e
- *      escolhe o modo:
+ *   1. INICIAR: o CX marca que o lead concordou com a gravação, escolhe
+ *      de onde vem o áudio e clica em "Iniciar reunião". O CRM guarda a
+ *      hora de início e JÁ COMEÇA A TRANSCREVER. Sem a marca do
+ *      consentimento, a reunião começa sem gravar.
  *        - online (computador): o microfone dele E o áudio da aba da
  *          reunião (Meet, Teams…) — cada um vira uma "voz" na transcrição;
  *        - um microfone só: presencial, externo ou celular.
  *   2. GRAVAR: a cada ~20 s cada voz vira um WAV (audio-wav.js), que vai
  *      para /api/gravacoes e volta como texto. O áudio não fica em lugar
  *      nenhum. Pedaço silencioso nem sai do navegador.
- *   3. ENCERRAR: manda o que falta e encerra; a reunião vira "realizada".
+ *   3. FINALIZAR: manda o que falta, guarda a hora de fim e a reunião
+ *      vira "realizada".
+ *
+ * Uma reunião em andamento por pessoa: o servidor recusa a segunda e diz
+ * qual está aberta. Se o navegador fechar no meio, a reunião continua em
+ * andamento (verde na agenda) e o aviso no canto leva a ela: dali, dá
+ * para retomar a gravação ou finalizar.
  *
  * No celular, a tela é mantida acesa enquanto grava (Wake Lock) — no
  * iPhone, tela apagada para a gravação.
@@ -31,6 +41,24 @@ const Gravacao = (() => {
 
   const temTelaCompartilhada = () => !!navigator.mediaDevices?.getDisplayMedia;
   const minSeg = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const eu = () => String((typeof Auth !== 'undefined' && Auth.usuario?.email) || '').toLowerCase();
+  const souAdmin = () => !!(typeof Auth !== 'undefined' && Auth.usuario?.admin);
+
+  /* ----------------------------------------------------------
+     Horas reais (instantes ISO do servidor, mostrados na hora local)
+     ---------------------------------------------------------- */
+
+  const horaDe = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dataDe = (iso) => new Date(iso).toLocaleDateString('pt-BR');
+  function duracao(deIso, ateIso) {
+    const min = Math.max(0, Math.round((Date.parse(ateIso) - Date.parse(deIso)) / 60000));
+    return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+  }
+  /** "30/09/2026, das 14:05 às 15:12 (1 h 07 min)" */
+  const periodoReal = (item) =>
+    `${dataDe(item.iniciada_em)}, das ${horaDe(item.iniciada_em)} às ${horaDe(item.finalizada_em)} (${duracao(item.iniciada_em, item.finalizada_em)})`;
+
+  const nomeDe = (email) => (typeof Cadastros !== 'undefined' && Cadastros.nomeDoUsuario(email)) || email;
 
   /* ----------------------------------------------------------
      O gravador: uma "voz" por fonte de áudio
@@ -127,17 +155,17 @@ const Gravacao = (() => {
     try { travaTela = await navigator.wakeLock?.request('screen'); } catch (e) { travaTela = null; }
   }
 
-  async function comecar() {
-    if (!el('gravacao-consentimento').checked) {
-      alert('Confirme que o lead foi avisado e concordou com a gravação.');
-      return;
-    }
-    const modo = el('gravacao-modo-online').checked ? 'online' : 'presencial';
-    const botao = el('btn-gravacao-comecar');
-    botao.disabled = true;
+  const pararAudio = (audio) => {
+    audio?.microfone?.getTracks().forEach((t) => t.stop());
+    audio?.aba?.getTracks().forEach((t) => t.stop());
+  };
 
-    // Primeiro as permissões do navegador: se o CX desistir aqui, nada
-    // foi criado no servidor.
+  /**
+   * As permissões do navegador, ANTES de o servidor saber de qualquer
+   * coisa: se o CX desistir aqui, a reunião não é iniciada.
+   * @returns {{microfone, aba}|null}
+   */
+  async function pedirAudio(modo) {
     let microfone, aba;
     try {
       microfone = await navigator.mediaDevices.getUserMedia({
@@ -146,45 +174,45 @@ const Gravacao = (() => {
       if (modo === 'online') {
         aba = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         if (!aba.getAudioTracks().length) {
-          aba.getTracks().forEach((t) => t.stop());
-          microfone.getTracks().forEach((t) => t.stop());
+          pararAudio({ microfone, aba });
           alert('A aba foi compartilhada sem o áudio. Escolha a ABA da reunião e marque "Compartilhar áudio da guia".');
-          botao.disabled = false;
-          return;
+          return null;
         }
       }
+      return { microfone, aba };
     } catch (e) {
-      microfone?.getTracks().forEach((t) => t.stop());
+      pararAudio({ microfone, aba });
       alert(`O navegador não liberou o áudio: ${e.message}`);
-      botao.disabled = false;
-      return;
+      return null;
     }
+  }
 
+  /** Cria a gravação no servidor e começa a captar. Falhou: false. */
+  async function comecarGravacao(item, modo, audio) {
     try {
       const r = await fetch('/api/gravacoes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reuniao_id: reuniao.id, consentimento: true, modo })
+        body: JSON.stringify({ reuniao_id: item.id, consentimento: true, modo })
       });
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Não foi possível começar.');
+      if (!r.ok) throw new Error(d.error || 'Não foi possível começar a gravação.');
       gravacao = d.gravacao;
     } catch (e) {
-      microfone.getTracks().forEach((t) => t.stop());
-      aba?.getTracks().forEach((t) => t.stop());
-      alert(e.message);
-      botao.disabled = false;
-      return;
+      pararAudio(audio);
+      alert(`A reunião está em andamento, mas a gravação não começou: ${e.message}\n\nDá para tentar de novo em "Retomar a gravação", ou seguir sem gravar e finalizar no fim.`);
+      return false;
     }
 
+    reuniao = item;
     contexto = new (window.AudioContext || window.webkitAudioContext)();
-    vozes = [criarVoz(microfone, modo === 'online' ? 'formatar' : 'sala')];
-    if (aba) {
-      vozes.push(criarVoz(new MediaStream(aba.getAudioTracks()), 'lead'));
+    vozes = [criarVoz(audio.microfone, modo === 'online' ? 'formatar' : 'sala')];
+    if (audio.aba) {
+      vozes.push(criarVoz(new MediaStream(audio.aba.getAudioTracks()), 'lead'));
       // Se o CX parar de compartilhar pela barra do navegador, a voz do
       // lead acaba — avisa em vez de gravar só um lado sem ninguém saber.
-      aba.getAudioTracks()[0].addEventListener('ended', () => avisar('O compartilhamento da aba terminou: o áudio do lead não está mais sendo gravado.'));
-      vozes[1].extras = aba;
+      audio.aba.getAudioTracks()[0].addEventListener('ended', () => avisar('O compartilhamento da aba terminou: o áudio do lead não está mais sendo gravado.'));
+      vozes[1].extras = audio.aba;
     }
 
     pausado = false;
@@ -199,9 +227,14 @@ const Gravacao = (() => {
     }, 1000);
 
     window.addEventListener('beforeunload', segurarSaida);
+    el('gravacao-titulo').textContent = `Reunião em andamento — ${item.lead_nome || ''}`;
+    el('gravacao-avisos').innerHTML = '';
+    el('btn-gravacao-pausar').textContent = 'Pausar';
     mostrarPasso('gravando');
     desenharTranscricao([]);
     desenharEstado();
+    el('modal-gravacao').classList.remove('hidden');
+    return true;
   }
 
   function segurarSaida(ev) {
@@ -217,15 +250,11 @@ const Gravacao = (() => {
     desenharEstado();
   }
 
-  async function encerrar() {
-    if (!gravacao) return;
-    if (!confirm('Encerrar a gravação? A reunião será marcada como realizada.')) return;
+  /** Para de captar, manda o que falta e encerra a gravação no servidor. */
+  async function pararGravacao() {
     clearInterval(relogio);
     pausado = true;
     fecharPedacos();
-
-    el('btn-gravacao-encerrar').disabled = true;
-    el('btn-gravacao-pausar').disabled = true;
     // Espera a fila esvaziar: o último pedaço ainda está sendo transcrito.
     while (enviando || fila.length) await new Promise((ok) => setTimeout(ok, 500));
 
@@ -238,32 +267,157 @@ const Gravacao = (() => {
     window.removeEventListener('beforeunload', segurarSaida);
 
     try {
-      const r = await fetch(`/api/gravacoes?id=${gravacao.id}`, {
+      await fetch(`/api/gravacoes?id=${gravacao.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ encerrar: true, duracao_s: segundos })
       });
-      const d = await r.json();
-      el('gravacao-final').textContent = d.reuniaoRealizada
-        ? 'Gravação encerrada. A reunião foi marcada como realizada.'
-        : 'Gravação encerrada.';
-    } catch (e) {
-      el('gravacao-final').textContent = 'A gravação terminou, mas não foi possível avisar o servidor. A transcrição está salva.';
-    }
+    } catch (e) { /* "Finalizar" fecha a gravação que ficar aberta */ }
     gravacao = null;
     vozes = [];
-    el('btn-gravacao-encerrar').disabled = false;
-    el('btn-gravacao-pausar').disabled = false;
-    mostrarPasso('encerrada');
-    if (typeof Agenda !== 'undefined') Agenda.carregar?.();
   }
 
   /* ----------------------------------------------------------
-     A janela
+     Iniciar, retomar e finalizar (2.36.0)
+     ---------------------------------------------------------- */
+
+  async function acaoNaReuniao(item, acao) {
+    const r = await fetch(`/api/agenda?id=${item.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao })
+    });
+    const d = await r.json().catch(() => ({}));
+    return { ok: r.ok, ...d };
+  }
+
+  /** Redesenha a agenda, a ficha, a janela da reunião e o aviso do canto. */
+  async function depoisDeMudar(item) {
+    atualizarAviso();
+    if (typeof Agenda === 'undefined') return;
+    Agenda.atualizar?.(item.lead_id);
+    if (!el('modal-agenda')?.classList.contains('hidden')) await Agenda.abrirJanela({ item });
+  }
+
+  function lerPreparo() {
+    return {
+      consentimento: el('gravacao-consentimento').checked,
+      modo: el('gravacao-modo-online').checked ? 'online' : 'presencial'
+    };
+  }
+
+  function travarBotoes(travar) {
+    ['btn-agenda-iniciar', 'btn-agenda-retomar', 'btn-agenda-finalizar'].forEach((id) => { if (el(id)) el(id).disabled = travar; });
+  }
+
+  async function iniciarReuniao() {
+    const item = itemDaJanela();
+    if (!item) return;
+    if (gravacao) { alert('Já há uma reunião sendo gravada neste navegador.'); return; }
+
+    const hoje = new Date();
+    const hojeTxt = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    const dia = String(item.inicio).slice(0, 10);
+    if (dia !== hojeTxt) {
+      const [a, m, d] = dia.split('-');
+      if (!confirm(`Esta reunião está marcada para ${d}/${m}/${a} às ${String(item.inicio).slice(11, 16)}. Iniciar agora mesmo assim?`)) return;
+    }
+
+    const { consentimento, modo } = lerPreparo();
+    let audio = null;
+    if (!consentimento && !confirm('A caixa "O lead concordou com a gravação" não está marcada.\n\nIniciar a reunião SEM gravar?')) return;
+
+    travarBotoes(true);
+    try {
+      if (consentimento) {
+        audio = await pedirAudio(modo);
+        if (!audio) return;
+      }
+
+      const d = await acaoNaReuniao(item, 'iniciar');
+      if (!d.ok) {
+        pararAudio(audio);
+        if (d.code === 'OUTRA_EM_ANDAMENTO' && d.emAndamento) {
+          if (confirm(`${d.error}\n\nAbrir aquela reunião agora?`)) await Agenda.abrirJanela({ item: d.emAndamento });
+        } else {
+          alert(d.error || 'Não foi possível iniciar a reunião.');
+        }
+        return;
+      }
+
+      await depoisDeMudar(d.item);
+      if (audio) await comecarGravacao(d.item, modo, audio);
+    } catch (e) {
+      pararAudio(audio);
+      alert(`Falha de conexão ao iniciar a reunião: ${e.message}`);
+    } finally {
+      travarBotoes(false);
+    }
+  }
+
+  /** A reunião está em andamento, mas nada grava neste navegador. */
+  async function retomar() {
+    const item = itemDaJanela();
+    if (!item || gravacao) return;
+    const { consentimento, modo } = lerPreparo();
+    if (!consentimento) { alert('Marque que o lead concordou com a gravação.'); return; }
+    travarBotoes(true);
+    try {
+      const audio = await pedirAudio(modo);
+      if (audio) await comecarGravacao(item, modo, audio);
+    } finally {
+      travarBotoes(false);
+    }
+  }
+
+  /** Finalizar pela janela da reunião: quando nada grava neste navegador. */
+  async function finalizarDaJanela() {
+    const item = itemDaJanela();
+    if (!item) return;
+    if (!confirm('Finalizar a reunião? Ela fica registrada como realizada, terminando agora.')) return;
+    travarBotoes(true);
+    try {
+      const d = await acaoNaReuniao(item, 'finalizar');
+      if (!d.ok) { alert(d.error || 'Não foi possível finalizar a reunião.'); return; }
+      await depoisDeMudar(d.item);
+    } catch (e) {
+      alert(`Falha de conexão ao finalizar a reunião: ${e.message}`);
+    } finally {
+      travarBotoes(false);
+    }
+  }
+
+  /** "Finalizar reunião" da janela de gravação. */
+  async function finalizarGravando() {
+    if (!gravacao) return;
+    if (!confirm('Finalizar a reunião? A gravação termina e a reunião fica registrada como realizada, terminando agora.')) return;
+    el('btn-gravacao-encerrar').disabled = true;
+    el('btn-gravacao-pausar').disabled = true;
+
+    const item = reuniao;
+    await pararGravacao();
+    let final;
+    try {
+      const d = await acaoNaReuniao(item, 'finalizar');
+      if (!d.ok) throw new Error(d.error || 'erro');
+      final = `Reunião finalizada: ${periodoReal(d.item)}. A transcrição ficou na reunião.`;
+      await depoisDeMudar(d.item);
+    } catch (e) {
+      final = `A gravação terminou, mas a reunião não foi finalizada (${e.message}). Abra a reunião e clique em "Finalizar reunião".`;
+      atualizarAviso();
+    }
+    el('gravacao-final').textContent = final;
+    el('btn-gravacao-encerrar').disabled = false;
+    el('btn-gravacao-pausar').disabled = false;
+    mostrarPasso('encerrada');
+  }
+
+  /* ----------------------------------------------------------
+     A janela de gravação
      ---------------------------------------------------------- */
 
   function mostrarPasso(passo) {
-    ['preparar', 'gravando', 'encerrada'].forEach((p) =>
+    ['gravando', 'encerrada'].forEach((p) =>
       el(`gravacao-${p}`)?.classList.toggle('hidden', p !== passo));
   }
 
@@ -271,9 +425,10 @@ const Gravacao = (() => {
     const estado = el('gravacao-estado');
     if (!estado) return;
     const transcrevendo = fila.length;
+    const desde = reuniao?.iniciada_em ? ` · iniciada às ${horaDe(reuniao.iniciada_em)}` : '';
     estado.innerHTML = `
       <span class="gravacao-ponto${pausado ? ' pausado' : ''}"></span>
-      ${pausado ? 'Pausado' : 'Gravando'} · ${minSeg(segundos)}
+      ${pausado ? 'Pausado' : 'Gravando'} · ${minSeg(segundos)}${esc(desde)}
       ${transcrevendo ? ` · ${transcrevendo} pedaço(s) transcrevendo` : ''}`;
   }
 
@@ -298,16 +453,61 @@ const Gravacao = (() => {
             ${ROTULO_ORIGEM[t.origem] ? `<strong>${esc(ROTULO_ORIGEM[t.origem])}:</strong>` : ''}
             ${esc(t.texto)}
           </p>`).join('')
-      : '<p class="campo-ajuda">A transcrição aparece aqui, a cada ~20 segundos de fala.</p>';
+      : (alvoId === 'gravacao-transcricao' ? '<p class="campo-ajuda">A transcrição aparece aqui, a cada ~20 segundos de fala.</p>' : '');
     alvo.scrollTop = alvo.scrollHeight;
   }
 
-  async function abrir(item) {
-    reuniao = item;
-    el('gravacao-titulo').textContent = `Gravar a reunião — ${item.lead_nome || ''}`;
+  function fechar() {
+    if (gravacao) {
+      alert('A reunião está sendo gravada. Use "Pausar" ou "Finalizar reunião".');
+      return;
+    }
+    el('modal-gravacao').classList.add('hidden');
+  }
+
+  /* ----------------------------------------------------------
+     Na janela da reunião: o andamento e a transcrição
+     ---------------------------------------------------------- */
+
+  const itemDaJanela = () => { try { return JSON.parse(el('agenda-gravacao').dataset.item); } catch (e) { return null; } };
+
+  async function mostrarNaReuniao(item) {
+    const bloco = el('agenda-gravacao');
+    if (!bloco) return;
+    // Só reunião que já existe: iniciar pede a reunião salva na agenda.
+    const pode = item && item.tipo === 'reuniao' && item.status !== 'cancelada' && item.status !== 'remarcada';
+    bloco.classList.toggle('hidden', !pode);
+    if (!pode) return;
+    bloco.dataset.item = JSON.stringify(item);
+    el('agenda-transcricao').innerHTML = '';
+
+    const andando = !!item.iniciada_em && !item.finalizada_em;
+    const minha = andando && item.iniciada_por === eu();
+    const podeIniciar = item.status === 'agendada' && !item.iniciada_em;
+
+    const estado = el('agenda-gravacao-estado');
+    estado.className = 'agenda-andamento';
+    if (andando) {
+      estado.classList.add('em-andamento');
+      estado.textContent = `Em andamento desde ${horaDe(item.iniciada_em)} de ${dataDe(item.iniciada_em)}`
+        + (minha ? '.' : `, iniciada por ${nomeDe(item.iniciada_por)}.`);
+    } else if (item.finalizada_em) {
+      estado.textContent = `Realizada em ${periodoReal(item)}.`;
+    } else if (item.status === 'realizada') {
+      estado.textContent = 'Realizada.';
+    } else if (item.status === 'nao_compareceu') {
+      estado.textContent = 'O lead não compareceu.';
+    } else {
+      estado.textContent = 'Ainda não iniciada.';
+    }
+
+    // Preparar (consentimento e áudio): para iniciar, ou para retomar a
+    // gravação da reunião que eu iniciei.
+    el('agenda-preparar').classList.toggle('hidden', !(podeIniciar || minha));
+    el('btn-agenda-iniciar').classList.toggle('hidden', !podeIniciar);
+    el('btn-agenda-retomar').classList.toggle('hidden', !minha);
+    el('btn-agenda-finalizar').classList.toggle('hidden', !(andando && (minha || souAdmin())));
     el('gravacao-consentimento').checked = false;
-    el('gravacao-avisos').innerHTML = '';
-    el('btn-gravacao-comecar').disabled = false;
 
     // Reunião online no computador: as duas vozes. No celular, ou em
     // reunião presencial/externa, um microfone só.
@@ -318,61 +518,57 @@ const Gravacao = (() => {
     el('gravacao-modo-sala').checked = !online;
     el('gravacao-nota-celular').classList.toggle('hidden', podeOnline);
 
-    const disp = await fetch('/api/gravacoes?disponivel=1').then((r) => r.json()).catch(() => ({}));
-    el('gravacao-sem-transcritor').classList.toggle('hidden', !!disp.transcritor);
-
-    mostrarPasso('preparar');
-    el('modal-gravacao').classList.remove('hidden');
-  }
-
-  function fechar() {
-    if (gravacao) {
-      alert('A gravação está em andamento. Encerre antes de fechar.');
-      return;
+    if (podeIniciar || minha) {
+      fetch('/api/gravacoes?disponivel=1').then((r) => r.json())
+        .then((disp) => el('gravacao-sem-transcritor').classList.toggle('hidden', !!disp.transcritor))
+        .catch(() => {});
     }
-    el('modal-gravacao').classList.add('hidden');
-  }
-
-  /* ----------------------------------------------------------
-     Na reunião da agenda: gravar, e a transcrição que já existe
-     ---------------------------------------------------------- */
-
-  async function mostrarNaReuniao(item) {
-    const bloco = el('agenda-gravacao');
-    if (!bloco) return;
-    // Só reunião que já existe: gravar pede a reunião salva na agenda.
-    const pode = item && item.tipo === 'reuniao' && item.status !== 'cancelada' && item.status !== 'remarcada';
-    bloco.classList.toggle('hidden', !pode);
-    if (!pode) return;
-    bloco.dataset.item = JSON.stringify(item);
-    el('agenda-transcricao').innerHTML = '';
-    el('agenda-gravacao-estado').textContent = '';
 
     try {
       const r = await fetch(`/api/gravacoes?reuniao_id=${item.id}`);
       const d = await r.json();
-      const encerradas = (d.gravacoes || []).filter((g) => g.status === 'encerrada');
-      el('agenda-gravacao-estado').textContent = encerradas.length
-        ? `${encerradas.length} gravação(ões) · ${(d.trechos || []).length} trecho(s) transcrito(s)`
-        : 'Ainda não gravada.';
-      if ((d.trechos || []).length) desenharTranscricao(d.trechos, 'agenda-transcricao');
-    } catch (e) {
-      el('agenda-gravacao-estado').textContent = 'Não foi possível consultar as gravações.';
+      const lista = d.trechos || [];
+      if (lista.length) {
+        estado.textContent += ` ${lista.length} trecho(s) transcrito(s).`;
+        desenharTranscricao(lista, 'agenda-transcricao');
+      }
+    } catch (e) { /* a transcrição aparece ao reabrir */ }
+  }
+
+  /* ----------------------------------------------------------
+     O aviso do canto: a reunião que eu iniciei e não finalizei
+     ---------------------------------------------------------- */
+
+  let emAndamento = null;
+
+  async function atualizarAviso() {
+    const aviso = el('aviso-em-andamento');
+    if (!aviso) return;
+    try {
+      const d = await fetch('/api/agenda?em_andamento=1').then((r) => r.json());
+      emAndamento = d.item || null;
+    } catch (e) { return; }
+    aviso.classList.toggle('hidden', !emAndamento);
+    if (emAndamento) {
+      aviso.innerHTML = `<span class="gravacao-ponto"></span><span>Reunião em andamento: <strong>${esc(emAndamento.lead_nome)}</strong>, desde ${esc(horaDe(emAndamento.iniciada_em))}</span>`;
+      aviso.title = 'Abrir a reunião para finalizar';
     }
   }
 
   function iniciar() {
-    el('btn-gravacao-comecar')?.addEventListener('click', comecar);
     el('btn-gravacao-pausar')?.addEventListener('click', alternarPausa);
-    el('btn-gravacao-encerrar')?.addEventListener('click', encerrar);
+    el('btn-gravacao-encerrar')?.addEventListener('click', finalizarGravando);
     el('btn-gravacao-fechar')?.addEventListener('click', fechar);
     el('btn-gravacao-concluir')?.addEventListener('click', fechar);
-    el('btn-agenda-gravar')?.addEventListener('click', () => {
-      const bloco = el('agenda-gravacao');
-      try { abrir(JSON.parse(bloco.dataset.item)); } catch (e) { /* sem reunião */ }
+    el('btn-agenda-iniciar')?.addEventListener('click', iniciarReuniao);
+    el('btn-agenda-retomar')?.addEventListener('click', retomar);
+    el('btn-agenda-finalizar')?.addEventListener('click', finalizarDaJanela);
+    el('aviso-em-andamento')?.addEventListener('click', () => {
+      if (emAndamento && typeof Agenda !== 'undefined') Agenda.abrirJanela({ item: emAndamento });
     });
   }
 
   document.addEventListener('DOMContentLoaded', iniciar);
-  return { abrir, mostrarNaReuniao };
+  document.addEventListener('crm:autenticado', () => atualizarAviso(), { once: true });
+  return { mostrarNaReuniao, atualizarAviso };
 })();

@@ -14,6 +14,13 @@
  * mesmo texto do banco. Nada aqui converte para UTC: `toISOString()`
  * mudaria o dia de um compromisso às 22h.
  *
+ * AS CORES DO CARTÃO (2.36.0, pedido de 30/09/2026), pela situação:
+ *   amarelo   agendada, ainda no futuro
+ *   vermelho  agendada e a hora já passou sem ninguém iniciar (atrasada)
+ *   verde     reunião iniciada (em andamento); verde-claro, realizada
+ *   cinza     cancelada, remarcada, não compareceu
+ * A grade se redesenha a cada minuto: o amarelo vira vermelho sozinho.
+ *
  * Carregar DEPOIS do cadastros.js e ANTES do leads.js.
  */
 
@@ -45,6 +52,44 @@ const Agenda = (() => {
   const inicioDaSemana = (d) => somarDias(d, -((d.getDay() + 6) % 7));
   const dataBr = (iso) => { const [a, m, d] = String(iso).slice(0, 10).split('-'); return `${d}/${m}/${a}`; };
   const hora = (inicio) => String(inicio || '').slice(11, 16);
+  const agoraTxt = () => { const d = new Date(); return `${diaIso(d)}T${doisDigitos(d.getHours())}:${doisDigitos(d.getMinutes())}`; };
+  /** 'HH:MM' + minutos → 'HH:MM' (a reunião das 23:30 de 1 h acaba 00:30). */
+  const somarMinutos = (hhmm, min) => {
+    const [h, m] = String(hhmm).split(':').map(Number);
+    const t = (h * 60 + m + Number(min || 0)) % (24 * 60);
+    return `${doisDigitos(Math.floor(t / 60))}:${doisDigitos(t % 60)}`;
+  };
+  /** Instante ISO do servidor (início/fim reais) → 'HH:MM' local. */
+  const horaReal = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  /**
+   * A situação que dá a cor ao cartão (2.36.0).
+   *   andamento  iniciada e não finalizada
+   *   realizada
+   *   atrasada   agendada, e a hora marcada já passou
+   *   futura     agendada, ainda por vir
+   *   encerrada  cancelada, remarcada, não compareceu
+   */
+  function situacao(item, agora = agoraTxt()) {
+    if (item.iniciada_em && !item.finalizada_em) return 'andamento';
+    if (item.status === 'realizada') return 'realizada';
+    if (item.status === 'agendada') return item.inicio <= agora ? 'atrasada' : 'futura';
+    return 'encerrada';
+  }
+  const ROTULO_SITUACAO = {
+    andamento: 'Em andamento', realizada: 'Realizada', atrasada: 'Atrasada', futura: 'Agendada'
+  };
+  const ROTULO_LOCAL_CURTO = { online: 'Online', presencial: 'Pres.', externo: 'Ext.' };
+  const RELOGIO = '<svg class="agenda-relogio" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+  /** O horário do cartão: o real, quando a reunião aconteceu; senão, o marcado. */
+  function horario(item) {
+    // O verde já diz "em andamento"; o cartão é estreito.
+    if (item.iniciada_em && !item.finalizada_em) return `Desde ${horaReal(item.iniciada_em)}`;
+    if (item.iniciada_em && item.finalizada_em) return `${horaReal(item.iniciada_em)} às ${horaReal(item.finalizada_em)}`;
+    const h = hora(item.inicio);
+    return item.tipo === 'reuniao' && item.duracao_min ? `${h} às ${somarMinutos(h, item.duracao_min)}` : h;
+  }
 
   /* ----------------------------------------------------------
      1. A visão Agenda
@@ -74,12 +119,12 @@ const Agenda = (() => {
     return `${dataBr(diaIso(de)).slice(0, 5)} a ${dataBr(diaIso(ate))}`;
   }
 
-  async function carregar() {
+  async function carregar({ silencioso = false } = {}) {
     const grade = el('agenda-grade');
     if (!grade) return;
     el('agenda-periodo').textContent = tituloDoPeriodo();
     document.querySelectorAll('[data-escala]').forEach((b) => b.classList.toggle('active', b.dataset.escala === escala));
-    grade.innerHTML = '<div class="coluna-vazia">Carregando…</div>';
+    if (!silencioso) grade.innerHTML = '<div class="coluna-vazia">Carregando…</div>';
 
     const { de, ate } = periodo();
     const p = new URLSearchParams({ de: diaIso(de), ate: diaIso(ate) });
@@ -94,7 +139,7 @@ const Agenda = (() => {
       itensNaTela = d.itens || [];
       desenhar();
     } catch (e) {
-      grade.innerHTML = `<div class="quadro-erro">Não foi possível carregar a agenda. ${esc(e.message)}</div>`;
+      if (!silencioso) grade.innerHTML = `<div class="quadro-erro">Não foi possível carregar a agenda. ${esc(e.message)}</div>`;
     }
   }
 
@@ -106,14 +151,37 @@ const Agenda = (() => {
     return `${hora(item.inicio)} ${oQue}`;
   }
 
-  function cartaoDoItem(item, compacto) {
+  /**
+   * O cartão, no formato do Painel de Operações do ERP (2.36.0): o tipo, o
+   * lead, quem vem do lado dele, o CX, o horário e o local. No mês, só o
+   * tipo com a hora e o lead.
+   */
+  function cartaoDoItem(item, compacto, agora) {
     const cx = item.responsavel && typeof Cadastros !== 'undefined' ? Cadastros.nomeDoUsuario(item.responsavel) : null;
+    const sit = situacao(item, agora);
+    const oQue = item.tipo === 'reuniao' ? (item.tipo_reuniao_nome || 'Reunião') : (ROTULO_CANAL[item.canal] || 'Contato');
+    const rotulo = ROTULO_SITUACAO[sit] || ROTULO_STATUS[item.status] || item.status;
+    const titulo = `${oQue} — ${item.lead_nome} · ${horario(item)} (${rotulo})`;
+    const local = item.tipo === 'reuniao' && item.local_tipo
+      ? `<span class="agenda-item-local">${esc(ROTULO_LOCAL_CURTO[item.local_tipo] || item.local_tipo)}</span>` : '';
+
+    if (compacto) {
+      return `
+        <button type="button" class="agenda-item compacto st-${esc(item.status)} tp-${esc(item.tipo)} cor-${sit}" data-item="${item.id}" title="${esc(titulo)}">
+          <span class="agenda-item-tipo">${esc(hora(item.inicio))} ${esc(oQue)}</span>
+          <span class="agenda-item-lead">${esc(item.lead_nome)}</span>
+        </button>`;
+    }
     return `
-      <button type="button" class="agenda-item st-${esc(item.status)} tp-${esc(item.tipo)}" data-item="${item.id}"
-              title="${esc(`${resumo(item)} — ${item.lead_nome} (${ROTULO_STATUS[item.status] || item.status})`)}">
-        <span class="agenda-item-quando">${esc(resumo(item))}</span>
+      <button type="button" class="agenda-item st-${esc(item.status)} tp-${esc(item.tipo)} cor-${sit}" data-item="${item.id}" title="${esc(titulo)}">
+        <span class="agenda-item-tipo">${esc(oQue)}</span>
         <span class="agenda-item-lead">${esc(item.lead_nome)}</span>
-        ${compacto || !cx ? '' : `<span class="agenda-item-cx">CX: ${esc(cx)}</span>`}
+        ${item.participantes ? `<span class="agenda-item-part">${esc(item.participantes)}</span>` : ''}
+        ${cx ? `<span class="agenda-item-cx">${esc(cx)}</span>` : ''}
+        <span class="agenda-item-rodape">
+          <span class="agenda-item-hora">${sit === 'andamento' ? '<span class="gravacao-ponto"></span>' : RELOGIO}${esc(horario(item))}</span>
+          ${local}
+        </span>
       </button>`;
   }
 
@@ -121,6 +189,7 @@ const Agenda = (() => {
     const grade = el('agenda-grade');
     const { de, ate } = periodo();
     const hoje = hojeIso();
+    const agora = agoraTxt();
 
     const porDia = new Map();
     for (const item of itensNaTela) {
@@ -141,7 +210,7 @@ const Agenda = (() => {
           <section class="agenda-dia${iso === hoje ? ' hoje' : ''}" data-dia="${iso}">
             <header class="agenda-dia-topo">${DIAS[i]} <strong>${dataBr(iso).slice(0, 5)}</strong></header>
             <div class="agenda-dia-lista">
-              ${itens.length ? itens.map((x) => cartaoDoItem(x, false)).join('') : '<span class="agenda-dia-vazio">—</span>'}
+              ${itens.length ? itens.map((x) => cartaoDoItem(x, false, agora)).join('') : '<span class="agenda-dia-vazio">—</span>'}
             </div>
           </section>`;
       }).join('');
@@ -160,7 +229,7 @@ const Agenda = (() => {
           <section class="agenda-dia${iso === hoje ? ' hoje' : ''}${fora ? ' fora' : ''}" data-dia="${iso}">
             <header class="agenda-dia-topo">${d.getDate()}</header>
             <div class="agenda-dia-lista">
-              ${itens.slice(0, 3).map((x) => cartaoDoItem(x, true)).join('')}
+              ${itens.slice(0, 3).map((x) => cartaoDoItem(x, true, agora)).join('')}
               ${itens.length > 3 ? `<button type="button" class="agenda-mais" data-ver-semana="${iso}">+${itens.length - 3}</button>` : ''}
             </div>
           </section>`;
@@ -318,7 +387,7 @@ const Agenda = (() => {
     };
 
     el('agenda-titulo').textContent = item
-      ? `${item.tipo === 'reuniao' ? 'Reunião' : 'Contato'} — ${ROTULO_STATUS[item.status] || item.status}`
+      ? `${item.tipo === 'reuniao' ? 'Reunião' : 'Contato'} — ${item.iniciada_em && !item.finalizada_em ? 'Em andamento' : (ROTULO_STATUS[item.status] || item.status)}`
       : 'Agendar';
     el('agenda-lead-busca').value = '';
     el('agenda-data').value = base.inicio.slice(0, 10);
@@ -337,8 +406,14 @@ const Agenda = (() => {
 
     // Na criação o status é sempre "agendada"; muda depois, ao acontecer.
     el('agenda-status-bloco').classList.toggle('hidden', !item);
-    el('btn-agenda-excluir').classList.toggle('hidden', !item);
-    el('btn-agenda-remarcar').classList.toggle('hidden', !item || item.status !== 'agendada');
+    // Reunião vira realizada por "Finalizar" (2.36.0), que guarda as horas
+    // de início e fim; em andamento, só finalizando ela sai do lugar.
+    const andando = !!item?.iniciada_em && !item?.finalizada_em;
+    const opRealizada = el('agenda-status').querySelector('option[value="realizada"]');
+    if (opRealizada) opRealizada.disabled = base.tipo === 'reuniao' && base.status !== 'realizada';
+    el('agenda-status').disabled = andando;
+    el('btn-agenda-excluir').classList.toggle('hidden', !item || andando);
+    el('btn-agenda-remarcar').classList.toggle('hidden', !item || item.status !== 'agendada' || andando);
     el('agenda-remarcar').classList.add('hidden');
     // O tipo não muda depois de criado: uma reunião que virou ligação é
     // outro compromisso.
@@ -504,13 +579,17 @@ const Agenda = (() => {
       const d = await r.json();
       const itens = d.itens || [];
       itensDaFicha = itens;
+      const agora = agoraTxt();
       lista.innerHTML = itens.length
-        ? itens.map((x) => `
-            <button type="button" class="agenda-linha st-${esc(x.status)}" data-item-ficha="${x.id}">
-              <span class="agenda-linha-quando">${dataBr(x.inicio)} ${esc(hora(x.inicio))}</span>
+        ? itens.map((x) => {
+            const sit = situacao(x, agora);
+            return `
+            <button type="button" class="agenda-linha st-${esc(x.status)} cor-${sit}" data-item-ficha="${x.id}">
+              <span class="agenda-linha-quando">${dataBr(x.inicio)} ${esc(horario(x))}</span>
               <span class="agenda-linha-oque">${esc(resumo(x).slice(6))}${x.tipo === 'reuniao' && x.local_tipo ? ` · ${esc(ROTULO_LOCAL[x.local_tipo])}` : ''}</span>
-              <span class="agenda-linha-status">${esc(ROTULO_STATUS[x.status] || x.status)}</span>
-            </button>`).join('')
+              <span class="agenda-linha-status">${esc(ROTULO_SITUACAO[sit] || ROTULO_STATUS[x.status] || x.status)}</span>
+            </button>`;
+          }).join('')
         : '<div class="coluna-vazia">Nada agendado ainda.</div>';
     } catch (e) {
       lista.innerHTML = '<div class="coluna-vazia">Não foi possível carregar a agenda do lead.</div>';
@@ -631,5 +710,12 @@ const Agenda = (() => {
   // Os tipos vêm do hub: só depois do login, e uma vez.
   document.addEventListener('crm:autenticado', () => carregarTipos(), { once: true });
 
-  return { carregar, abrirJanela };
+  // A cada minuto, com a visão Agenda à mostra: o que passou da hora fica
+  // vermelho, e a reunião que outra pessoa iniciou fica verde.
+  setInterval(() => {
+    if (document.hidden || el('view-agenda')?.classList.contains('hidden')) return;
+    carregar({ silencioso: true });
+  }, 60 * 1000);
+
+  return { carregar, abrirJanela, atualizar: depoisDeMudar };
 })();

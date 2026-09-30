@@ -1,17 +1,20 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 29/09/2026
-**Versão no ar:** 2.35.0 (desde 28/09/2026; deploy `ae20e63` em 29/09/2026 com o binding **Workers AI** `AI` ligado; migrações 008 a 020 aplicadas no D1 remoto, a 011 em 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Atualizado em:** 30/09/2026
+**Versão no ar:** 2.36.0 (desde 30/09/2026; binding **Workers AI** `AI` ligado desde 29/09/2026; migrações 008 a 021 aplicadas no D1 remoto, a 021 em 30/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
 
-## ▶ Retomada (29/09/2026, fim do dia)
+## ▶ Retomada (30/09/2026)
 
-**Onde paramos:** o lote da jornada do lead (JL) está entregue até a
-**2.35.0**: funil com responsável e motivos de perda, agenda do lead,
+**Onde paramos:** o lote da jornada do lead (JL) está no ar até a
+**2.36.0**: funil com responsável e motivos de perda, agenda do lead,
 prospects do ERP todo dia às 06:00, chaves de IA e roteiros, barra do
-topo, "O que mudou" e a gravação/transcrição da reunião.
+topo, "O que mudou", a gravação/transcrição da reunião e, desde 30/09,
+**iniciar e finalizar a reunião** (hora real de início e fim, uma em
+andamento por pessoa, cores da agenda). **Retomar pelos testes A, B e C
+da 1.2**, abaixo.
 
 ### Pendências, em ordem
 
@@ -23,22 +26,24 @@ segredos do Pages).
 | # | O quê | Quem | Estado em 29/09 |
 |---|---|---|---|
 | 1.1 | **Transcritor**: binding **Workers AI** `AI` no crm-fmt (Pages → Configurações → Associações) | Jair | **Feito em 29/09/2026.** Deploy `ae20e63`; Configurações mostram "Workers AI: ligado" |
-| 1.2 | **Teste real da gravação**: o roteiro de teste está abaixo, em "O teste da gravação" | Jair | **Parcial.** Em 29/09 a gravação 1 (reunião 79, modo online) transcreveu em português pelo Workers AI; o PC reiniciou no meio e ela ficou em `gravando`, sem encerrar (não bloqueia gravar de novo). Viu-se um defeito: com pouca fala, o Whisper devolveu a dica ("Jair da Silva Jair da Silva"). **Retomar aqui: rodar os testes 1 e 2** |
+| 1.2 | **Teste real da 2.36.0** (iniciar/finalizar, cores e gravação): o roteiro está abaixo | Jair | **A fazer.** O teste de 29/09 ficou parcial: a gravação 1 (reunião 79) transcreveu em português, mas o PC reiniciou e ela ficou em `gravando`; com pouca fala, o Whisper devolveu a dica ("Jair da Silva Jair da Silva"). A 2.36.0 mudou o fluxo, então o roteiro foi refeito |
 | 1.3 | **Migração 011** (`etapa_desde` em `leads` e `clientes`) no D1 remoto | Claude | **Feita em 29/09/2026.** Conferida: coluna nas duas tabelas e os 4 gatilhos no remoto. As 112 linhas de leads e as 186 de clientes seguem com `etapa_desde` nulo, que é o certo ("não sei desde quando"); a data passa a ser gravada na próxima mudança de etapa |
 
-**O teste da gravação (1.2)** — Ctrl+F5, fone de ouvido, reunião do dia 29 às 16:00 (encerrar a torna "Realizada").
+**O teste da 2.36.0 (1.2)**: Ctrl+F5 antes. Leads → Agenda → Semana. As reuniões de 28/09 e 29/09 (testes antigos) aparecem vermelhas, atrasadas: pode marcá-las "Cancelada".
 
-- **Teste 1, um microfone só (~2 min):** 0–40 s ler *"A Formatar vai separar o custo do cimento por unidade. O CNPJ do cliente começa com 12. O valor do quilômetro é um real e sessenta."* → texto aos ~20 e ~40 s, nomes e números certos · 40–60 s em silêncio → nada aparece (nem "Jair da Silva", nem "Obrigado por assistir") · Pausar, falar 10 s, Continuar, falar 20 s → a fala da pausa não aparece · Encerrar → "marcada como realizada" · reabrir a reunião → a transcrição em Gravação.
-- **Teste 2, reunião online (~2 min):** vídeo do YouTube em português noutra aba, fazendo o papel do lead · escolher a aba e marcar "Compartilhar áudio da guia" · 30 s de vídeo, 30 s de você → "Lead:" e "Formatar:" separados, sem a sua fala repetida no lado do lead · "Parar de compartilhar" → aviso de que o lead não está mais sendo gravado · Encerrar.
-- **Mandar:** a captura da janela no fim de cada teste e o que pareceu estranho. O Claude confere os pedaços no D1 (`gravacoes`, `transcricao_trechos`).
+- **Teste A, sem gravar (~3 min):** agendar duas reuniões hoje para um lead de teste, **A** daqui a 2 horas (amarela) e **B** com hora de 1 hora atrás (vermelha) · abrir a B, deixar a caixa do consentimento desmarcada, "Iniciar reunião" e confirmar "sem gravar" → cartão verde e o aviso verde no canto · abrir a A e "Iniciar reunião" → recusa: "Você já tem uma reunião em andamento: …" e oferece abrir a B · na B: Situação travada, sem Excluir e Remarcar · "Finalizar reunião" → "Realizada em 30/09/2026, das HH:MM às HH:MM (N min)", cartão verde-claro, aviso some · na A, a opção "Realizada" da Situação vem desabilitada.
+- **Teste B, gravando com um microfone (~2 min, fone de ouvido):** abrir a A, marcar o consentimento, "Um microfone só", "Iniciar reunião" → a janela "Reunião em andamento" abre **já gravando** · ler *"A Formatar vai separar o custo do cimento por unidade. O CNPJ do cliente começa com 12. O valor do quilômetro é um real e sessenta."* → texto aos ~20 e ~40 s · 20 s de silêncio → nada aparece · Pausar, falar, Continuar → a fala da pausa não aparece · "Finalizar reunião" → "Reunião finalizada: …" · reabrir a A → as horas e a transcrição.
+- **Teste C, retomar (~2 min):** agendar outra para agora, iniciar gravando, apertar F5 e aceitar sair → o aviso verde continua no canto · clicar nele → a reunião em andamento, com "Retomar a gravação" e "Finalizar reunião" · retomar, falar 20 s, finalizar.
+- **Mandar:** a captura da agenda no fim e o que pareceu estranho. O Claude confere no D1 (`agenda_lead`: `iniciada_em`/`finalizada_em`; `gravacoes`; `transcricao_trechos`).
 
 **2. Lote JL (jornada do lead): o que falta**
 
 | Versão | Entrega | Depende de |
 |---|---|---|
-| **2.35.1** *(desenhada em 29/09; falta o "pode executar e subir")* | **Texto a cada 3 s, crescendo.** A captura é contínua; a cada 3 s manda a frase **inteira até ali** (sem cortar palavra) e o balão mostra o texto provisório, em cinza, substituído pelo maior; a pausa de ~0,6 s fecha a frase (teto ~12 s) e só o texto final vai ao banco. Provisório = opção na `gravacoes.js` que transcreve sem salvar. Custo ≈ 2× os minutos (dentro da cota grátis nos testes). Junto: descartar o eco da dica (texto que é só o nome do lead repetido) e o que os testes da 1.2 mostrarem; ver o que fazer com gravação que ficou em `gravando` | 1.2 |
-| **2.36.0** | **Recortes e insights durante a reunião**: frases do lead que captam a expectativa, conferidas por código contra a transcrição (o recorte só vale se a frase existir literalmente); perguntas do roteiro ainda não cobertas. Lê a transcrição, o roteiro da versão gravada e o dossiê | 1.1 e 1.2 |
-| **2.37.0** | **Laudo pós-reunião**: HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão | 2.35.0 (melhor depois da 2.36.0) |
+| ~~2.36.0~~ | ~~Iniciar e finalizar a reunião~~: no ar em 30/09/2026 (migração 021) | — |
+| **2.36.1** *(era a 2.35.1; desenhada em 29/09; falta o "pode executar e subir")* | **Texto a cada 3 s, crescendo.** A captura é contínua; a cada 3 s manda a frase **inteira até ali** (sem cortar palavra) e o balão mostra o texto provisório, em cinza, substituído pelo maior; a pausa de ~0,6 s fecha a frase (teto ~12 s) e só o texto final vai ao banco. Provisório = opção na `gravacoes.js` que transcreve sem salvar. Custo ≈ 2× os minutos (dentro da cota grátis nos testes). Junto: descartar o eco da dica (texto que é só o nome do lead repetido) e o que os testes da 1.2 mostrarem; ver o que fazer com gravação que ficou em `gravando` | 1.2 |
+| **2.37.0** | **Recortes e insights durante a reunião**: frases do lead que captam a expectativa, conferidas por código contra a transcrição (o recorte só vale se a frase existir literalmente); perguntas do roteiro ainda não cobertas. Lê a transcrição, o roteiro da versão gravada e o dossiê | 1.1 e 1.2 |
+| **2.38.0** | **Laudo pós-reunião**: HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão | 2.35.0 (melhor depois da 2.37.0) |
 | depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |
 
 **3. Desenhados e sem material externo: podem entrar quando o JL fechar**
@@ -46,7 +51,7 @@ segredos do Pages).
 | Entrega | O quê | Depende de |
 |---|---|---|
 | **Dossiê lê as atas + Balança Avaliativa** | Aba própria no cliente: positivos e negativos lado a lado, cada um ancorado em ação, ata ou registro com data. Com o plano gravado (2.25.0), lê as ações do banco em vez de reler as atas | nada: `hub:meetings:read` já está na chave |
-| **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**021**) | o `contacts` do ERP ter id estável |
+| **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**022**; a 021 foi da 2.36.0) | o `contacts` do ERP ter id estável |
 | **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
 
 **4. Travados, esperando material**
@@ -126,6 +131,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.34.1** | **Barra do topo** — tema, configurações e o usuário (iniciais, menu com Sair) no canto superior direito; barra lateral só com o menu, mais estreita; **tema claro por padrão**, o escuro lembrado por navegador |
 | — | **2.34.2** | **A versão no canto inferior esquerdo** e, ao clicar, "O que mudou" (`public/novidades.json`, conferido pela `ids.mjs` contra o package.json) |
 | **JL⁵** | **2.35.0** | **Gravação e transcrição da reunião** — consentimento registrado; no computador, microfone e áudio da aba separados (Formatar / Lead); pedaços de 20 s em WAV 16 kHz, transcritos pelo Workers AI (ou OpenAI) e descartados — só o texto fica; encerrar marca a reunião como realizada; a gravação fica presa à versão do roteiro (migração 020) |
+| **JL⁶** | **2.36.0** | **Iniciar e finalizar a reunião** (pedido de 30/09/2026) — "Iniciar reunião" guarda a hora real e já começa a transcrever (com o consentimento marcado; sem ele, começa sem gravar); "Finalizar" guarda o fim e a torna realizada (a lista não pula mais o fim); **uma em andamento por pessoa** (API + índice único da migração 021; admin finaliza a de outra pessoa); em andamento não se cancela, remarca nem exclui; aviso verde no canto leva à reunião aberta, com "Retomar a gravação"; cartões da agenda no formato do Painel de Operações, amarelo/vermelho/verde/verde-claro, redesenhados a cada minuto |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -144,8 +150,10 @@ emitido ou a perda. Uma versão por entrega, cada uma testável sozinha.
 | ~~2.33.0~~ | ~~Prospects do ERP, 1× por dia~~ — entregue | — |
 | ~~2.34.0~~ | ~~Chaves de IA e roteiros~~ — entregue | o binding Workers AI no painel (para a 2.35.0) |
 | ~~2.35.0~~ | ~~Gravação e transcrição ao vivo~~ — entregue | um transcritor: binding Workers AI ou chave OpenAI |
-| **2.36.0** | **Recortes e insights durante a reunião** — frases do lead que captam a expectativa, conferidas por código contra a transcrição; perguntas do roteiro ainda não cobertas | 2.35.0 |
-| **2.37.0** | **Laudo pós-reunião** — HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão, como histórico da pré-venda | 2.35.0 |
+| ~~2.36.0~~ | ~~Iniciar e finalizar a reunião~~ — entregue em 30/09/2026 | migração 021 |
+| **2.36.1** | **Texto a cada 3 s, crescendo**, e descartar o eco da dica | os testes da 2.36.0 |
+| **2.37.0** | **Recortes e insights durante a reunião** — frases do lead que captam a expectativa, conferidas por código contra a transcrição; perguntas do roteiro ainda não cobertas | 2.35.0 |
+| **2.38.0** | **Laudo pós-reunião** — HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão, como histórico da pré-venda | 2.35.0 |
 | depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |
 
 **Decisões que valem para o lote:**

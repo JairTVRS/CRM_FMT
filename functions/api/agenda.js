@@ -5,11 +5,19 @@
  * GET    ?lead_id=N                        tudo de um lead, o mais recente primeiro
  * GET    ?de=AAAA-MM-DD&ate=AAAA-MM-DD     o período da visão Agenda
  *        [&responsavel=email|__sem__] [&busca=texto]
+ * GET    ?em_andamento=1                   a reunião que EU iniciei e não finalizei
  * POST                                     cria um compromisso
  * PUT    ?id=N                             altera; `remarcar_para` remarca
+ * PUT    ?id=N { acao: 'iniciar' }         a reunião começa agora (2.36.0)
+ * PUT    ?id=N { acao: 'finalizar' }       a reunião termina agora e vira realizada
  * DELETE ?id=N                             exclui (lógica) — para o que foi
  *                                          lançado por engano; o que não
  *                                          aconteceu é "cancelada"
+ *
+ * INICIAR E FINALIZAR (2.36.0, pedido de 30/09/2026): a reunião só vira
+ * "realizada" quando o CX a finaliza, e o CRM guarda a hora real de
+ * início e de fim. Cada pessoa tem no máximo UMA reunião em andamento —
+ * a API confere e o índice da migração 021 garante.
  *
  * A AGENDA DO LEAD MORA NO CRM. Decidido em 28/09/2026: o ERP só entra
  * quando o lead vira cliente, e as reuniões de venda não vão para o
@@ -21,8 +29,10 @@
 
 import {
   TIPOS, STATUS, LOCAIS, CANAIS, normalizarInicio,
-  comandoRecalcularProximo, comandoUltimoContato, usuarioDoCrm, tiposDeVendas
+  comandoRecalcularProximo, comandoUltimoContato, usuarioDoCrm, tiposDeVendas,
+  emAndamento, diaEmBrasilia
 } from './_lib/agenda.js';
+import { avaliarAdmin } from './_lib/admin.js';
 
 function json(objeto, status, cabecalhos) {
   return new Response(JSON.stringify(objeto), { status, headers: cabecalhos });
@@ -67,6 +77,11 @@ async function montarItem(db, corpo, anterior, lead, usuario) {
 
   const status = v('status') ?? 'agendada';
   if (!STATUS.includes(status)) return { erro: { error: 'Status inválido.', code: 'STATUS_INVALIDO' } };
+  // Reunião vira realizada por "Finalizar" (2.36.0), que guarda a hora de
+  // início e de fim. Escolher "Realizada" na lista pularia os dois.
+  if (tipo === 'reuniao' && status === 'realizada' && anterior?.status !== 'realizada') {
+    return { erro: { error: 'Reunião vira realizada ao ser finalizada: use "Iniciar reunião" e depois "Finalizar".', code: 'REALIZADA_SO_FINALIZANDO' } };
+  }
 
   // Responsável: o da escolha, ou o do lead, ou quem está lançando.
   const pedido = texto(corpo.responsavel, 160)?.toLowerCase() || null;
@@ -150,6 +165,11 @@ export async function onRequestGet(context) {
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
 
   try {
+    if (searchParams.get('em_andamento')) {
+      const usuario = context.data.usuario;
+      return json({ item: await emAndamento(db, usuario.email, SELECT_ITEM) }, 200, cabecalhos);
+    }
+
     const leadId = Number(searchParams.get('lead_id'));
     if (leadId) {
       const { results } = await db
@@ -249,6 +269,17 @@ export async function onRequestPut(context) {
 
   const agora = new Date().toISOString();
 
+  if (corpo.acao === 'iniciar') return iniciar(context, anterior, lead, agora);
+  if (corpo.acao === 'finalizar') return finalizar(context, anterior, lead, agora);
+  if (corpo.acao !== undefined) return json({ error: 'Ação desconhecida.', code: 'ACAO_INVALIDA' }, 400, cabecalhos);
+
+  // Em andamento, a reunião só termina finalizando: remarcar, cancelar ou
+  // mudar a situação deixaria a hora de início sem fim.
+  const andando = anterior.iniciada_em && !anterior.finalizada_em;
+  if (andando && (corpo.remarcar_para !== undefined || (corpo.status !== undefined && corpo.status !== anterior.status))) {
+    return json({ error: 'A reunião está em andamento. Finalize-a antes de mudar a situação.', code: 'EM_ANDAMENTO' }, 409, cabecalhos);
+  }
+
   // --- Remarcar: esta vira 'remarcada' e nasce outra na data nova ---
   if (corpo.remarcar_para !== undefined) {
     if (anterior.status !== 'agendada') {
@@ -300,6 +331,101 @@ export async function onRequestPut(context) {
 }
 
 /* ==========================================================================
+   INICIAR e FINALIZAR a reunião (2.36.0)
+   ========================================================================== */
+
+/** D1 devolve `meta.changes`; o SQLite das provas, `changes`. */
+const alteradas = (r) => Number(r?.meta?.changes ?? r?.changes ?? 0);
+
+async function iniciar(context, anterior, lead, agora) {
+  const cabecalhos = context.data.cabecalhos;
+  const db = context.env.DB;
+  const eu = String(context.data.usuario.email || '').toLowerCase();
+
+  if (anterior.tipo !== 'reuniao') {
+    return json({ error: 'Só reunião se inicia — contato não.', code: 'NAO_E_REUNIAO' }, 400, cabecalhos);
+  }
+  if (anterior.iniciada_em) {
+    return json({ error: anterior.finalizada_em ? 'Esta reunião já foi realizada.' : 'Esta reunião já está em andamento.', code: 'JA_INICIADA' }, 409, cabecalhos);
+  }
+  if (anterior.status !== 'agendada') {
+    return json({ error: 'Só uma reunião agendada pode ser iniciada.', code: 'NAO_AGENDADO' }, 409, cabecalhos);
+  }
+
+  // A conferência e a gravação num comando só: duas abas iniciando ao
+  // mesmo tempo não passam as duas. O índice da 021 segura o resto.
+  let resultado;
+  try {
+    resultado = await db.prepare(
+      `UPDATE agenda_lead SET iniciada_em = ?, iniciada_por = ?, atualizado_por = ?, atualizado_em = ?
+        WHERE id = ? AND ativo = 1 AND iniciada_em IS NULL AND status = 'agendada'
+          AND NOT EXISTS (SELECT 1 FROM agenda_lead o
+                           WHERE o.iniciada_por = ? AND o.iniciada_em IS NOT NULL
+                             AND o.finalizada_em IS NULL AND o.ativo = 1)`
+    ).bind(agora, eu, eu, agora, anterior.id, eu).run();
+  } catch (e) {
+    if (!/UNIQUE/i.test(e.message || '')) {
+      const semColuna = /no such column/i.test(e.message || '');
+      return json({ error: semColuna ? 'Falta aplicar a migração 021.' : 'Falha ao iniciar a reunião.', details: e.message }, 500, cabecalhos);
+    }
+    resultado = null;
+  }
+
+  if (!alteradas(resultado)) {
+    const outra = await emAndamento(db, eu, SELECT_ITEM);
+    if (outra) {
+      return json({
+        error: `Você já tem uma reunião em andamento: ${outra.lead_nome}. Finalize-a antes de iniciar outra.`,
+        code: 'OUTRA_EM_ANDAMENTO', emAndamento: outra
+      }, 409, cabecalhos);
+    }
+    return json({ error: 'Esta reunião já foi iniciada.', code: 'JA_INICIADA' }, 409, cabecalhos);
+  }
+
+  console.log(`[agenda] ${eu} iniciou a reunião ${anterior.id} (lead ${lead.id})`);
+  const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
+  return json({ item: salvo }, 200, cabecalhos);
+}
+
+async function finalizar(context, anterior, lead, agora) {
+  const cabecalhos = context.data.cabecalhos;
+  const db = context.env.DB;
+  const eu = String(context.data.usuario.email || '').toLowerCase();
+
+  if (!anterior.iniciada_em) {
+    return json({ error: 'Esta reunião ainda não foi iniciada.', code: 'NAO_INICIADA' }, 409, cabecalhos);
+  }
+  if (anterior.finalizada_em) {
+    const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
+    return json({ item: salvo }, 200, cabecalhos);
+  }
+  // Quem iniciou finaliza. Admin também, para destravar a reunião de quem
+  // saiu sem finalizar.
+  if (anterior.iniciada_por !== eu && !(await avaliarAdmin(context.env, context.data.usuario)).admin) {
+    return json({ error: `Só quem iniciou a reunião (${anterior.iniciada_por}) pode finalizá-la.`, code: 'DE_OUTRA_PESSOA' }, 403, cabecalhos);
+  }
+
+  await db.batch([
+    db.prepare(
+      `UPDATE agenda_lead SET finalizada_em = ?, finalizada_por = ?, status = 'realizada',
+              atualizado_por = ?, atualizado_em = ?
+        WHERE id = ? AND finalizada_em IS NULL`
+    ).bind(agora, eu, eu, agora, anterior.id),
+    // Gravação que ficou aberta (navegador fechado, PC reiniciado) termina
+    // com a reunião.
+    db.prepare(`UPDATE gravacoes SET status = 'encerrada', encerrada_em = ? WHERE reuniao_id = ? AND status = 'gravando'`)
+      .bind(agora, anterior.id),
+    comandoRecalcularProximo(db, lead.id),
+    // O último contato é o dia em que a reunião ACONTECEU, não o marcado.
+    comandoUltimoContato(db, lead.id, diaEmBrasilia(anterior.iniciada_em))
+  ]);
+
+  console.log(`[agenda] ${eu} finalizou a reunião ${anterior.id} (lead ${lead.id})`);
+  const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
+  return json({ item: salvo }, 200, cabecalhos);
+}
+
+/* ==========================================================================
    DELETE — lançado por engano
    ========================================================================== */
 
@@ -312,9 +438,12 @@ export async function onRequestDelete(context) {
 
   const id = Number(searchParams.get('id'));
   const anterior = id
-    ? await db.prepare('SELECT lead_id FROM agenda_lead WHERE id = ? AND ativo = 1').bind(id).first()
+    ? await db.prepare('SELECT lead_id, iniciada_em, finalizada_em FROM agenda_lead WHERE id = ? AND ativo = 1').bind(id).first()
     : null;
   if (!anterior) return json({ error: 'Compromisso não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
+  if (anterior.iniciada_em && !anterior.finalizada_em) {
+    return json({ error: 'A reunião está em andamento. Finalize-a antes de excluir.', code: 'EM_ANDAMENTO' }, 409, cabecalhos);
+  }
 
   try {
     await db.batch([

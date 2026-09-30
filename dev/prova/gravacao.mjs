@@ -7,7 +7,9 @@
  *   - sem transcritor, recusa ANTES de começar, dizendo o que ligar;
  *   - só o texto é guardado; frase fantasma do Whisper não vira fala;
  *   - o reenvio de um pedaço substitui, não duplica;
- *   - encerrar marca a reunião como realizada e move o último contato;
+ *   - encerrar a gravação NÃO finaliza a reunião — desde a 2.36.0 isso é
+ *     o "Finalizar" da agenda (prova reuniao.mjs);
+ *   - só se grava a reunião iniciada (2.36.0);
  *   - a gravação fica presa à versão do roteiro em vigor ao começar.
  */
 import { DatabaseSync } from 'node:sqlite';
@@ -93,6 +95,7 @@ const M020 = readFileSync(`${RAIZ}/db/migracao-020-gravacao.sql`, 'utf8');
 bd.exec(M020);
 bd.exec(M020);
 ok(true, 'a 020 roda duas vezes sem erro');
+bd.exec(readFileSync(`${RAIZ}/db/migracao-021-reuniao-iniciar-finalizar.sql`, 'utf8'));
 
 bd.exec(`
   INSERT INTO agenda_lead (id, lead_id, tipo, inicio, local_tipo, tipo_reuniao_erp_id, status, criado_por, criado_em)
@@ -131,6 +134,10 @@ ok((await POST('/api/gravacoes', { reuniao_id: 11, consentimento: true, modo: 'p
   'contato não se grava');
 ok((await POST('/api/gravacoes', { reuniao_id: 10, consentimento: true, modo: 'celular' })).corpo.code === 'MODO_INVALIDO',
   'modo desconhecido é recusado');
+
+ok((await POST('/api/gravacoes', { reuniao_id: 10, consentimento: true, modo: 'online' })).corpo.code === 'NAO_INICIADA',
+  'reunião que não foi iniciada não se grava (2.36.0)');
+bd.prepare("UPDATE agenda_lead SET iniciada_em = ?, iniciada_por = 'jair@formatar.com.br' WHERE id = 10").run(new Date().toISOString());
 
 const semNada = await POST('/api/gravacoes', { reuniao_id: 10, consentimento: true, modo: 'online' }, {});
 ok(semNada.status === 503 && semNada.corpo.code === 'SEM_TRANSCRITOR' && /Workers AI/.test(semNada.corpo.error),
@@ -177,13 +184,12 @@ ok(lista.corpo.trechos.map((t) => t.origem).join(',') === 'lead,formatar', 'a co
 console.log('\n=== 4. Encerrar ===');
 
 const fim = await ler(await rota.onRequestPut(ctx('PUT', `/api/gravacoes?id=${G.id}`, { encerrar: true, duracao_s: 1234 })));
-ok(fim.corpo.gravacao.status === 'encerrada' && fim.corpo.gravacao.duracao_s === 1234 && fim.corpo.reuniaoRealizada,
+ok(fim.corpo.gravacao.status === 'encerrada' && fim.corpo.gravacao.duracao_s === 1234,
   'encerra com a duração');
-const reuniao = bd.prepare('SELECT status FROM agenda_lead WHERE id = 10').get();
+const reuniao = bd.prepare('SELECT status, finalizada_em FROM agenda_lead WHERE id = 10').get();
 const lead = bd.prepare('SELECT * FROM leads WHERE id = 1').get();
-ok(reuniao.status === 'realizada', 'e a reunião vira realizada');
-ok(lead.data_ultimo_contato === '2026-10-02' && lead.data_proximo_contato === '2026-10-03',
-  'o último contato vai para o dia da reunião e o próximo passa ao contato seguinte', JSON.stringify(lead));
+ok(reuniao.status === 'agendada' && !reuniao.finalizada_em && lead.data_ultimo_contato === '2026-01-01',
+  'e a reunião segue em andamento: quem a finaliza é o "Finalizar" (2.36.0)', JSON.stringify(reuniao));
 
 respostaIA = { text: 'Chegou atrasado.' };
 ok((await trecho({ origem: 'lead', seq: 5, inicio_s: 100 })).status === 200, 'pedaço que chega logo depois de encerrar ainda conta');

@@ -87,6 +87,24 @@ export function comandosDoImportado(db, { documento, data, usuario, agora }) {
   ];
 }
 
+/**
+ * A reunião que a pessoa iniciou e não finalizou (2.36.0) — no máximo
+ * uma, pelo índice da migração 021. `select` é o SELECT da tela, com o
+ * lead junto.
+ */
+export async function emAndamento(db, email, select) {
+  return db.prepare(
+    `${select} WHERE a.iniciada_por = ? AND a.iniciada_em IS NOT NULL
+        AND a.finalizada_em IS NULL AND a.ativo = 1
+      ORDER BY a.iniciada_em DESC LIMIT 1`
+  ).bind(String(email || '').toLowerCase()).first();
+}
+
+/** O dia, em Brasília (UTC−3, sem horário de verão), de um instante ISO. */
+export function diaEmBrasilia(iso) {
+  return new Date(Date.parse(iso) - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 /** O e-mail é de alguém que já entrou no CRM? */
 export async function usuarioDoCrm(db, email) {
   if (!email) return false;
