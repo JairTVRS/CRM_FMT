@@ -1,63 +1,64 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 30/09/2026
-**Versão no ar:** 2.36.1 (desde 30/09/2026, à noite; a 2.36.0 subiu à tarde; binding **Workers AI** `AI` ligado desde 29/09/2026; migrações 008 a 021 aplicadas no D1 remoto, a 021 em 30/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Atualizado em:** 01/10/2026
+**Versão no ar:** 2.38.2 (desde 01/10/2026; migrações 008 a 025 aplicadas no D1 remoto, da 022 à 025 em 01/10/2026; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
 
-## ▶ Retomada (30/09/2026)
+## ▶ Retomada (01/10/2026)
 
-**Onde paramos:** o lote da jornada do lead (JL) está no ar até a
-**2.36.1**: funil com responsável e motivos de perda, agenda do lead,
-prospects do ERP todo dia às 06:00, chaves de IA e roteiros, barra do
-topo, "O que mudou", a gravação/transcrição da reunião, **iniciar e
-finalizar a reunião** (2.36.0) e, na 2.36.1, a janela larga da reunião e
-a **gravação refeita**: tela inteira com o áudio do sistema, captura sem
-perdas (AudioWorklet), corte na pausa da fala, texto crescendo ao vivo e
-filtros contra invenção do Whisper. **Retomar pelos testes A, B e C da
-1.2**, abaixo, em produção — a qualidade da transcrição com fala real
-ainda não foi vista depois das correções.
+**Onde paramos:** o **lote da jornada do lead (JL) está fechado**, com a
+**2.38.2**. O CX conduz o lead da entrada ao contrato emitido ou à perda:
+funil com responsável e motivos de perda, agenda (semana, quinzena, mês),
+reunião com iniciar/finalizar, cancelar com motivo, situação automática,
+resetar e histórico de cada compromisso, gravação e transcrição, e o
+**Dossiê da Reunião** — a IA segue a instrução .md enviada por tipo de
+reunião e o CRM confere cada citação contra a transcrição —, que vai junto
+quando o lead vira cliente (aba **Pré-venda** da ficha do cliente).
+
+**Validado em produção em 01/10/2026:** reunião presencial real de 24 min
+(gravação 3, 118 trechos); Dossiê da Reunião v1 com 27 citações e nenhuma
+"não encontrada", v2 com 25 e 1 (a IA trocou uma letra de "Gerenção").
+
+**Próximo passo:** escolher o próximo lote na seção 3 — o Dossiê que lê as
+atas com a Balança Avaliativa, ou o N (Check-in, NPS/CSAT e Voz do Cliente).
 
 ### Pendências, em ordem
 
-Conferido em 29/09/2026 contra a produção (D1 remoto, lista de deploys e
-segredos do Pages).
+**1. Pequenas, dependem de uma resposta do Jair**
 
-**1. Passos operacionais: sem código, destravam o que vem depois**
-
-| # | O quê | Quem | Estado em 29/09 |
-|---|---|---|---|
-| 1.1 | **Transcritor**: binding **Workers AI** `AI` no crm-fmt (Pages → Configurações → Associações) | Jair | **Feito em 29/09/2026.** Deploy `ae20e63`; Configurações mostram "Workers AI: ligado" |
-| 1.2 | **Teste real da 2.36.0** (iniciar/finalizar, cores e gravação): o roteiro está abaixo | Jair | **A fazer.** O teste de 29/09 ficou parcial: a gravação 1 (reunião 79) transcreveu em português, mas o PC reiniciou e ela ficou em `gravando`; com pouca fala, o Whisper devolveu a dica ("Jair da Silva Jair da Silva"). A 2.36.0 mudou o fluxo, então o roteiro foi refeito |
-| 1.3 | **Migração 011** (`etapa_desde` em `leads` e `clientes`) no D1 remoto | Claude | **Feita em 29/09/2026.** Conferida: coluna nas duas tabelas e os 4 gatilhos no remoto. As 112 linhas de leads e as 186 de clientes seguem com `etapa_desde` nulo, que é o certo ("não sei desde quando"); a data passa a ser gravada na próxima mudança de etapa |
-
-**O teste da 2.36.0 (1.2)**: Ctrl+F5 antes. Leads → Agenda → Semana. As reuniões de 28/09 e 29/09 (testes antigos) aparecem vermelhas, atrasadas: pode marcá-las "Cancelada".
-
-- **Teste A, sem gravar (~3 min):** agendar duas reuniões hoje para um lead de teste, **A** daqui a 2 horas (amarela) e **B** com hora de 1 hora atrás (vermelha) · abrir a B, deixar a caixa do consentimento desmarcada, "Iniciar reunião" e confirmar "sem gravar" → cartão verde e o aviso verde no canto · abrir a A e "Iniciar reunião" → recusa: "Você já tem uma reunião em andamento: …" e oferece abrir a B · na B: Situação travada, sem Excluir e Remarcar · "Finalizar reunião" → "Realizada em 30/09/2026, das HH:MM às HH:MM (N min)", cartão verde-claro, aviso some · na A, a opção "Realizada" da Situação vem desabilitada.
-- **Teste B, gravando (~3 min, fone de ouvido):** abrir a A, consentimento já marcado, "Iniciar reunião" → o navegador pede a tela: **Tela inteira** + **Compartilhar áudio do sistema** → a janela "Reunião em andamento" abre **já gravando**, com as barras "Seu microfone" e "Som do computador (lead)" · tocar um vídeo em português e falar junto → a sua fala como Formatar, a do vídeo como Lead, a frase em curso crescendo em cinza e firmando na pausa · 20 s de silêncio → nada aparece · Pausar, falar, Continuar → a fala da pausa não aparece · "Finalizar reunião" → "Reunião finalizada: …" · reabrir a A → as horas e a transcrição.
-- **Teste C, retomar (~2 min):** agendar outra para agora, iniciar gravando, apertar F5 e aceitar sair → o aviso verde continua no canto · clicar nele → a reunião em andamento, com "Retomar a gravação" e "Finalizar reunião" · retomar, falar 20 s, finalizar.
-- **Mandar:** a captura da agenda no fim e o que pareceu estranho. O Claude confere no D1 (`agenda_lead`: `iniciada_em`/`finalizada_em`; `gravacoes`; `transcricao_trechos`).
-
-**2. Lote JL (jornada do lead): o que falta**
-
-| Versão | Entrega | Depende de |
+| # | O quê | Estado em 01/10 |
 |---|---|---|
-| ~~2.36.0~~ | ~~Iniciar e finalizar a reunião~~: no ar em 30/09/2026 (migração 021) | — |
-| ~~2.36.1~~ | ~~Janela larga e gravação refeita~~: no ar em 30/09/2026 (texto crescendo, eco da dica e "Obrigado" repetido descartados, tela inteira com áudio do sistema, AudioWorklet, corte na pausa, medidores de volume) | — |
-| **2.36.2** | **Cancelar com motivo** (pedido de 01/10/2026): botão "Cancelar" com os 4 motivos do ERP e observação; o cancelado fica roxo; a lista Situação não cancela; cancelar fecha a gravação aberta (migração 022) | — |
-| **2.36.3** | **A situação acompanha o cartão** (pedido de 01/10/2026): o campo Situação vira etiqueta automática na cor do cartão; muda só pelos botões (Iniciar, Finalizar, Cancelar, Remarcar, Não compareceu na reunião atrasada, Realizado no contato); o encerrado não volta a agendado (servidor recusa `JA_ENCERRADO`) | — |
-| **2.36.4** | **Resetar e Quinzena** (pedido de 01/10/2026): "Resetar" volta o compromisso a só agendado no horário cadastrado, apagando início/fim, cancelamento e gravação+transcrição (CX responsável, quem iniciou ou admin; remarcada não); visão Quinzena na agenda | — |
-| **2.36.5** | **Histórico de cada compromisso** (pedido de 01/10/2026): relógio na janela abre quem, quando e o que mudou (de → para), em `agenda_eventos` (migração 023, aplicada); o que veio antes mostra só a criação | — |
-| **2.36.6** | **Transcrição mais rápida e presencial** (teste real de 01/10/2026: frase firme chegava 10–28 s depois; transcritor 4–13 s por trecho): trechos de 3–8 s (corte na pausa ou respiração), provisório a cada 2 s, até 3 envios juntos; "Sala" na presencial; aviso de som mudo some na presencial e ganha "É presencial — ignorar" | — |
-| **em pausa** *(pedido de 01/10/2026; pausado pelo Jair no mesmo dia)* | **Voz sem terceiros, no próprio computador**: página de teste no localhost que transcreve (Whisper no navegador, WebGPU) e separa vozes (impressão de voz + agrupamento) — medir velocidade, qualidade em português e acerto das vozes no PC do Jair antes de decidir. PC: i5-12450H, vídeo Intel integrado, 7,7 GB — o Whisper bom não cabe no navegador; provar só a separação de vozes, com o texto na Cloudflare. A 2.36.6 ainda não pega 100% numa sala com conversas cruzadas (teste de 01/10), o que pode ser limite do ambiente | retomar quando o Jair pedir |
-| **depois** *(estudado em 30/09; sem custo por ora, decisão do Jair)* | **Identificar quem fala** ("Pessoa 1 / Pessoa 2"): o Whisper não faz; o caminho é o Deepgram Nova-3 do Workers AI em conexão contínua (`diarize`, pt-BR, ~US$ 0,55/h), provado antes no localhost | os testes da 2.36.1 |
-| ~~2.37.0~~ | ~~Recortes e insights durante a reunião~~: no ar em 01/10/2026 (migração 024, `reuniao_analises`). Recortes do lead em 4 tipos (expectativa, dor, objeção, decisão) conferidos palavra por palavra contra a transcrição (_lib/recortes.js); roteiro coberto/falta com evidência conferida; até 3 perguntas sugeridas (não conferíveis, a tela diz); a cada ~2 min sem chamar a IA se não há trecho novo; análise final ao finalizar; resetar apaga. **Falta ver com a DeepSeek real** quantas citações são descartadas (`reuniao_analises.descartados`): as chaves locais são de exemplo | — |
-| ~~2.38.0~~ | ~~Laudo pós-reunião~~ → **Dossiê da Reunião**: no ar em 01/10/2026 (migração 025). A IA segue a **instrução** .md enviada por tipo de reunião nas Configurações (tabela `roteiros`, `finalidade = dossie_reuniao`, versões próprias) e escreve o conteúdo em HTML simples; o CRM limpa, confere cada `<q>` contra a transcrição (minuto, ou "não encontrada na transcrição") e monta no visual da Formatar (`dossies_reuniao`, _lib/versionamento.js). Botão na reunião realizada; abrir, baixar, PDF. Resetar apaga. 1ª geração real (reunião 80, instrução V1.0): 27 citações, 0 não encontradas, 36 KB, completo até a matriz da seção 17 — os 8000 tokens bastaram. **Falta**: levar o dossiê junto na conversão do lead em cliente | — |
-| **2.38.1** | **Tela limpa e ícone** (pedido de 01/10/2026: "o dossiê já resolve"): recortes e roteiro saem da janela da gravação e da reunião (o `public/js/recortes.js` saiu; a `/api/recortes` e a tabela `reuniao_analises` ficam, sem tela, e o `_lib/recortes.js` segue usado pelo dossiê); o ícone do CRM vai embutido (data URI, `_lib/icone.js`) nos documentos | — |
-| depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |
+| 1.1 | `LEIAME-progresso.md` foi esvaziado na pasta local (não pelo Claude) | fora de todos os commits; restaurar (`git checkout -- LEIAME-progresso.md`) ou registrar a exclusão — pergunta em aberto |
+| 1.2 | Tolerância de grafia nas citações do dossiê: aceitar 1 ou 2 letras de diferença numa citação longa, marcando "conferida, com diferença de grafia" | oferecida, sem resposta (hoje a regra é palavra por palavra) |
+| 1.3 | "Não compareceu" pedir observação, como o cancelamento | oferecida, sem resposta |
+| 1.4 | Teste C da gravação (retomar depois de F5) | o único fluxo da gravação ainda não visto em produção |
 
-**3. Desenhados e sem material externo: podem entrar quando o JL fechar**
+**2. Lote JL (jornada do lead): fechado em 01/10/2026**
+
+| Versão | Entrega |
+|---|---|
+| 2.31.0 a 2.36.1 | Funil, agenda, prospects do ERP, chaves de IA e roteiros, gravação, iniciar/finalizar (ver "Entregue", abaixo) |
+| 2.36.2 | **Cancelar com motivo**: os 4 motivos do ERP e observação; o cancelado fica roxo (migração 022) |
+| 2.36.3 | **A situação acompanha o cartão**: etiqueta automática; muda só pelos botões; o encerrado não volta (`JA_ENCERRADO`) |
+| 2.36.4 | **Resetar e Quinzena**: volta a só agendado no horário cadastrado, apagando o que aconteceu depois (CX responsável, quem iniciou ou admin) |
+| 2.36.5 | **Histórico de cada compromisso**: quem, quando e o que mudou, em `agenda_eventos` (migração 023) |
+| 2.36.6 | **Transcrição mais rápida e presencial**: trechos de 3–8 s, 3 envios juntos, "Sala" na presencial |
+| 2.37.0 | **Recortes e roteiro durante a reunião** (migração 024) — saíram da tela na 2.38.1: "o dossiê já resolve". A `/api/recortes` e a `reuniao_analises` ficam, sem tela |
+| 2.38.0 | **Dossiê da Reunião**: instrução .md por tipo nas Configurações (`roteiros.finalidade = dossie_reuniao`); a IA escreve HTML simples; o CRM limpa, confere cada `<q>` (minuto, ou "não encontrada na transcrição") e monta no visual da Formatar, com versões (`dossies_reuniao`, migração 025); corrigida a separação de vozes (lead ≥ 15% da conversa) |
+| 2.38.1 | **Tela limpa e ícone**: recortes e roteiro fora da tela; ícone do CRM embutido nos documentos (`_lib/icone.js`) |
+| 2.38.2 | **O dossiê vai junto na conversão**: aba **Pré-venda** na ficha do cliente lista os Dossiês da Reunião do lead de origem (`clientes.lead_id`; nada é copiado, os gerados depois também aparecem) |
+
+**Ficaram fora do lote, por decisão do Jair em 01/10/2026:**
+
+| Item | Decisão |
+|---|---|
+| Evento no Google Agenda com link do Meet | **por ora não**. Quando voltar: OAuth com escopo de agenda |
+| Identificar quem fala ("Pessoa 1 / Pessoa 2") pelo Deepgram Nova-3 do Workers AI (~US$ 0,55/h) | **descartado: tem custo por hora** |
+| Voz sem terceiros, no próprio computador (separação de vozes no navegador) | **em pausa**. PC do Jair: i5-12450H, vídeo Intel integrado, 7,7 GB — o Whisper bom não cabe no navegador; se voltar, provar só a separação de vozes, com o texto na Cloudflare |
+
+**3. Desenhados e sem material externo: o próximo lote sai daqui (o JL fechou em 01/10/2026)**
 
 | Entrega | O quê | Depende de |
 |---|---|---|
@@ -144,6 +145,10 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | **JL⁵** | **2.35.0** | **Gravação e transcrição da reunião** — consentimento registrado; no computador, microfone e áudio da aba separados (Formatar / Lead); pedaços de 20 s em WAV 16 kHz, transcritos pelo Workers AI (ou OpenAI) e descartados — só o texto fica; encerrar marca a reunião como realizada; a gravação fica presa à versão do roteiro (migração 020) |
 | **JL⁶** | **2.36.0** | **Iniciar e finalizar a reunião** (pedido de 30/09/2026) — "Iniciar reunião" guarda a hora real e já começa a transcrever (com o consentimento marcado; sem ele, começa sem gravar); "Finalizar" guarda o fim e a torna realizada (a lista não pula mais o fim); **uma em andamento por pessoa** (API + índice único da migração 021; admin finaliza a de outra pessoa); em andamento não se cancela, remarca nem exclui; aviso verde no canto leva à reunião aberta, com "Retomar a gravação"; cartões da agenda no formato do Painel de Operações, amarelo/vermelho/verde/verde-claro, redesenhados a cada minuto |
 | — | **2.36.1** | **Janela larga e gravação refeita** — janela da reunião em duas colunas (campos 4 por linha à esquerda; dossiê e andamento à direita), sem rolar em 1280×800; consentimento já marcado; áudio sem escolha: microfone + **tela inteira com áudio do sistema**; captura por **AudioWorklet** (a antiga perdia ~35% do som com a aba em segundo plano — razão medida 1,002 na nova); pedaço fecha na **pausa** (6–15 s); **texto provisório crescendo** a cada ~3 s (`provisorio: true`, não salvo; não pede com a aba do CRM escondida); filtros: outra escrita (islandês), eco da dica, palavra repetida, pedaço com < 0,8 s de voz; medidores de volume e aviso de som mudo |
+| — | **2.36.2–2.36.6** | **A agenda completa** — cancelar com motivo (roxo), situação automática, resetar, quinzena, histórico de cada compromisso (`agenda_eventos`), transcrição mais rápida e "Sala" na presencial (migrações 022 e 023) |
+| — | **2.37.0** | **Recortes e roteiro durante a reunião** — conferidos palavra por palavra contra a transcrição (migração 024); saíram da tela na 2.38.1 |
+| **JL⁷** | **2.38.0** | **Dossiê da Reunião** — instrução .md por tipo nas Configurações, conteúdo da IA limpo e com as citações conferidas, visual da Formatar, versões (migração 025) |
+| — | **2.38.1–2.38.2** | Tela da reunião limpa, ícone do CRM nos documentos e a aba **Pré-venda** no cliente — **fecha o lote JL** (01/10/2026) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

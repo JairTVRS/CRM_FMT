@@ -2,6 +2,7 @@
  * /api/dossie-reuniao — o Dossiê da Reunião (2.38.0).
  *
  * GET  ?reuniao_id=N                      as versões, a instrução em vigor e se dá para gerar
+ * GET  ?cliente_id=N                      a pré-venda do cliente: os dossiês do lead de origem (2.38.2)
  * GET  ?reuniao_id=N&html=1[&versao=V]    o documento (a última, ou a versão V)
  * POST { reuniao_id }                     gera a próxima versão
  *
@@ -99,6 +100,47 @@ function dadosDaReuniao(r) {
   };
 }
 
+/**
+ * A PRÉ-VENDA DO CLIENTE (2.38.2). Pedido de 01/10/2026: o Dossiê da
+ * Reunião vai junto quando o lead vira cliente. Nada é copiado — o cliente
+ * guarda de qual lead veio (`clientes.lead_id`, desde a conversão) e cada
+ * dossiê guarda o seu lead; então os dossiês aparecem na ficha do cliente,
+ * inclusive os gerados depois da conversão.
+ *
+ * @returns { lead: {id, nome} | null, reunioes: [{ reuniao_id, inicio, tipo_reuniao_nome, iniciada_em, finalizada_em, versoes }] }
+ */
+async function preVendaDoCliente(db, clienteId) {
+  const cliente = await db.prepare(
+    `SELECT c.lead_id, l.nome AS lead_nome FROM clientes c LEFT JOIN leads l ON l.id = c.lead_id
+      WHERE c.id = ? AND c.ativo = 1`
+  ).bind(clienteId).first();
+  if (!cliente?.lead_id) return { lead: null, reunioes: [] };
+
+  const { results } = await db.prepare(
+    `SELECT d.reuniao_id, d.versao, d.gerado_em, d.gerado_por, d.instrucao_versao, d.citacoes, d.citacoes_nao_encontradas,
+            a.inicio, a.tipo_reuniao_nome, a.iniciada_em, a.finalizada_em
+       FROM dossies_reuniao d
+       LEFT JOIN agenda_lead a ON a.id = d.reuniao_id
+      WHERE d.lead_id = ? AND d.status = 'concluido'
+      ORDER BY a.inicio DESC, d.reuniao_id DESC, d.versao DESC`
+  ).bind(cliente.lead_id).all();
+
+  const porReuniao = new Map();
+  for (const r of results || []) {
+    if (!porReuniao.has(r.reuniao_id)) {
+      porReuniao.set(r.reuniao_id, {
+        reuniao_id: r.reuniao_id, inicio: r.inicio, tipo_reuniao_nome: r.tipo_reuniao_nome,
+        iniciada_em: r.iniciada_em, finalizada_em: r.finalizada_em, versoes: []
+      });
+    }
+    porReuniao.get(r.reuniao_id).versoes.push({
+      versao: r.versao, gerado_em: r.gerado_em, gerado_por: r.gerado_por, instrucao_versao: r.instrucao_versao,
+      citacoes: r.citacoes, citacoes_nao_encontradas: r.citacoes_nao_encontradas
+    });
+  }
+  return { lead: { id: cliente.lead_id, nome: cliente.lead_nome }, reunioes: [...porReuniao.values()] };
+}
+
 /* ==========================================================================
    GET
    ========================================================================== */
@@ -108,6 +150,17 @@ export async function onRequestGet(context) {
   const db = context.env.DB;
   const { searchParams } = new URL(context.request.url);
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
+
+  // A pré-venda do cliente (2.38.2): os dossiês das reuniões do lead de origem.
+  const clienteId = Number(searchParams.get('cliente_id'));
+  if (clienteId) {
+    try {
+      return json(await preVendaDoCliente(db, clienteId), 200, cabecalhos);
+    } catch (e) {
+      if (/no such table/i.test(e.message || '')) return json({ reunioes: [], aviso: 'Falta aplicar a migração 025.' }, 200, cabecalhos);
+      return json({ error: 'Falha ao consultar a pré-venda.', details: e.message }, 500, cabecalhos);
+    }
+  }
 
   const reuniaoId = Number(searchParams.get('reuniao_id'));
   if (!reuniaoId) return json({ error: 'Reunião ausente.' }, 400, cabecalhos);

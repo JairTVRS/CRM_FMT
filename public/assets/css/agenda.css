@@ -607,3 +607,17 @@
 @media (max-width: 700px) {
   #modal-dossie-reuniao .modal-header { flex-wrap: wrap; gap: 0.5rem; }
 }
+
+/* A pré-venda na ficha do cliente (2.38.2). */
+.cli-prevenda-lista { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.cli-prevenda-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-color);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+}

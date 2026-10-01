@@ -6,6 +6,9 @@
  * Configurações para o tipo da reunião; o documento abre num visualizador
  * isolado e se baixa como .html (com "Salvar como PDF" dentro dele).
  *
+ * E na ficha do cliente, aba "Pré-venda" (2.38.2): os dossiês das reuniões
+ * do lead que deu origem ao cliente, no mesmo visualizador, só leitura.
+ *
  * Carregar DEPOIS do agenda.js.
  */
 
@@ -22,6 +25,8 @@ const DossieReuniao = (() => {
   let versoes = [];
   let htmlAtual = null;
   let gerando = null;          // { id, relogio, inicio } enquanto a IA escreve
+  /** O que o visualizador mostra: { reuniaoId, nome, versoes } — da agenda ou da pré-venda. */
+  let noVisor = null;
 
   /* ----------------------------------------------------------
      O bloco na janela da reunião
@@ -108,17 +113,23 @@ const DossieReuniao = (() => {
      O visualizador
      ---------------------------------------------------------- */
 
-  async function abrir(versao = null) {
+  /** Da janela da reunião: a reunião aberta e as versões dela. */
+  function abrir(versao = null) {
     if (!reuniao) return;
-    const v = versao || versoes[0]?.versao;
-    el('dossie-reuniao-titulo').textContent = `Dossiê da Reunião — ${reuniao.lead_nome || ''}`;
-    el('dossie-reuniao-versao').innerHTML = versoes.map((x, i) =>
+    abrirDocumento({ reuniaoId: reuniao.id, nome: reuniao.lead_nome, versoes }, versao);
+  }
+
+  async function abrirDocumento(doc, versao = null) {
+    noVisor = doc;
+    const v = versao || doc.versoes[0]?.versao;
+    el('dossie-reuniao-titulo').textContent = `Dossiê da Reunião — ${doc.nome || ''}`;
+    el('dossie-reuniao-versao').innerHTML = doc.versoes.map((x, i) =>
       `<option value="${x.versao}">Versão ${x.versao}${i === 0 ? ' (mais nova)' : ''} · ${esc(quando(x.gerado_em))}</option>`).join('');
     el('dossie-reuniao-versao').value = String(v);
     el('dossie-reuniao-frame').srcdoc = '<p style="font-family:sans-serif;padding:2rem">Carregando…</p>';
     el('modal-dossie-reuniao').classList.remove('hidden');
     try {
-      const r = await fetch(`/api/dossie-reuniao?reuniao_id=${reuniao.id}&html=1&versao=${v}`);
+      const r = await fetch(`/api/dossie-reuniao?reuniao_id=${doc.reuniaoId}&html=1&versao=${v}`);
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
       htmlAtual = await r.text();
       // srcdoc, não a URL: o endpoint exige login, e a navegação do iframe não leva.
@@ -150,14 +161,65 @@ const DossieReuniao = (() => {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  /* ----------------------------------------------------------
+     A pré-venda, na ficha do cliente (2.38.2)
+     ---------------------------------------------------------- */
+
+  let preVenda = [];            // as reuniões com dossiê do lead de origem
+
+  async function mostrarPreVenda(clienteId) {
+    const alvo = el('cli-prevenda-lista');
+    if (!alvo) return;
+    preVenda = [];
+    if (!clienteId) { alvo.innerHTML = '<p class="campo-informativo">Salve o cliente primeiro.</p>'; return; }
+    alvo.innerHTML = '<p class="campo-informativo">Carregando…</p>';
+    try {
+      const d = await fetch(`/api/dossie-reuniao?cliente_id=${clienteId}`).then((r) => r.json());
+      if (!d.lead) {
+        alvo.innerHTML = '<p class="campo-informativo">Este cliente não veio de um lead do CRM (entrou pelo ERP ou foi cadastrado à mão): não há pré-venda registrada aqui.</p>';
+        return;
+      }
+      preVenda = (d.reunioes || []).map((x) => ({ ...x, nome: d.lead.nome }));
+      if (!preVenda.length) {
+        alvo.innerHTML = `<p class="campo-informativo">O lead de origem (${esc(d.lead.nome)}) não tem nenhum Dossiê da Reunião gerado.</p>`;
+        return;
+      }
+      const dataBr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '');
+      alvo.innerHTML = `<p class="recortes-nota">Lead de origem: <strong>${esc(d.lead.nome)}</strong></p>`
+        + preVenda.map((x, i) => {
+          const ultima = x.versoes[0];
+          return `
+            <div class="cli-prevenda-item">
+              <div>
+                <strong>${esc(x.tipo_reuniao_nome || 'Reunião')}</strong> · ${esc(dataBr(x.inicio))}
+                <div class="recortes-nota">Versão ${esc(ultima.versao)} de ${x.versoes.length} · ${esc(quando(ultima.gerado_em))}
+                  ${ultima.citacoes != null ? ` · ${esc(ultima.citacoes)} citação(ões), ${esc(ultima.citacoes_nao_encontradas || 0)} não encontrada(s)` : ''}</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-secondary" data-prevenda="${i}">Abrir</button>
+            </div>`;
+        }).join('');
+    } catch (e) {
+      alvo.innerHTML = '<p class="campo-informativo">Não foi possível consultar a pré-venda.</p>';
+    }
+  }
+
   function iniciar() {
+    el('cli-prevenda-lista')?.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-prevenda]');
+      const x = b && preVenda[Number(b.dataset.prevenda)];
+      if (x) abrirDocumento({ reuniaoId: x.reuniao_id, nome: x.nome, versoes: x.versoes });
+    });
+    // Carrega sob demanda, como as outras abas: só quando abrem a Pré-venda.
+    document.addEventListener('crm:cliente-aba', (ev) => {
+      if (ev.detail?.aba === 'cli-tab-prevenda') mostrarPreVenda(ev.detail.clienteId);
+    });
     el('agenda-dossie-reuniao')?.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-dossie-reuniao]');
       if (!b) return;
       if (b.dataset.dossieReuniao === 'gerar') gerar();
       if (b.dataset.dossieReuniao === 'abrir') abrir();
     });
-    el('dossie-reuniao-versao')?.addEventListener('change', (ev) => abrir(Number(ev.target.value)));
+    el('dossie-reuniao-versao')?.addEventListener('change', (ev) => { if (noVisor) abrirDocumento(noVisor, Number(ev.target.value)); });
     el('btn-dossie-reuniao-baixar')?.addEventListener('click', baixar);
     el('btn-dossie-reuniao-fechar')?.addEventListener('click', fechar);
     document.addEventListener('keydown', (ev) => {
@@ -170,5 +232,5 @@ const DossieReuniao = (() => {
 
   document.addEventListener('DOMContentLoaded', iniciar);
 
-  return { mostrarNaReuniao, abrir };
+  return { mostrarNaReuniao, abrir, mostrarPreVenda };
 })();

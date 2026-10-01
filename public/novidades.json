@@ -2,6 +2,15 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.38.2",
+      "data": "01/10/2026",
+      "titulo": "O Dossiê da Reunião vai junto com o cliente",
+      "itens": [
+        "Na ficha do cliente (Jornada do cliente), a nova aba \"Pré-venda\" mostra os Dossiês das Reuniões do lead que deu origem a ele, com as versões, para abrir e baixar.",
+        "Nada é copiado: o cliente sabe de qual lead veio, então os dossiês gerados depois da conversão também aparecem. Cliente que veio direto do ERP não tem pré-venda."
+      ]
+    },
+    {
       "versao": "2.38.1",
       "data": "01/10/2026",
       "titulo": "Tela da reunião mais limpa e o ícone nos documentos",

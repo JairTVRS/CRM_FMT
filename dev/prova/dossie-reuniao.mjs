@@ -244,6 +244,28 @@ ok(an && an.roteiro === null && !/MAPA ESTRATÉGICO/.test(corpoIA.messages[1].co
   'sem roteiro, os recortes não usam a instrução do dossiê como roteiro');
 
 /* ==========================================================================
+   5b. VAI JUNTO QUANDO O LEAD VIRA CLIENTE (2.38.2)
+   ========================================================================== */
+
+console.log('\n=== 5b. A pré-venda do cliente ===');
+
+bd.exec(`CREATE TABLE clientes (id INTEGER PRIMARY KEY, nome TEXT, lead_id INTEGER, ativo INTEGER DEFAULT 1);
+         INSERT INTO clientes (id, nome, lead_id) VALUES (7, 'Cedro Materiais LTDA', 1), (8, 'Veio do ERP', NULL), (9, 'Excluído', 1);
+         UPDATE clientes SET ativo = 0 WHERE id = 9;`);
+const PRE = (id) => dossieApi.onRequestGet(ctx('GET', `/api/dossie-reuniao?cliente_id=${id}`)).then(ler);
+
+const pv = (await PRE(7)).corpo;
+ok(pv.lead?.id === 1 && pv.lead.nome === 'Cedro Materiais', 'o cliente convertido acha o lead de origem');
+ok(pv.reunioes.length === 1 && pv.reunioes[0].reuniao_id === 10 && pv.reunioes[0].tipo_reuniao_nome === 'Prospect de Clientes',
+  'e a reunião dele com dossiê');
+ok(pv.reunioes[0].versoes.map((v) => v.versao).join() === `${g2.corpo.versao},${g1.corpo.versao}`
+  && pv.reunioes[0].versoes[0].citacoes === 2, 'com todas as versões concluídas, a mais nova primeiro (a de erro não entra)');
+ok((await PRE(8)).corpo.lead === null, 'cliente que não veio de lead: sem pré-venda');
+ok((await PRE(9)).corpo.lead === null, 'cliente excluído: nada');
+const doc7 = (await dossieApi.onRequestGet(ctx('GET', `/api/dossie-reuniao?reuniao_id=10&html=1&versao=${g1.corpo.versao}`)).then(ler));
+ok(doc7.status === 200 && /Dossiê da Reunião/.test(doc7.corpo), 'e o documento abre pela reunião, como na agenda');
+
+/* ==========================================================================
    6. RESETAR APAGA
    ========================================================================== */
 

@@ -1429,6 +1429,7 @@
         <button class="cli-tab-btn active" data-cli-tab="cli-tab-ficha">Ficha</button>
         <button class="cli-tab-btn" data-cli-tab="cli-tab-pessoas">Stakeholders</button>
         <button class="cli-tab-btn" data-cli-tab="cli-tab-dossie">Dossiê de Experiência</button>
+        <button class="cli-tab-btn" data-cli-tab="cli-tab-prevenda">Pré-venda</button>
       </nav>
 
       <div class="modal-body">
@@ -1645,6 +1646,16 @@
             </div>
           </div>
         </div><!-- /cli-tab-dossie -->
+
+        <!-- Pré-venda (2.38.2): os Dossiês das Reuniões do lead que deu
+             origem a este cliente — vão junto na conversão. -->
+        <div id="cli-tab-prevenda" class="cli-tab-content hidden">
+          <p class="campo-informativo">
+            Os dossiês das reuniões de venda do lead que deu origem a este cliente.
+            Só leitura: para gerar uma nova versão, abra a reunião na agenda do lead.
+          </p>
+          <div id="cli-prevenda-lista" class="cli-prevenda-lista"></div>
+        </div><!-- /cli-tab-prevenda -->
       </div>
 
       <footer class="modal-footer">
