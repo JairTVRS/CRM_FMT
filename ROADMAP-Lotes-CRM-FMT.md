@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 01/10/2026
-**Versão no ar:** 2.38.2 (desde 01/10/2026; migrações 008 a 025 aplicadas no D1 remoto, da 022 à 025 em 01/10/2026; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Versão no ar:** 2.39.2 (desde 01/10/2026; migrações 008 a 026 aplicadas no D1 remoto, da 022 à 026 em 01/10/2026; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -21,7 +21,7 @@ quando o lead vira cliente (aba **Pré-venda** da ficha do cliente).
 (gravação 3, 118 trechos); Dossiê da Reunião v1 com 27 citações e nenhuma
 "não encontrada", v2 com 25 e 1 (a IA trocou uma letra de "Gerenção").
 
-**Próximo passo:** o lote **N — Check-in, NPS/CSAT e Voz do Cliente** (seção 3; a ordem combinada em 01/10: atas + Balança ✔ → N → Fase 3); o **modelo de contrato** (Lote G) aguarda as 4 respostas do Jair (padrão jurídico, formas de preço, contratada, origem do escopo).
+**Próximo passo:** o lote **N — Check-in, NPS/CSAT e Voz do Cliente** (seção 3), a desenhar com o Jair antes de virar código. O lote **Dossiê lê as atas + Balança Avaliativa** foi **fechado em 01/10/2026** (2.39.0 a 2.39.2). O **modelo de contrato** (Lote G) aguarda 4 respostas do Jair: padrão jurídico, formas de preço, contratada, origem do escopo.
 
 ### Pendências, em ordem
 
@@ -55,7 +55,7 @@ quando o lead vira cliente (aba **Pré-venda** da ficha do cliente).
 
 | # | Entrega | O quê | Depende de |
 |---|---|---|---|
-| ~~1~~ | ~~**Dossiê lê as atas + Balança Avaliativa**~~ | **no ar na 2.39.0** (01/10/2026, migração 026, `balancas`): aba Balança no cliente; a IA lê as atas dos últimos 6 meses do ERP (só a parte pública — `separarNotasPrivadas` do `_lib/ata.js`) e o plano (`acoes_cx`), com a pré-venda como referência; números do período em código; evidências ancoradas na linha (`_lib/citacoes.js`, módulo comum com o Dossiê da Reunião); instrução padrão V1.0 em `Manuais/Instrucao-Balanca-Avaliativa-V1.0.md` (cópia no código, conferida pela prova) ou a enviada nas Configurações (`roteiros.finalidade = balanca`, tipo `__geral__`). Só a Balança: o Dossiê de Experiência ficou como estava (decisão de 01/10). 1ª geração real (Zanna Sound, 01/10): 42 reuniões, 33 ações, 22 evidências, 0 não encontradas. **2.39.1**: Dossiê de Experiência, Pré-venda e Balança numa aba só, "Documentos de contexto", com o nome exato do arquivo e "Baixar" direto; os três com `_vN` no nome (revisa a decisão de 06/09 de não pôr a versão no nome do Dossiê de Experiência) | — |
+| ~~1~~ | ~~**Dossiê lê as atas + Balança Avaliativa**~~ | **FECHADO em 01/10/2026** — no ar na 2.39.0 (01/10/2026, migração 026, `balancas`): aba Balança no cliente; a IA lê as atas dos últimos 6 meses do ERP (só a parte pública — `separarNotasPrivadas` do `_lib/ata.js`) e o plano (`acoes_cx`), com a pré-venda como referência; números do período em código; evidências ancoradas na linha (`_lib/citacoes.js`, módulo comum com o Dossiê da Reunião); instrução padrão V1.0 em `Manuais/Instrucao-Balanca-Avaliativa-V1.0.md` (cópia no código, conferida pela prova) ou a enviada nas Configurações (`roteiros.finalidade = balanca`, tipo `__geral__`). Só a Balança: o Dossiê de Experiência ficou como estava (decisão de 01/10). 1ª geração real (Zanna Sound, 01/10): 42 reuniões, 33 ações, 22 evidências, 0 não encontradas. **2.39.1**: Dossiê de Experiência, Pré-venda e Balança numa aba só, "Documentos de contexto", com o nome exato do arquivo e "Baixar" direto; os três com `_vN` no nome (revisa a decisão de 06/09 de não pôr a versão no nome do Dossiê de Experiência) **2.39.2**: a aba ficou compacta, uma linha por documento | — |
 | 2 | **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
 | 3 | **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**027**; a 026 foi da 2.39.0) | o `contacts` do ERP ter id estável |
 
