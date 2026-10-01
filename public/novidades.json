@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.36.5",
+      "data": "01/10/2026",
+      "titulo": "Histórico de cada reunião e contato",
+      "itens": [
+        "Na janela da reunião ou do contato, um relógio no canto superior direito abre o \"Histórico de alterações\": quem fez, quando e o quê.",
+        "Fica registrado: criação, cada alteração campo a campo (de → para), remarcação (as duas pontas: para onde foi e de onde veio), iniciar, finalizar, cancelar com o motivo e a observação, não compareceu, realizado, resetar e excluir.",
+        "Do que foi agendado antes desta versão, o histórico mostra só a criação; daqui em diante, tudo."
+      ]
+    },
+    {
       "versao": "2.36.4",
       "data": "01/10/2026",
       "titulo": "Resetar a reunião e a agenda por quinzena",

@@ -1144,8 +1144,26 @@
             <button type="button" data-agenda-tipo="contato">Contato</button>
           </div>
         </div>
-        <button id="btn-agenda-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+        <div class="agenda-topo-acoes">
+          <!-- Histórico (2.36.5): quem, quando e o que mudou. -->
+          <button type="button" id="btn-agenda-historico" class="btn-historico hidden"
+                  title="Histórico de alterações" aria-label="Histórico de alterações">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 4v4h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <button id="btn-agenda-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+        </div>
       </header>
+      <!-- O painel do histórico, por cima da janela, à direita. -->
+      <aside id="agenda-historico" class="agenda-historico hidden" aria-label="Histórico de alterações">
+        <header class="agenda-historico-topo">
+          <strong>Histórico de alterações</strong>
+          <div>
+            <button type="button" id="btn-agenda-historico-recarregar" class="btn-historico" title="Recarregar" aria-label="Recarregar">&#8635;</button>
+            <button type="button" id="btn-agenda-historico-fechar" class="btn-historico" title="Fechar" aria-label="Fechar o histórico">&times;</button>
+          </div>
+        </header>
+        <div id="agenda-historico-lista" class="agenda-historico-lista"></div>
+      </aside>
       <div class="modal-body">
         <div class="agenda-colunas">
         <div class="form-grid agenda-campos">

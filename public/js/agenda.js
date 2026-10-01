@@ -446,6 +446,9 @@ const Agenda = (() => {
     el('btn-agenda-realizado').classList.toggle('hidden', !agendada || item.tipo !== 'contato');
     el('btn-agenda-nao-compareceu').classList.toggle('hidden',
       !agendada || item.tipo !== 'reuniao' || situacao(item) !== 'atrasada');
+    // O histórico (2.36.5): só do que já existe; fechado ao abrir.
+    el('btn-agenda-historico').classList.toggle('hidden', !item);
+    el('agenda-historico').classList.add('hidden');
     // Resetar (2.36.4): o que começou ou se encerrou volta a só agendado.
     // Remarcada não — a nova é que vale.
     el('btn-agenda-resetar').classList.toggle('hidden',
@@ -567,6 +570,111 @@ const Agenda = (() => {
   async function encerrarComo(status, pergunta) {
     if (!emEdicao || !confirm(pergunta)) return;
     await enviar(`/api/agenda?id=${emEdicao.id}`, 'PUT', { ...lerJanela(), status });
+  }
+
+  /* ----------------------------------------------------------
+     O histórico do compromisso (2.36.5)
+     ---------------------------------------------------------- */
+
+  const ROTULO_CAMPO = {
+    tipo: 'Tipo', inicio: 'Data e hora', duracao_min: 'Duração', tipo_reuniao_nome: 'Tipo de reunião',
+    local_tipo: 'Local', local_texto: 'Link / sala', canal: 'Canal', responsavel: 'CX responsável',
+    participantes: 'Participantes', pauta: 'Pauta', status: 'Situação'
+  };
+  const nomeDe = (email) => (email && typeof Cadastros !== 'undefined' ? Cadastros.nomeDoUsuario(email) : email) || '—';
+  const quando = (iso) => {
+    // A migração 017 gravou 'AAAA-MM-DD HH:MM:SS' em UTC, sem o Z.
+    const t = /^\d{4}-\d{2}-\d{2} \d/.test(String(iso)) ? `${String(iso).replace(' ', 'T')}Z` : iso;
+    const d = new Date(t);
+    return Number.isNaN(d.getTime()) ? '—' : `${d.toLocaleDateString('pt-BR')} às ${horaReal(d.toISOString())}`;
+  };
+  const dataHora = (inicio) => (inicio ? `${dataBr(inicio)} às ${hora(inicio)}` : '—');
+
+  /** Um valor cru do banco, como a tela mostra. */
+  function valorDoCampo(campo, v) {
+    if (v == null || v === '') return '—';
+    if (campo === 'inicio') return dataHora(v);
+    if (campo === 'duracao_min') return `${v} min`;
+    if (campo === 'local_tipo') return ROTULO_LOCAL[v] || v;
+    if (campo === 'canal') return ROTULO_CANAL[v] || v;
+    if (campo === 'responsavel') return nomeDe(v);
+    if (campo === 'status') return ROTULO_STATUS[v] || v;
+    if (campo === 'tipo') return v === 'reuniao' ? 'Reunião' : 'Contato';
+    return v;
+  }
+
+  /** O título, o ícone, a cor e as linhas de cada evento. */
+  function descreverEvento(e) {
+    const d = e.detalhe || {};
+    const linhas = [];
+    let titulo; let icone = '✎'; let cor = '';
+    switch (e.evento) {
+      case 'criada':
+        titulo = d.remarcada_de ? 'Criada ao remarcar' : 'Criação';
+        icone = '＋';
+        if (d.de_inicio) linhas.push(`Estava marcada para ${esc(dataHora(d.de_inicio))}`);
+        break;
+      case 'alterada': {
+        const mud = d.mudancas || [];
+        const st = mud.find((m) => m.campo === 'status');
+        titulo = st ? `Situação: ${esc(ROTULO_STATUS[st.para] || st.para)}` : 'Alteração';
+        if (st) cor = st.para === 'realizada' ? 'cor-realizada' : 'cor-encerrada';
+        for (const m of mud.filter((x) => x.campo !== 'status')) {
+          linhas.push(`${esc(ROTULO_CAMPO[m.campo] || m.campo)}: <span class="agenda-evento-de">${esc(valorDoCampo(m.campo, m.de))}</span> → ${esc(valorDoCampo(m.campo, m.para))}`);
+        }
+        break;
+      }
+      case 'remarcada':
+        titulo = 'Remarcada'; icone = '↷'; cor = 'cor-encerrada';
+        linhas.push(`Para ${esc(dataHora(d.para))}`);
+        break;
+      case 'iniciada': titulo = 'Reunião iniciada'; icone = '▶'; cor = 'cor-andamento'; break;
+      case 'finalizada': titulo = 'Reunião finalizada'; icone = '■'; cor = 'cor-realizada'; break;
+      case 'cancelada':
+        titulo = 'Cancelada'; icone = '⊗'; cor = 'cor-cancelada';
+        linhas.push(esc(ROTULO_MOTIVO[d.motivo] || d.motivo || ''));
+        if (d.observacao) linhas.push(`“${esc(d.observacao)}”`);
+        break;
+      case 'resetada':
+        titulo = 'Resetada: voltou a só agendada'; icone = '↺';
+        if (d.estava) linhas.push(`Estava: ${esc(d.estava === 'andamento' ? 'Em andamento' : (ROTULO_STATUS[d.estava] || d.estava))}`);
+        if (d.gravacoes) linhas.push(`${d.gravacoes} gravação(ões) e a transcrição apagadas`);
+        break;
+      case 'excluida': titulo = 'Excluída'; icone = '🗑'; cor = 'cor-atrasada'; break;
+      default: titulo = esc(e.evento);
+    }
+    return { titulo, icone, cor, linhas };
+  }
+
+  async function mostrarHistorico() {
+    if (!emEdicao) return;
+    const painel = el('agenda-historico');
+    const lista = el('agenda-historico-lista');
+    painel.classList.remove('hidden');
+    lista.innerHTML = '<p class="agenda-historico-nota">Carregando…</p>';
+    try {
+      const r = await fetch(`/api/agenda?eventos=${emEdicao.id}`);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'erro');
+      const eventos = d.eventos || [];
+      lista.innerHTML = eventos.map((e) => {
+        const { titulo, icone, cor, linhas } = descreverEvento(e);
+        return `
+          <div class="agenda-evento">
+            <span class="agenda-evento-icone ${cor}" aria-hidden="true">${icone}</span>
+            <div>
+              <div class="agenda-evento-titulo">${titulo}</div>
+              ${linhas.length ? `<ul>${linhas.map((l) => `<li>${l}</li>`).join('')}</ul>` : ''}
+              <div class="agenda-evento-quando">em <strong>${esc(quando(e.em))}</strong> por <strong>${esc(nomeDe(e.por))}</strong></div>
+            </div>
+          </div>`;
+      }).join('')
+        + (eventos.some((e) => e.sintetico)
+          ? '<p class="agenda-historico-nota">O histórico detalhado começou em 01/10/2026 (versão 2.36.5). Do que veio antes, só a criação.</p>' : '')
+        + (d.aviso ? `<p class="agenda-historico-nota">${esc(d.aviso)}</p>` : '');
+    } catch (e) {
+      lista.innerHTML = `<p class="agenda-historico-nota">Não foi possível carregar o histórico. ${esc(e.message)}</p>`;
+    }
   }
 
   /** Volta a ser só o que foi cadastrado: agendada, no horário de origem. */
@@ -773,6 +881,12 @@ const Agenda = (() => {
     el('btn-agenda-cancelamento-voltar')?.addEventListener('click', () => el('agenda-cancelamento').classList.add('hidden'));
     el('btn-agenda-cancelamento-confirmar')?.addEventListener('click', cancelar);
     el('btn-agenda-resetar')?.addEventListener('click', resetar);
+    el('btn-agenda-historico')?.addEventListener('click', () => {
+      if (el('agenda-historico').classList.contains('hidden')) mostrarHistorico();
+      else el('agenda-historico').classList.add('hidden');
+    });
+    el('btn-agenda-historico-recarregar')?.addEventListener('click', mostrarHistorico);
+    el('btn-agenda-historico-fechar')?.addEventListener('click', () => el('agenda-historico').classList.add('hidden'));
     el('btn-agenda-realizado')?.addEventListener('click', () =>
       encerrarComo('realizada', 'Marcar este contato como realizado?'));
     el('btn-agenda-nao-compareceu')?.addEventListener('click', () =>
@@ -786,7 +900,10 @@ const Agenda = (() => {
       const porCima = document.querySelector('.dossie-modal.aberto, #dossie-modal.aberto')
         || !el('modal-gravacao')?.classList.contains('hidden')
         || !el('modal-roteiro')?.classList.contains('hidden');
-      if (ev.key === 'Escape' && !el('modal-agenda')?.classList.contains('hidden') && !porCima) fecharJanela();
+      if (ev.key !== 'Escape' || el('modal-agenda')?.classList.contains('hidden') || porCima) return;
+      // Com o histórico aberto, o Esc fecha só ele.
+      if (!el('agenda-historico').classList.contains('hidden')) el('agenda-historico').classList.add('hidden');
+      else fecharJanela();
     });
 
     // A ficha do lead: a aba Agenda acompanha o lead aberto.

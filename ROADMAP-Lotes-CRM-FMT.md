@@ -48,6 +48,7 @@ segredos do Pages).
 | **2.36.2** | **Cancelar com motivo** (pedido de 01/10/2026): botão "Cancelar" com os 4 motivos do ERP e observação; o cancelado fica roxo; a lista Situação não cancela; cancelar fecha a gravação aberta (migração 022) | — |
 | **2.36.3** | **A situação acompanha o cartão** (pedido de 01/10/2026): o campo Situação vira etiqueta automática na cor do cartão; muda só pelos botões (Iniciar, Finalizar, Cancelar, Remarcar, Não compareceu na reunião atrasada, Realizado no contato); o encerrado não volta a agendado (servidor recusa `JA_ENCERRADO`) | — |
 | **2.36.4** | **Resetar e Quinzena** (pedido de 01/10/2026): "Resetar" volta o compromisso a só agendado no horário cadastrado, apagando início/fim, cancelamento e gravação+transcrição (CX responsável, quem iniciou ou admin; remarcada não); visão Quinzena na agenda | — |
+| **2.36.5** | **Histórico de cada compromisso** (pedido de 01/10/2026): relógio na janela abre quem, quando e o que mudou (de → para), em `agenda_eventos` (migração 023, aplicada); o que veio antes mostra só a criação | — |
 | **depois** *(estudado em 30/09; sem custo por ora, decisão do Jair)* | **Identificar quem fala** ("Pessoa 1 / Pessoa 2"): o Whisper não faz; o caminho é o Deepgram Nova-3 do Workers AI em conexão contínua (`diarize`, pt-BR, ~US$ 0,55/h), provado antes no localhost | os testes da 2.36.1 |
 | **2.37.0** | **Recortes e insights durante a reunião**: frases do lead que captam a expectativa, conferidas por código contra a transcrição (o recorte só vale se a frase existir literalmente); perguntas do roteiro ainda não cobertas. Lê a transcrição, o roteiro da versão gravada e o dossiê | 1.1 e 1.2 |
 | **2.38.0** | **Laudo pós-reunião**: HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão | 2.35.0 (melhor depois da 2.37.0) |
@@ -58,7 +59,7 @@ segredos do Pages).
 | Entrega | O quê | Depende de |
 |---|---|---|
 | **Dossiê lê as atas + Balança Avaliativa** | Aba própria no cliente: positivos e negativos lado a lado, cada um ancorado em ação, ata ou registro com data. Com o plano gravado (2.25.0), lê as ações do banco em vez de reler as atas | nada: `hub:meetings:read` já está na chave |
-| **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**023**; a 022 foi da 2.36.2) | o `contacts` do ERP ter id estável |
+| **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**024**; a 023 foi da 2.36.5) | o `contacts` do ERP ter id estável |
 | **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
 
 **4. Travados, esperando material**

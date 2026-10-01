@@ -26,6 +26,44 @@ export const MOTIVOS_CANCELAMENTO = {
   proposta: 'Proposta cancelada pelo cliente'
 };
 
+/* ==========================================================================
+   O HISTÓRICO DE CADA COMPROMISSO (2.36.5, migração 023)
+   ========================================================================== */
+
+/** Os campos que o histórico acompanha numa alteração (o id do tipo não: vale o nome). */
+export const CAMPOS_DO_HISTORICO = [
+  'tipo', 'inicio', 'duracao_min', 'tipo_reuniao_nome', 'local_tipo', 'local_texto',
+  'canal', 'responsavel', 'participantes', 'pauta', 'status'
+];
+
+/** O que mudou de `antes` para `depois`, campo a campo. Textos longos vão cortados. */
+export function mudancas(antes, depois) {
+  const curto = (v) => (v == null || v === '' ? null : String(v).slice(0, 300));
+  return CAMPOS_DO_HISTORICO
+    .filter((c) => depois[c] !== undefined && curto(antes?.[c]) !== curto(depois[c]))
+    .map((c) => ({ campo: c, de: curto(antes?.[c]), para: curto(depois[c]) }));
+}
+
+/** Um evento de um compromisso que já tem id. */
+export function comandoEvento(db, { agendaId, leadId, evento, detalhe = null, por, em }) {
+  return db.prepare(
+    `INSERT INTO agenda_eventos (agenda_id, lead_id, evento, detalhe, por, em) VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(agendaId, leadId, evento, detalhe ? JSON.stringify(detalhe) : null,
+    String(por || '').toLowerCase(), em);
+}
+
+/**
+ * Um evento do compromisso que ACABOU de ser criado no mesmo lote: o id
+ * ainda não é conhecido, e é o maior do lead (o mesmo recurso do remarcar).
+ */
+export function comandoEventoDoNovo(db, { leadId, evento, detalhe = null, por, em }) {
+  return db.prepare(
+    `INSERT INTO agenda_eventos (agenda_id, lead_id, evento, detalhe, por, em)
+     SELECT MAX(id), ?, ?, ?, ?, ? FROM agenda_lead WHERE lead_id = ?`
+  ).bind(leadId, evento, detalhe ? JSON.stringify(detalhe) : null,
+    String(por || '').toLowerCase(), em, leadId);
+}
+
 /** Hora em que cai um contato que só tem data (planilha, migração). */
 export const HORA_PADRAO = '09:00';
 

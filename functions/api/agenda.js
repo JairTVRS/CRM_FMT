@@ -6,6 +6,7 @@
  * GET    ?de=AAAA-MM-DD&ate=AAAA-MM-DD     o período da visão Agenda
  *        [&responsavel=email|__sem__] [&busca=texto]
  * GET    ?em_andamento=1                   a reunião que EU iniciei e não finalizei
+ * GET    ?eventos=N                        o histórico do compromisso (2.36.5)
  * POST                                     cria um compromisso
  * PUT    ?id=N                             altera; `remarcar_para` remarca
  * PUT    ?id=N { acao: 'iniciar' }         a reunião começa agora (2.36.0)
@@ -26,6 +27,9 @@
  * quando o lead vira cliente, e as reuniões de venda não vão para o
  * Painel de Operações.
  *
+ * Toda escrita grava o seu evento em `agenda_eventos` (2.36.5, migração
+ * 023) no mesmo lote: quem, quando e o que mudou.
+ *
  * Toda escrita recalcula `leads.data_proximo_contato` na mesma transação
  * — é ele que o quadro e a ficha mostram como "próximo contato".
  */
@@ -33,7 +37,8 @@
 import {
   TIPOS, STATUS, LOCAIS, CANAIS, normalizarInicio,
   comandoRecalcularProximo, comandoUltimoContato, usuarioDoCrm, tiposDeVendas,
-  emAndamento, diaEmBrasilia, MOTIVOS_CANCELAMENTO
+  emAndamento, diaEmBrasilia, MOTIVOS_CANCELAMENTO,
+  mudancas, comandoEvento, comandoEventoDoNovo
 } from './_lib/agenda.js';
 import { avaliarAdmin } from './_lib/admin.js';
 
@@ -190,6 +195,9 @@ export async function onRequestGet(context) {
       return json({ item: await emAndamento(db, usuario.email, SELECT_ITEM) }, 200, cabecalhos);
     }
 
+    const doHistorico = Number(searchParams.get('eventos'));
+    if (doHistorico) return json(await historico(db, doHistorico), 200, cabecalhos);
+
     const leadId = Number(searchParams.get('lead_id'));
     if (leadId) {
       const { results } = await db
@@ -253,7 +261,8 @@ export async function onRequestPost(context) {
          VALUES (?, ${COLUNAS.map(() => '?').join(', ')}, ?, ?, 1) RETURNING id`
       ).bind(lead.id, ...COLUNAS.map((c) => item[c]), usuario.email, agora),
       comandoRecalcularProximo(db, lead.id),
-      ...ultimoSeRealizada(db, lead.id, item)
+      ...ultimoSeRealizada(db, lead.id, item),
+      comandoEventoDoNovo(db, { leadId: lead.id, evento: 'criada', por: usuario.email, em: agora })
     ]);
 
     const id = criado?.results?.[0]?.id ?? criado?.meta?.last_row_id ?? criado?.lastInsertRowid;
@@ -321,7 +330,10 @@ export async function onRequestPut(context) {
                   remarcada_para_id = (SELECT MAX(id) FROM agenda_lead WHERE lead_id = ?)
             WHERE id = ?`
         ).bind(usuario.email, agora, lead.id, id),
-        comandoRecalcularProximo(db, lead.id)
+        comandoRecalcularProximo(db, lead.id),
+        // As duas pontas: esta diz para onde foi; a nova, de onde veio.
+        comandoEvento(db, { agendaId: id, leadId: lead.id, evento: 'remarcada', detalhe: { para: item.inicio }, por: usuario.email, em: agora }),
+        comandoEventoDoNovo(db, { leadId: lead.id, evento: 'criada', detalhe: { remarcada_de: id, de_inicio: anterior.inicio }, por: usuario.email, em: agora })
       ]);
       const novaId = nova?.results?.[0]?.id ?? nova?.meta?.last_row_id ?? nova?.lastInsertRowid;
       const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(Number(novaId)).first();
@@ -334,6 +346,8 @@ export async function onRequestPut(context) {
   // --- Alteração comum ---
   const { item, erro } = await montarItem(db, corpo, anterior, lead, usuario);
   if (erro) return json(erro, 400, cabecalhos);
+  // Salvar sem mudar nada não vira evento.
+  const mudou = mudancas(anterior, item);
 
   try {
     await db.batch([
@@ -343,7 +357,10 @@ export async function onRequestPut(context) {
           WHERE id = ? AND ativo = 1`
       ).bind(...COLUNAS.map((c) => item[c]), usuario.email, agora, id),
       comandoRecalcularProximo(db, lead.id),
-      ...ultimoSeRealizada(db, lead.id, item)
+      ...ultimoSeRealizada(db, lead.id, item),
+      ...(mudou.length
+        ? [comandoEvento(db, { agendaId: id, leadId: lead.id, evento: 'alterada', detalhe: { mudancas: mudou }, por: usuario.email, em: agora })]
+        : [])
     ]);
     const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(id).first();
     return json({ item: salvo }, 200, cabecalhos);
@@ -404,6 +421,7 @@ async function iniciar(context, anterior, lead, agora) {
     return json({ error: 'Esta reunião já foi iniciada.', code: 'JA_INICIADA' }, 409, cabecalhos);
   }
 
+  await comandoEvento(db, { agendaId: anterior.id, leadId: lead.id, evento: 'iniciada', por: eu, em: agora }).run();
   console.log(`[agenda] ${eu} iniciou a reunião ${anterior.id} (lead ${lead.id})`);
   const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
   return json({ item: salvo }, 200, cabecalhos);
@@ -439,7 +457,8 @@ async function finalizar(context, anterior, lead, agora) {
       .bind(agora, anterior.id),
     comandoRecalcularProximo(db, lead.id),
     // O último contato é o dia em que a reunião ACONTECEU, não o marcado.
-    comandoUltimoContato(db, lead.id, diaEmBrasilia(anterior.iniciada_em))
+    comandoUltimoContato(db, lead.id, diaEmBrasilia(anterior.iniciada_em)),
+    comandoEvento(db, { agendaId: anterior.id, leadId: lead.id, evento: 'finalizada', por: eu, em: agora })
   ]);
 
   console.log(`[agenda] ${eu} finalizou a reunião ${anterior.id} (lead ${lead.id})`);
@@ -481,7 +500,9 @@ async function cancelar(context, anterior, lead, agora, corpo) {
       // Gravação que ficou aberta de antes da 2.36.0 termina aqui.
       db.prepare(`UPDATE gravacoes SET status = 'encerrada', encerrada_em = ? WHERE reuniao_id = ? AND status = 'gravando'`)
         .bind(agora, anterior.id),
-      comandoRecalcularProximo(db, lead.id)
+      comandoRecalcularProximo(db, lead.id),
+      comandoEvento(db, { agendaId: anterior.id, leadId: lead.id, evento: 'cancelada',
+        detalhe: { motivo, observacao: texto(corpo.observacao, 1000) }, por: eu, em: agora })
     ]);
   } catch (e) {
     const semColuna = /no such column/i.test(e.message || '');
@@ -523,6 +544,7 @@ async function resetar(context, anterior, lead, agora) {
     return json({ error: 'Só o CX responsável, quem iniciou a reunião ou um admin pode resetá-la.', code: 'SEM_PERMISSAO' }, 403, cabecalhos);
   }
 
+  const { n: gravacoes } = await db.prepare('SELECT COUNT(*) AS n FROM gravacoes WHERE reuniao_id = ?').bind(anterior.id).first();
   await db.batch([
     db.prepare(
       `UPDATE agenda_lead SET status = 'agendada',
@@ -534,12 +556,52 @@ async function resetar(context, anterior, lead, agora) {
     db.prepare('DELETE FROM transcricao_trechos WHERE gravacao_id IN (SELECT id FROM gravacoes WHERE reuniao_id = ?)')
       .bind(anterior.id),
     db.prepare('DELETE FROM gravacoes WHERE reuniao_id = ?').bind(anterior.id),
-    comandoRecalcularProximo(db, lead.id)
+    comandoRecalcularProximo(db, lead.id),
+    comandoEvento(db, { agendaId: anterior.id, leadId: lead.id, evento: 'resetada',
+      detalhe: { estava: anterior.iniciada_em && !anterior.finalizada_em ? 'andamento' : anterior.status, gravacoes: Number(gravacoes) },
+      por: eu, em: agora })
   ]);
 
   console.log(`[agenda] ${eu} resetou ${anterior.id} (lead ${lead.id}), que estava ${anterior.status}`);
   const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
   return json({ item: salvo }, 200, cabecalhos);
+}
+
+/* ==========================================================================
+   O HISTÓRICO (2.36.5)
+   ========================================================================== */
+
+/**
+ * Os eventos do compromisso, do mais novo ao mais antigo. O que nasceu
+ * antes da migração 023 não tem o evento de criação: ele é montado a
+ * partir de `criado_por`/`criado_em`, marcado `sintetico`, e a tela
+ * avisa que o histórico começa ali.
+ */
+async function historico(db, agendaId) {
+  const item = await db.prepare('SELECT id, lead_id, criado_por, criado_em FROM agenda_lead WHERE id = ?').bind(agendaId).first();
+  if (!item) return { eventos: [] };
+
+  let eventos = [];
+  let aviso = null;
+  try {
+    const { results } = await db.prepare('SELECT * FROM agenda_eventos WHERE agenda_id = ? ORDER BY em DESC, id DESC').bind(agendaId).all();
+    eventos = (results || []).map((e) => {
+      let detalhe = null;
+      try { detalhe = e.detalhe ? JSON.parse(e.detalhe) : null; } catch (x) { /* ilegível: fica sem */ }
+      return { ...e, detalhe };
+    });
+  } catch (e) {
+    if (!/no such table/i.test(e.message || '')) throw e;
+    aviso = 'Falta aplicar a migração 023: o histórico ainda não é gravado.';
+  }
+
+  if (!eventos.some((e) => e.evento === 'criada')) {
+    eventos.push({
+      id: 0, agenda_id: item.id, lead_id: item.lead_id, evento: 'criada', detalhe: null,
+      por: String(item.criado_por || '').toLowerCase(), em: item.criado_em, sintetico: true
+    });
+  }
+  return { eventos, aviso };
 }
 
 /* ==========================================================================
@@ -563,10 +625,12 @@ export async function onRequestDelete(context) {
   }
 
   try {
+    const agora = new Date().toISOString();
     await db.batch([
       db.prepare('UPDATE agenda_lead SET ativo = 0, atualizado_por = ?, atualizado_em = ? WHERE id = ?')
-        .bind(usuario.email, new Date().toISOString(), id),
-      comandoRecalcularProximo(db, anterior.lead_id)
+        .bind(usuario.email, agora, id),
+      comandoRecalcularProximo(db, anterior.lead_id),
+      comandoEvento(db, { agendaId: id, leadId: anterior.lead_id, evento: 'excluida', por: usuario.email, em: agora })
     ]);
     return json({ ok: true, id }, 200, cabecalhos);
   } catch (e) {
