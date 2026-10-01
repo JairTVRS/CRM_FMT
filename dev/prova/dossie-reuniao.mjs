@@ -290,6 +290,8 @@ ok(pv.reunioes.length === 1 && pv.reunioes[0].reuniao_id === 10 && pv.reunioes[0
   'e a reunião dele com dossiê');
 ok(pv.reunioes[0].versoes.map((v) => v.versao).join() === `${g2.corpo.versao},${g1.corpo.versao}`
   && pv.reunioes[0].versoes[0].citacoes === 2, 'com todas as versões concluídas, a mais nova primeiro (a de erro não entra)');
+ok(new RegExp(`^Dossie_Reuniao_Cedro-Materiais_\\d{4}_\\d{2}_v${g2.corpo.versao}\\.html$`).test(pv.reunioes[0].versoes[0].arquivo),
+  'cada versão traz o nome exato do arquivo, com a versão (2.39.1)', pv.reunioes[0].versoes[0].arquivo);
 ok((await PRE(8)).corpo.lead === null, 'cliente que não veio de lead: sem pré-venda');
 ok((await PRE(9)).corpo.lead === null, 'cliente excluído: nada');
 const doc7 = (await dossieApi.onRequestGet(ctx('GET', `/api/dossie-reuniao?reuniao_id=10&html=1&versao=${g1.corpo.versao}`)).then(ler));

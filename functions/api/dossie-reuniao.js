@@ -21,8 +21,10 @@ import { ambienteDeIA, provedorAtivo } from './_lib/chaves-ia.js';
 import { criarVersionador } from './_lib/versionamento.js';
 import { separacaoDeVozes, CONVERSA_MINIMA } from './_lib/recortes.js';
 import {
-  SYSTEM_PROMPT, MAX_TOKENS_DOSSIE_REUNIAO, montarPrompt, limparConteudo, conferirCitacoes, montarDocumento
+  SYSTEM_PROMPT, MAX_TOKENS_DOSSIE_REUNIAO, montarPrompt, limparConteudo, conferirCitacoes, montarDocumento,
+  TIPO_DOSSIE_REUNIAO
 } from './_lib/dossie-reuniao.js';
+import { nomeDeDocumento } from './_lib/documento-base.js';
 
 const dossiesReuniao = criarVersionador({
   tabela: 'dossies_reuniao',
@@ -117,7 +119,7 @@ async function preVendaDoCliente(db, clienteId) {
   if (!cliente?.lead_id) return { lead: null, reunioes: [] };
 
   const { results } = await db.prepare(
-    `SELECT d.reuniao_id, d.versao, d.gerado_em, d.gerado_por, d.instrucao_versao, d.citacoes, d.citacoes_nao_encontradas,
+    `SELECT d.reuniao_id, d.versao, d.gerado_em, d.gerado_por, d.lead_nome, d.instrucao_versao, d.citacoes, d.citacoes_nao_encontradas,
             a.inicio, a.tipo_reuniao_nome, a.iniciada_em, a.finalizada_em
        FROM dossies_reuniao d
        LEFT JOIN agenda_lead a ON a.id = d.reuniao_id
@@ -135,6 +137,8 @@ async function preVendaDoCliente(db, clienteId) {
     }
     porReuniao.get(r.reuniao_id).versoes.push({
       versao: r.versao, gerado_em: r.gerado_em, gerado_por: r.gerado_por, instrucao_versao: r.instrucao_versao,
+      // O nome do arquivo (2.39.1): o título do documento, com a versão.
+      arquivo: `${nomeDeDocumento(TIPO_DOSSIE_REUNIAO, r.lead_nome, r.gerado_em)}_v${r.versao}.html`,
       citacoes: r.citacoes, citacoes_nao_encontradas: r.citacoes_nao_encontradas
     });
   }

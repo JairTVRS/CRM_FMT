@@ -24,12 +24,21 @@ import {
   conferirCitacoes, montarDocumento
 } from './_lib/balanca.js';
 import { INSTRUCAO_PADRAO, VERSAO_INSTRUCAO_PADRAO } from './_lib/instrucao-balanca.js';
+import { nomeDeDocumento } from './_lib/documento-base.js';
+import { TIPO_BALANCA } from './_lib/balanca.js';
+
+/**
+ * O nome do arquivo de uma versão (2.39.1): o mesmo título do documento,
+ * com a versão — "Balanca_Avaliativa_Zanna-Sound_2026_10_v1.html". A tela
+ * mostra este nome antes de baixar, e é com ele que o arquivo é salvo.
+ */
+const nomeDoArquivo = (v) => `${nomeDeDocumento(TIPO_BALANCA, v.cliente_nome, v.gerado_em)}_v${v.versao}.html`;
 
 const balancas = criarVersionador({
   tabela: 'balancas',
   chave: 'cliente_id',
   rotulo: 'da balança avaliativa',
-  colunasResumo: ['provider', 'instrucao', 'periodo_de', 'periodo_ate', 'reunioes', 'acoes', 'citacoes', 'citacoes_nao_encontradas']
+  colunasResumo: ['cliente_nome', 'provider', 'instrucao', 'periodo_de', 'periodo_ate', 'reunioes', 'acoes', 'citacoes', 'citacoes_nao_encontradas']
 });
 
 /** Conteúdo menor que isto não é uma balança: a IA recusou ou respondeu outra coisa. */
@@ -113,7 +122,7 @@ export async function onRequestGet(context) {
     if (!cliente.erp_id) motivo = 'Este cliente não está vinculado ao ERP: as atas vêm de lá. Vincule-o (na Jornada, pelo CNPJ) para gerar a Balança.';
     else if (!hubConfigurado(context.env)) motivo = 'O servidor não tem a chave do hub: as atas vêm do ERP.';
     return json({
-      versoes,
+      versoes: versoes.map((v) => ({ ...v, arquivo: nomeDoArquivo(v) })),
       instrucao: { rotulo: instrucao.rotulo, padrao: instrucao.padrao, nome_arquivo: instrucao.nome_arquivo || null },
       periodo: { de: inicioDoPeriodo(), ate: new Date().toISOString().slice(0, 10) },
       pode_gerar: !motivo,

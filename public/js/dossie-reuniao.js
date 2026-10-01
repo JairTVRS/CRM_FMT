@@ -155,19 +155,39 @@ const DossieReuniao = (() => {
     htmlAtual = null;
   }
 
-  /** O nome do arquivo é o título do documento: Dossie_Reuniao_Cliente_2026_10.html */
-  function baixar() {
-    if (!htmlAtual) return;
-    const titulo = (htmlAtual.match(/<title>([^<]*)<\/title>/i)?.[1] || 'Dossie_Reuniao').trim();
-    const blob = new Blob([htmlAtual], { type: 'text/html;charset=utf-8' });
+  /**
+   * "Baixar" direto, sem abrir (2.39.1): busca o documento e salva com o
+   * nome que a lista mostrou. Blob, não link: o endpoint exige login.
+   */
+  async function baixarDocumento(url, nome) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
+      const html = await r.text();
+      const titulo = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || 'Documento').trim();
+      salvar(html, nome || `${titulo}.html`);
+    } catch (e) {
+      alert(`Não foi possível baixar: ${e.message}`);
+    }
+  }
+
+  function salvar(html, nome) {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${titulo}_v${el('dossie-reuniao-versao').value}.html`;
+    a.download = nome;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /** O nome do arquivo é o título do documento: Dossie_Reuniao_Cliente_2026_10_v1.html */
+  function baixar() {
+    if (!htmlAtual) return;
+    const titulo = (htmlAtual.match(/<title>([^<]*)<\/title>/i)?.[1] || 'Dossie_Reuniao').trim();
+    salvar(htmlAtual, `${titulo}_v${el('dossie-reuniao-versao').value}.html`);
   }
 
   /* ----------------------------------------------------------
@@ -203,8 +223,12 @@ const DossieReuniao = (() => {
                 <strong>${esc(x.tipo_reuniao_nome || 'Reunião')}</strong> · ${esc(dataBr(x.inicio))}
                 <div class="recortes-nota">Versão ${esc(ultima.versao)} de ${x.versoes.length} · ${esc(quando(ultima.gerado_em))}
                   ${ultima.citacoes != null ? ` · ${esc(ultima.citacoes)} citação(ões), ${esc(ultima.citacoes_nao_encontradas || 0)} não encontrada(s)` : ''}</div>
+                ${ultima.arquivo ? `<code class="doc-contexto-arquivo">${esc(ultima.arquivo)}</code>` : ''}
               </div>
-              <button type="button" class="btn btn-sm btn-secondary" data-prevenda="${i}">Abrir</button>
+              <div class="dossie-reuniao-botoes">
+                <button type="button" class="btn btn-sm btn-secondary" data-prevenda="${i}">Abrir</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-prevenda-baixar="${i}">Baixar</button>
+              </div>
             </div>`;
         }).join('');
     } catch (e) {
@@ -214,13 +238,21 @@ const DossieReuniao = (() => {
 
   function iniciar() {
     el('cli-prevenda-lista')?.addEventListener('click', (ev) => {
+      const baixa = ev.target.closest('[data-prevenda-baixar]');
+      const xb = baixa && preVenda[Number(baixa.dataset.prevendaBaixar)];
+      if (xb) {
+        const v = xb.versoes[0];
+        baixarDocumento(`/api/dossie-reuniao?reuniao_id=${xb.reuniao_id}&html=1&versao=${v.versao}`, v.arquivo);
+        return;
+      }
       const b = ev.target.closest('[data-prevenda]');
       const x = b && preVenda[Number(b.dataset.prevenda)];
       if (x) abrirDocumento(docDaReuniao(x.reuniao_id, x.nome, x.versoes));
     });
     // Carrega sob demanda, como as outras abas: só quando abrem a Pré-venda.
     document.addEventListener('crm:cliente-aba', (ev) => {
-      if (ev.detail?.aba === 'cli-tab-prevenda') mostrarPreVenda(ev.detail.clienteId);
+      // 2.39.1: a pré-venda mora na aba "Documentos de contexto".
+      if (ev.detail?.aba === 'cli-tab-documentos') mostrarPreVenda(ev.detail.clienteId);
     });
     el('agenda-dossie-reuniao')?.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-dossie-reuniao]');
@@ -241,5 +273,5 @@ const DossieReuniao = (() => {
 
   document.addEventListener('DOMContentLoaded', iniciar);
 
-  return { mostrarNaReuniao, abrir, mostrarPreVenda, abrirDocumento };
+  return { mostrarNaReuniao, abrir, mostrarPreVenda, abrirDocumento, baixarDocumento };
 })();

@@ -1429,9 +1429,7 @@
       <nav class="modal-tabs">
         <button class="cli-tab-btn active" data-cli-tab="cli-tab-ficha">Ficha</button>
         <button class="cli-tab-btn" data-cli-tab="cli-tab-pessoas">Stakeholders</button>
-        <button class="cli-tab-btn" data-cli-tab="cli-tab-dossie">Dossiê de Experiência</button>
-        <button class="cli-tab-btn" data-cli-tab="cli-tab-prevenda">Pré-venda</button>
-        <button class="cli-tab-btn" data-cli-tab="cli-tab-balanca">Balança</button>
+        <button class="cli-tab-btn" data-cli-tab="cli-tab-documentos">Documentos de contexto</button>
       </nav>
 
       <div class="modal-body">
@@ -1617,58 +1615,73 @@
         </div><!-- /cli-tab-pessoas -->
 
         <!-- ================================================================
-             ABA 3: DOSSIÊ DE EXPERIÊNCIA
+             DOCUMENTOS DE CONTEXTO (2.39.1) — pedido de 01/10/2026: os três
+             documentos do cliente numa aba só, do passado para o presente,
+             cada um com o nome exato do arquivo e "Baixar" direto, para não
+             haver dúvida de qual se baixa e qual já foi baixado.
              ================================================================ -->
-        <div id="cli-tab-dossie" class="cli-tab-content hidden">
-          <p class="ajuda-campo">
-            Documento de pós-venda, o oposto do Dossiê Executivo: fala da conta
-            como ela é hoje. A parte factual sai do CRM; a leitura é escrita por
-            IA a partir dela. <strong>É documento interno</strong> — contém
-            juízo da Formatar sobre pessoas nomeadas do cliente.
+        <div id="cli-tab-documentos" class="cli-tab-content hidden">
+          <p class="campo-informativo">
+            Os documentos de contexto deste cliente, do passado para o presente. O nome de cada
+            arquivo diz o tipo, o cliente, o mês e a versão — por exemplo,
+            <code>Balanca_Avaliativa_Cliente_2026_10_v2.html</code>.
           </p>
 
-          <p id="dossie-cx-sem-cliente" class="campo-informativo hidden">
-            Salve o cliente primeiro. O dossiê é gerado sobre uma ficha existente.
-          </p>
+          <section class="doc-contexto">
+            <header class="doc-contexto-topo">
+              <span class="doc-contexto-num">1</span>
+              <div>
+                <h3>Pré-venda — Dossiê da Reunião</h3>
+                <p>O que foi conversado antes do contrato, reunião por reunião. Só leitura: para gerar uma nova versão, abra a reunião na agenda do lead.</p>
+              </div>
+            </header>
+            <div id="cli-prevenda-lista" class="cli-prevenda-lista"></div>
+          </section>
 
-          <div id="dossie-cx-painel">
-            <h3 class="secao-cadastro">O que entra nesta versão</h3>
-            <ul id="dossie-cx-resumo" class="dossie-cx-resumo"></ul>
+          <section class="doc-contexto">
+            <header class="doc-contexto-topo">
+              <span class="doc-contexto-num">2</span>
+              <div>
+                <h3>Dossiê de Experiência</h3>
+                <p>O retrato da conta hoje: o que o ERP diz, as pessoas e os núcleos, com a leitura da IA. <strong>Documento interno</strong> — contém juízo da Formatar sobre pessoas nomeadas do cliente.</p>
+              </div>
+            </header>
 
-            <h3 class="secao-cadastro">Versões geradas</h3>
-            <div id="dossie-cx-versoes" class="dossie-cx-versoes"></div>
+            <p id="dossie-cx-sem-cliente" class="campo-informativo hidden">
+              Salve o cliente primeiro. O dossiê é gerado sobre uma ficha existente.
+            </p>
 
-            <div class="pessoa-form-acoes">
-              <button id="btn-dossie-cx-abrir" class="btn btn-secondary btn-sm hidden">
-                Abrir a última versão
-              </button>
-              <button id="btn-dossie-cx-gerar" class="btn btn-primary btn-sm">
-                Gerar dossiê
-              </button>
+            <div id="dossie-cx-painel">
+              <details class="doc-contexto-detalhe">
+                <summary>O que entra nesta versão</summary>
+                <ul id="dossie-cx-resumo" class="dossie-cx-resumo"></ul>
+              </details>
+
+              <div id="dossie-cx-versoes" class="dossie-cx-versoes"></div>
+
+              <div class="pessoa-form-acoes">
+                <button id="btn-dossie-cx-abrir" class="btn btn-secondary btn-sm hidden">Abrir</button>
+                <button id="btn-dossie-cx-baixar-direto" class="btn btn-secondary btn-sm hidden">Baixar</button>
+                <button id="btn-dossie-cx-gerar" class="btn btn-primary btn-sm">
+                  Gerar dossiê
+                </button>
+              </div>
             </div>
-          </div>
-        </div><!-- /cli-tab-dossie -->
+          </section>
 
-        <!-- Pré-venda (2.38.2): os Dossiês das Reuniões do lead que deu
-             origem a este cliente — vão junto na conversão. -->
-        <div id="cli-tab-prevenda" class="cli-tab-content hidden">
-          <p class="campo-informativo">
-            Os dossiês das reuniões de venda do lead que deu origem a este cliente.
-            Só leitura: para gerar uma nova versão, abra a reunião na agenda do lead.
-          </p>
-          <div id="cli-prevenda-lista" class="cli-prevenda-lista"></div>
-        </div><!-- /cli-tab-prevenda -->
+          <section class="doc-contexto">
+            <header class="doc-contexto-topo">
+              <span class="doc-contexto-num">3</span>
+              <div>
+                <h3>Balança Avaliativa</h3>
+                <p>O que está funcionando e o que preocupa nos últimos 6 meses, com a evidência das atas e do plano. Os números são calculados pelo CRM.</p>
+              </div>
+            </header>
+            <div id="cli-balanca" class="cli-balanca"></div>
+          </section>
+        </div><!-- /cli-tab-documentos -->
 
-        <!-- Balança Avaliativa (2.39.0): positivos e negativos da relação,
-             lado a lado, cada um preso à ata ou à ação de onde veio. -->
-        <div id="cli-tab-balanca" class="cli-tab-content hidden">
-          <p class="campo-informativo">
-            A IA lê as atas dos últimos 6 meses (só a parte compartilhada com o cliente) e o plano de
-            ação, e pesa a relação: o que está funcionando e o que preocupa, cada ponto com a evidência.
-            Os números do período são calculados pelo CRM. Leva de 1 a 2 minutos.
-          </p>
-          <div id="cli-balanca" class="cli-balanca"></div>
-        </div><!-- /cli-tab-balanca -->
+
       </div>
 
       <footer class="modal-footer">

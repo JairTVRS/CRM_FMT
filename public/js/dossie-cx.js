@@ -203,14 +203,17 @@ const DossieCx = (() => {
     if (versoes.length === 0) {
       caixa.innerHTML = '<div class="coluna-vazia">Nenhuma versão gerada ainda.</div>';
     } else {
+      // 2.39.1: cada versão com o nome exato do arquivo que se baixa.
       caixa.innerHTML = versoes.map((v) => `
         <button type="button" class="dossie-cx-versao" data-versao="${v.versao}">
           <strong>Versão ${v.versao}</strong>
           <span>${dataBr(v.gerado_em)} · ${esc(v.gerado_por)} · ${esc(v.provider)}</span>
+          <code class="doc-contexto-arquivo">${esc(montarNomeArquivo(v.versao, v.gerado_em))}</code>
         </button>`).join('');
     }
 
     el('btn-dossie-cx-abrir')?.classList.toggle('hidden', versoes.length === 0);
+    el('btn-dossie-cx-baixar-direto')?.classList.toggle('hidden', versoes.length === 0);
 
     const gerar = el('btn-dossie-cx-gerar');
     if (gerar) gerar.textContent = versoes.length ? 'Gerar nova versão' : 'Gerar dossiê';
@@ -414,17 +417,18 @@ const DossieCx = (() => {
   }
 
   /**
-   * `Dossie_Experiencia_Alphatex_2026_09.html`
+   * `Dossie_Experiencia_Alphatex_2026_09_v2.html`
    *
    * Copia do `nomeDeDocumento` do `_lib/documento-base.js`. A duplicacao
    * e inevitavel: aquele e modulo ES das Functions e este e script
    * classico do navegador. Se o padrao mudar, mudam os dois.
    *
-   * Sem acento e sem sufixo de versao, por decisao de 06/09/2026 -- com
-   * a contrapartida assumida de que baixar duas versoes no mesmo mes faz
-   * o navegador gerar "(1)" no nome.
+   * Sem acento. COM a versao desde a 2.39.1 (01/10/2026): "os tres tem v1,
+   * v2..." — a decisao de 06/09 (sem sufixo) foi revista para nao haver
+   * duvida de qual versao se baixou. O mes e o da GERACAO da versao, nao o
+   * do dia em que se baixa.
    */
-  function montarNomeArquivo() {
+  function montarNomeArquivo(versao, geradoEm) {
     const base = String(nomeParaArquivo() || 'Cliente')
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/\b(LTDA|ME|EPP|EIRELI|S\/?A|SA)\b\.?/gi, '')
@@ -435,26 +439,44 @@ const DossieCx = (() => {
       .map(comoNome)
       .join('-') || 'Cliente';
 
-    const d = new Date();
-    const ano = d.getFullYear();
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const d = geradoEm ? new Date(geradoEm) : new Date();
+    const quando = Number.isNaN(d.getTime()) ? new Date() : d;
+    const ano = quando.getFullYear();
+    const mes = String(quando.getMonth() + 1).padStart(2, '0');
 
-    return `Dossie_Experiencia_${base}_${ano}_${mes}.html`;
+    return `Dossie_Experiencia_${base}_${ano}_${mes}${versao ? `_v${versao}` : ''}.html`;
   }
 
-  function baixar() {
-    if (!htmlAtual) return;
+  function salvarArquivo(html, nome) {
     // Blob, não link para a URL: o endpoint exige token e um link direto
     // responderia 401.
-    const blob = new Blob([htmlAtual], { type: 'text/html;charset=utf-8' });
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = montarNomeArquivo();
+    a.download = nome;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /** O que está aberto no visualizador. */
+  function baixar() {
+    if (!htmlAtual) return;
+    const v = versoes.find((x) => x.versao === versaoAtual);
+    salvarArquivo(htmlAtual, montarNomeArquivo(versaoAtual, v?.gerado_em));
+  }
+
+  /** "Baixar" do cartão (2.39.1): a última versão, sem abrir antes. */
+  async function baixarUltima() {
+    const v = versoes[0];
+    if (!v) return;
+    try {
+      salvarArquivo(await carregarHtml(v.versao), montarNomeArquivo(v.versao, v.gerado_em));
+    } catch (e) {
+      alert(`Não foi possível baixar o dossiê: ${e.message}`);
+    }
   }
 
   function imprimir() {
@@ -477,6 +499,7 @@ const DossieCx = (() => {
     });
 
     el('btn-dossie-cx-abrir')?.addEventListener('click', () => abrirVersao(versoes[0]?.versao));
+    el('btn-dossie-cx-baixar-direto')?.addEventListener('click', baixarUltima);
 
     el('dossie-cx-versoes')?.addEventListener('click', (ev) => {
       const botao = ev.target.closest('[data-versao]');
@@ -516,7 +539,8 @@ const DossieCx = (() => {
     });
 
     document.addEventListener('crm:cliente-aba', (ev) => {
-      if (ev.detail?.aba === 'cli-tab-dossie') abrirAba();
+      // 2.39.1: o dossiê mora na aba "Documentos de contexto".
+      if (ev.detail?.aba === 'cli-tab-documentos') abrirAba();
     });
   }
 

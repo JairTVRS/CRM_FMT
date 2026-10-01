@@ -242,6 +242,9 @@ ok(/Balanca_Avaliativa_Cedro-Materiais/.test(html) && /<q class="confere">O sóc
   'o documento sai com a evidência exata (o erro da IA não passa) e a marca na não sustentada');
 e = (await ESTADO(1)).corpo;
 ok(e.versoes.length === 1 && e.versoes[0].instrucao === 'padrão 1.0' && e.versoes[0].reunioes === 1, 'o estado lista a versão com a instrução e a fonte');
+ok(/^Balanca_Avaliativa_Cedro-Materiais_\d{4}_\d{2}_v1\.html$/.test(e.versoes[0].arquivo)
+  && html.includes(`<title>${e.versoes[0].arquivo.replace(/_v1\.html$/, '')}</title>`),
+  'e o nome exato do arquivo, que bate com o título do documento (2.39.1)', e.versoes[0].arquivo);
 
 // A instrução enviada nas Configurações vale no lugar da padrão.
 const env1 = await roteirosApi.onRequestPost(ctx('POST', '/api/roteiros', {

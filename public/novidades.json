@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.39.1",
+      "data": "01/10/2026",
+      "titulo": "Documentos de contexto do cliente numa aba só",
+      "itens": [
+        "Na ficha do cliente, as abas Dossiê de Experiência, Pré-venda e Balança viraram uma só: \"Documentos de contexto\", com os três documentos do passado para o presente — 1. Pré-venda, 2. Dossiê de Experiência, 3. Balança Avaliativa.",
+        "Cada versão mostra o nome exato do arquivo que será baixado, e cada documento tem \"Baixar\" direto, sem precisar abrir antes.",
+        "Os três documentos levam a versão no nome do arquivo (…_v1, …_v2), com o mês em que a versão foi gerada: não há mais dúvida de qual se baixou. O Dossiê de Experiência passou a ter a versão no nome também."
+      ]
+    },
+    {
       "versao": "2.39.0",
       "data": "01/10/2026",
       "titulo": "Balança Avaliativa do cliente",

@@ -54,11 +54,13 @@ const Balanca = (() => {
                <div class="recortes-nota">${esc(dataBr(ultima.periodo_de))} a ${esc(dataBr(ultima.periodo_ate))} · ${esc(ultima.reunioes ?? 0)} reunião(ões), ${esc(ultima.acoes ?? 0)} ação(ões)
                · ${esc(ultima.citacoes ?? 0)} evidência(s), ${esc(ultima.citacoes_nao_encontradas ?? 0)} não encontrada(s)</div>`
             : '<strong>Nenhuma Balança gerada ainda.</strong>'}
+          ${ultima?.arquivo ? `<code class="doc-contexto-arquivo">${esc(ultima.arquivo)}</code>` : ''}
           <div class="recortes-nota">${periodo} ${instrucao}</div>
           ${!d.pode_gerar && d.motivo ? `<div class="recortes-nota recortes-aviso">${esc(d.motivo)}</div>` : ''}
         </div>
         <div class="dossie-reuniao-botoes">
           ${ultima ? '<button type="button" class="btn btn-sm btn-secondary" data-balanca="abrir">Abrir</button>' : ''}
+          ${ultima ? '<button type="button" class="btn btn-sm btn-secondary" data-balanca="baixar">Baixar</button>' : ''}
           ${d.pode_gerar ? `<button type="button" class="btn btn-sm btn-primary" data-balanca="gerar">${ultima ? 'Gerar nova versão' : 'Gerar a Balança'}</button>` : ''}
         </div>
       </div>`;
@@ -121,6 +123,9 @@ const Balanca = (() => {
       if (!b) return;
       if (b.dataset.balanca === 'gerar') gerar();
       if (b.dataset.balanca === 'abrir') abrir();
+      if (b.dataset.balanca === 'baixar' && versoes[0] && typeof DossieReuniao !== 'undefined') {
+        DossieReuniao.baixarDocumento(`/api/balanca?cliente_id=${clienteId}&html=1&versao=${versoes[0].versao}`, versoes[0].arquivo);
+      }
     });
     // A ficha avisa qual cliente abriu; a aba carrega quando é aberta.
     document.addEventListener('crm:cliente-ficha', (ev) => {
@@ -128,7 +133,8 @@ const Balanca = (() => {
       clienteNome = ev.detail?.nome || '';
     });
     document.addEventListener('crm:cliente-aba', (ev) => {
-      if (ev.detail?.aba === 'cli-tab-balanca') mostrar(ev.detail.clienteId);
+      // 2.39.1: a Balança mora na aba "Documentos de contexto".
+      if (ev.detail?.aba === 'cli-tab-documentos') mostrar(ev.detail.clienteId);
     });
   }
 
