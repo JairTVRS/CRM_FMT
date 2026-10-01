@@ -270,6 +270,7 @@
             <span class="cor-atrasada">Atrasada</span>
             <span class="cor-andamento">Em andamento</span>
             <span class="cor-realizada">Realizada</span>
+            <span class="cor-cancelada">Cancelada</span>
           </div>
           <div id="agenda-grade" class="agenda-grade"></div>
         </div>
@@ -1245,6 +1246,33 @@
               <button type="button" id="btn-agenda-remarcar-confirmar" class="btn btn-sm btn-primary">Remarcar</button>
             </div>
           </div>
+
+          <!-- Cancelar (2.36.2): pede um dos motivos do ERP e aceita uma
+               observação. O cancelado fica roxo na agenda. -->
+          <div class="form-group col-span-4 agenda-cancelamento cor-cancelada hidden" id="agenda-cancelamento">
+            <div class="agenda-cancelamento-campos">
+              <div>
+                <label for="agenda-cancelamento-motivo">Motivo do cancelamento *</label>
+                <select id="agenda-cancelamento-motivo" class="form-control">
+                  <option value="">Escolha o motivo</option>
+                  <option value="cliente">Cancelado pelo cliente</option>
+                  <option value="consultor">Cancelado pelo consultor</option>
+                  <option value="agendamento">Cancelado pelo agendamento</option>
+                  <option value="proposta">Proposta cancelada pelo cliente</option>
+                </select>
+              </div>
+              <div>
+                <label for="agenda-cancelamento-obs">Observação</label>
+                <textarea id="agenda-cancelamento-obs" class="form-control" rows="2" maxlength="1000"
+                          placeholder="O que aconteceu? Ex.: o sócio viajou, pediu para retomar em novembro."></textarea>
+              </div>
+            </div>
+            <div class="agenda-cancelamento-acoes">
+              <button type="button" id="btn-agenda-cancelamento-voltar" class="btn btn-sm btn-secondary">Voltar</button>
+              <button type="button" id="btn-agenda-cancelamento-confirmar" class="btn btn-sm btn-cancelar">Confirmar cancelamento</button>
+            </div>
+          </div>
+          <p class="col-span-4 agenda-cancelamento-info cor-cancelada hidden" id="agenda-cancelamento-info"></p>
         </div>
 
         <!-- A coluna da direita: só reunião. -->
@@ -1302,6 +1330,7 @@
         <div>
           <button type="button" id="btn-agenda-excluir" class="btn btn-sm btn-secondary hidden">Excluir</button>
           <button type="button" id="btn-agenda-remarcar" class="btn btn-sm btn-secondary hidden">Remarcar</button>
+          <button type="button" id="btn-agenda-cancelar-item" class="btn btn-sm btn-cancelar hidden">Cancelar &#8855;</button>
         </div>
         <div>
           <button type="button" id="btn-agenda-cancelar" class="btn btn-secondary">Fechar</button>

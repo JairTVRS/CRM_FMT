@@ -2,6 +2,17 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.36.2",
+      "data": "01/10/2026",
+      "titulo": "Cancelar com motivo, e o cancelado fica roxo",
+      "itens": [
+        "Para cancelar uma reunião ou um contato, use o botão \"Cancelar\" no rodapé da janela: escolha o motivo (os mesmos do ERP: pelo cliente, pelo consultor, pelo agendamento, ou proposta cancelada pelo cliente) e, se quiser, escreva uma observação.",
+        "Na lista \"Situação\", a opção \"Cancelada\" fica apagada: sem motivo não se cancela.",
+        "Na agenda, o cancelado fica roxo, como no Painel de Operações, e o motivo aparece ao passar o mouse. Ao abrir, a janela mostra o motivo, a observação, quem cancelou e quando.",
+        "Cancelar fecha uma gravação que tenha ficado aberta naquela reunião."
+      ]
+    },
+    {
       "versao": "2.36.1",
       "data": "30/09/2026",
       "titulo": "Janela da reunião mais larga e transcrição melhor",

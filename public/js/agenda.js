@@ -18,7 +18,8 @@
  *   amarelo   agendada, ainda no futuro
  *   vermelho  agendada e a hora já passou sem ninguém iniciar (atrasada)
  *   verde     reunião iniciada (em andamento); verde-claro, realizada
- *   cinza     cancelada, remarcada, não compareceu
+ *   roxo      cancelada, com o motivo (2.36.2), como no ERP
+ *   cinza     remarcada, não compareceu
  * A grade se redesenha a cada minuto: o amarelo vira vermelho sozinho.
  *
  * Carregar DEPOIS do cadastros.js e ANTES do leads.js.
@@ -33,6 +34,11 @@ const Agenda = (() => {
   const ROTULO_STATUS = {
     agendada: 'Agendada', realizada: 'Realizada', remarcada: 'Remarcada',
     cancelada: 'Cancelada', nao_compareceu: 'Não compareceu'
+  };
+  // Os motivos do ERP (2.36.2); o servidor tem a mesma lista em _lib/agenda.js.
+  const ROTULO_MOTIVO = {
+    cliente: 'Cancelado pelo cliente', consultor: 'Cancelado pelo consultor',
+    agendamento: 'Cancelado pelo agendamento', proposta: 'Proposta cancelada pelo cliente'
   };
   const ROTULO_CANAL = { ligacao: 'Ligação', whatsapp: 'WhatsApp', email: 'E-mail', outro: 'Contato' };
   const ROTULO_LOCAL = { online: 'Online', presencial: 'Presencial', externo: 'Externo' };
@@ -68,17 +74,21 @@ const Agenda = (() => {
    *   realizada
    *   atrasada   agendada, e a hora marcada já passou
    *   futura     agendada, ainda por vir
-   *   encerrada  cancelada, remarcada, não compareceu
+   *   cancelada  roxa, como no ERP (2.36.2)
+   *   encerrada  remarcada, não compareceu
    */
   function situacao(item, agora = agoraTxt()) {
     if (item.iniciada_em && !item.finalizada_em) return 'andamento';
     if (item.status === 'realizada') return 'realizada';
     if (item.status === 'agendada') return item.inicio <= agora ? 'atrasada' : 'futura';
+    if (item.status === 'cancelada') return 'cancelada';
     return 'encerrada';
   }
   const ROTULO_SITUACAO = {
     andamento: 'Em andamento', realizada: 'Realizada', atrasada: 'Atrasada', futura: 'Agendada'
   };
+  /** "Cancelado pelo cliente" — ou só "Cancelada", no que foi cancelado antes do motivo existir. */
+  const rotuloCancelada = (item) => ROTULO_MOTIVO[item.cancelamento_motivo] || 'Cancelada';
   const ROTULO_LOCAL_CURTO = { online: 'Online', presencial: 'Pres.', externo: 'Ext.' };
   const RELOGIO = '<svg class="agenda-relogio" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 
@@ -160,7 +170,9 @@ const Agenda = (() => {
     const cx = item.responsavel && typeof Cadastros !== 'undefined' ? Cadastros.nomeDoUsuario(item.responsavel) : null;
     const sit = situacao(item, agora);
     const oQue = item.tipo === 'reuniao' ? (item.tipo_reuniao_nome || 'Reunião') : (ROTULO_CANAL[item.canal] || 'Contato');
-    const rotulo = ROTULO_SITUACAO[sit] || ROTULO_STATUS[item.status] || item.status;
+    const rotulo = sit === 'cancelada'
+      ? `${rotuloCancelada(item)}${item.cancelamento_obs ? `: ${item.cancelamento_obs}` : ''}`
+      : (ROTULO_SITUACAO[sit] || ROTULO_STATUS[item.status] || item.status);
     const titulo = `${oQue} — ${item.lead_nome} · ${horario(item)} (${rotulo})`;
     const local = item.tipo === 'reuniao' && item.local_tipo
       ? `<span class="agenda-item-local">${esc(ROTULO_LOCAL_CURTO[item.local_tipo] || item.local_tipo)}</span>` : '';
@@ -411,10 +423,19 @@ const Agenda = (() => {
     const andando = !!item?.iniciada_em && !item?.finalizada_em;
     const opRealizada = el('agenda-status').querySelector('option[value="realizada"]');
     if (opRealizada) opRealizada.disabled = base.tipo === 'reuniao' && base.status !== 'realizada';
+    // Cancelar pede o motivo (2.36.2): só pelo botão "Cancelar".
+    const opCancelada = el('agenda-status').querySelector('option[value="cancelada"]');
+    if (opCancelada) opCancelada.disabled = base.status !== 'cancelada';
     el('agenda-status').disabled = andando;
     el('btn-agenda-excluir').classList.toggle('hidden', !item || andando);
-    el('btn-agenda-remarcar').classList.toggle('hidden', !item || item.status !== 'agendada' || andando);
+    const agendada = !!item && item.status === 'agendada' && !andando;
+    el('btn-agenda-remarcar').classList.toggle('hidden', !agendada);
+    el('btn-agenda-cancelar-item').classList.toggle('hidden', !agendada);
     el('agenda-remarcar').classList.add('hidden');
+    el('agenda-cancelamento').classList.add('hidden');
+    el('agenda-cancelamento-motivo').value = '';
+    el('agenda-cancelamento-obs').value = '';
+    mostrarCancelamento(item);
     // O tipo não muda depois de criado: uma reunião que virou ligação é
     // outro compromisso.
     document.querySelectorAll('[data-agenda-tipo]').forEach((b) => { b.disabled = !!item; });
@@ -496,9 +517,35 @@ const Agenda = (() => {
     await enviar(`/api/agenda?id=${emEdicao.id}`, 'PUT', { ...lerJanela(), status: 'agendada', remarcar_para: `${data}T${h}` });
   }
 
+  /** O cancelado mostra o motivo, a observação, quem e quando. */
+  function mostrarCancelamento(item) {
+    const info = el('agenda-cancelamento-info');
+    if (!item || item.status !== 'cancelada') { info.classList.add('hidden'); return; }
+    const quem = item.cancelada_por && typeof Cadastros !== 'undefined'
+      ? Cadastros.nomeDoUsuario(item.cancelada_por) : item.cancelada_por;
+    const quando = item.cancelada_em
+      ? ` em ${new Date(item.cancelada_em).toLocaleDateString('pt-BR')} às ${horaReal(item.cancelada_em)}` : '';
+    info.innerHTML = `<strong>${esc(rotuloCancelada(item))}</strong>${quem ? ` — por ${esc(quem)}` : ''}${esc(quando)}`
+      + (item.cancelamento_obs ? `\n${esc(item.cancelamento_obs)}` : '');
+    info.classList.remove('hidden');
+  }
+
+  async function cancelar() {
+    if (!emEdicao) return;
+    const motivo = el('agenda-cancelamento-motivo').value;
+    if (!motivo) {
+      alert('Escolha o motivo do cancelamento.');
+      el('agenda-cancelamento-motivo').focus();
+      return;
+    }
+    await enviar(`/api/agenda?id=${emEdicao.id}`, 'PUT', {
+      acao: 'cancelar', motivo, observacao: el('agenda-cancelamento-obs').value.trim() || null
+    });
+  }
+
   async function excluir() {
     if (!emEdicao) return;
-    if (!confirm('Excluir este compromisso? Use só para o que foi lançado por engano — o que não aconteceu é "Cancelada".')) return;
+    if (!confirm('Excluir este compromisso? Use só para o que foi lançado por engano — o que não aconteceu se cancela, com o motivo, no botão "Cancelar".')) return;
     await enviar(`/api/agenda?id=${emEdicao.id}`, 'DELETE');
   }
 
@@ -587,7 +634,7 @@ const Agenda = (() => {
             <button type="button" class="agenda-linha st-${esc(x.status)} cor-${sit}" data-item-ficha="${x.id}">
               <span class="agenda-linha-quando">${dataBr(x.inicio)} ${esc(horario(x))}</span>
               <span class="agenda-linha-oque">${esc(resumo(x).slice(6))}${x.tipo === 'reuniao' && x.local_tipo ? ` · ${esc(ROTULO_LOCAL[x.local_tipo])}` : ''}</span>
-              <span class="agenda-linha-status">${esc(ROTULO_SITUACAO[sit] || ROTULO_STATUS[x.status] || x.status)}</span>
+              <span class="agenda-linha-status">${esc(sit === 'cancelada' ? rotuloCancelada(x) : (ROTULO_SITUACAO[sit] || ROTULO_STATUS[x.status] || x.status))}</span>
             </button>`;
           }).join('')
         : '<div class="coluna-vazia">Nada agendado ainda.</div>';
@@ -679,6 +726,13 @@ const Agenda = (() => {
       el('agenda-remarcar-data').focus();
     });
     el('btn-agenda-remarcar-confirmar')?.addEventListener('click', remarcar);
+    el('btn-agenda-cancelar-item')?.addEventListener('click', () => {
+      el('agenda-remarcar').classList.add('hidden');
+      el('agenda-cancelamento').classList.remove('hidden');
+      el('agenda-cancelamento-motivo').focus();
+    });
+    el('btn-agenda-cancelamento-voltar')?.addEventListener('click', () => el('agenda-cancelamento').classList.add('hidden'));
+    el('btn-agenda-cancelamento-confirmar')?.addEventListener('click', cancelar);
     el('btn-agenda-dossie')?.addEventListener('click', () => {
       if (typeof Dossie !== 'undefined' && leadDaJanela) Dossie.abrir(leadDaJanela);
     });

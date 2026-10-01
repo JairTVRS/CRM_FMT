@@ -145,6 +145,7 @@
 .cor-andamento { --cartao-fundo: rgba(31, 157, 85, 0.30);  --cartao-borda: rgba(31, 157, 85, 0.85); }
 .cor-realizada { --cartao-fundo: rgba(31, 157, 85, 0.12);  --cartao-borda: rgba(31, 157, 85, 0.40); }
 .cor-encerrada { --cartao-fundo: rgba(127, 127, 127, 0.12); --cartao-borda: rgba(127, 127, 127, 0.35); }
+.cor-cancelada { --cartao-fundo: rgba(139, 92, 246, 0.22); --cartao-borda: rgba(139, 92, 246, 0.60); }
 
 /* Tema claro: os tons pastel do Painel de Operações. */
 .light-theme .cor-futura    { --cartao-fundo: #fdf6c3; --cartao-borda: #e8d45c; }
@@ -152,6 +153,8 @@
 .light-theme .cor-andamento { --cartao-fundo: #c6efd0; --cartao-borda: #5fbf7a; }
 .light-theme .cor-realizada { --cartao-fundo: #e6f5ea; --cartao-borda: #a9dcb6; }
 .light-theme .cor-encerrada { --cartao-fundo: #f1efea; --cartao-borda: #d9d4c9; }
+/* Roxo, como o cancelado do Painel de Operações (2.36.2). */
+.light-theme .cor-cancelada { --cartao-fundo: #e9defc; --cartao-borda: #c3aef0; }
 
 .agenda-item.cor-andamento { box-shadow: 0 0 0 1px var(--cartao-borda); }
 .agenda-item.st-cancelada .agenda-item-lead,
@@ -215,7 +218,7 @@
 
 .agenda-linha-quando { font-weight: 600; }
 .agenda-linha-status { color: var(--text-muted); font-size: 0.75rem; }
-.agenda-linha.st-cancelada, .agenda-linha.st-remarcada { opacity: 0.6; }
+.agenda-linha.st-remarcada { opacity: 0.6; }
 /* As cores da situação (2.36.0), também na ficha. */
 .agenda-linha[class*="cor-"] { background: var(--cartao-fundo); border-color: var(--cartao-borda); }
 
@@ -320,6 +323,38 @@
 
 .agenda-remarcar-campos { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .agenda-remarcar-campos .form-control { flex: 1; min-width: 8rem; }
+
+/* Cancelar com motivo (2.36.2), nas cores do cancelado. */
+.agenda-cancelamento {
+  border: 1px solid var(--cartao-borda);
+  background: var(--cartao-fundo);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+.agenda-cancelamento-campos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.75rem; }
+.agenda-cancelamento-campos label { display: block; margin-bottom: 0.3rem; }
+.agenda-cancelamento-acoes { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+.agenda-cancelamento-info {
+  border-left: 3px solid var(--cartao-borda);
+  background: var(--cartao-fundo);
+  border-radius: 4px;
+  padding: 0.45rem 0.65rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+@media (max-width: 700px) {
+  .agenda-cancelamento-campos { grid-template-columns: 1fr; }
+}
+
+/* O vermelho-claro do botão cancelar do ERP. */
+.btn.btn-cancelar {
+  background: rgba(220, 38, 38, 0.14);
+  color: var(--danger-color);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+}
+.btn.btn-cancelar:hover { background: rgba(220, 38, 38, 0.22); }
 
 .agenda-rodape { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .agenda-rodape > div { display: flex; gap: 0.5rem; }

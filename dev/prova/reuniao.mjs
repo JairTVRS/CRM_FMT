@@ -71,6 +71,7 @@ bd.exec(readFileSync(`${RAIZ}/db/migracao-020-gravacao.sql`, 'utf8'));
 
 console.log('\n=== 1. A migração 021 ===');
 bd.exec(readFileSync(`${RAIZ}/db/migracao-021-reuniao-iniciar-finalizar.sql`, 'utf8'));
+bd.exec(readFileSync(`${RAIZ}/db/migracao-022-cancelamento-motivo.sql`, 'utf8'));
 const colunas = bd.prepare("SELECT name FROM pragma_table_info('agenda_lead')").all().map((c) => c.name);
 ok(['iniciada_em', 'iniciada_por', 'finalizada_em', 'finalizada_por'].every((c) => colunas.includes(c)),
   'as quatro colunas existem');

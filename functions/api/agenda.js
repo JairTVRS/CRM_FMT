@@ -10,6 +10,8 @@
  * PUT    ?id=N                             altera; `remarcar_para` remarca
  * PUT    ?id=N { acao: 'iniciar' }         a reunião começa agora (2.36.0)
  * PUT    ?id=N { acao: 'finalizar' }       a reunião termina agora e vira realizada
+ * PUT    ?id=N { acao: 'cancelar', motivo, observacao }
+ *                                          cancela com um dos motivos do ERP (2.36.2)
  * DELETE ?id=N                             exclui (lógica) — para o que foi
  *                                          lançado por engano; o que não
  *                                          aconteceu é "cancelada"
@@ -30,7 +32,7 @@
 import {
   TIPOS, STATUS, LOCAIS, CANAIS, normalizarInicio,
   comandoRecalcularProximo, comandoUltimoContato, usuarioDoCrm, tiposDeVendas,
-  emAndamento, diaEmBrasilia
+  emAndamento, diaEmBrasilia, MOTIVOS_CANCELAMENTO
 } from './_lib/agenda.js';
 import { avaliarAdmin } from './_lib/admin.js';
 
@@ -82,6 +84,10 @@ async function montarItem(db, corpo, anterior, lead, usuario) {
   if (tipo === 'reuniao' && status === 'realizada' && anterior?.status !== 'realizada') {
     return { erro: { error: 'Reunião vira realizada ao ser finalizada: use "Iniciar reunião" e depois "Finalizar".', code: 'REALIZADA_SO_FINALIZANDO' } };
   }
+  // Cancelar pede o motivo (2.36.2): só pelo botão "Cancelar".
+  if (status === 'cancelada' && anterior?.status !== 'cancelada') {
+    return { erro: { error: 'Para cancelar, use o botão "Cancelar" e escolha o motivo.', code: 'CANCELAR_COM_MOTIVO' } };
+  }
 
   // Responsável: o da escolha, ou o do lead, ou quem está lançando.
   const pedido = texto(corpo.responsavel, 160)?.toLowerCase() || null;
@@ -94,12 +100,19 @@ async function montarItem(db, corpo, anterior, lead, usuario) {
     return { erro: { error: 'O responsável escolhido não é um usuário do CRM.', code: 'RESPONSAVEL_INVALIDO' } };
   }
 
+  // O motivo do cancelamento só vale enquanto a situação for "cancelada":
+  // voltar para outra apaga os quatro campos.
+  const cancelada = status === 'cancelada';
   const item = {
     tipo, inicio, status, responsavel,
     participantes: texto(v('participantes'), 500),
     pauta: texto(v('pauta'), 4000),
     duracao_min: null, tipo_reuniao_erp_id: null, tipo_reuniao_nome: null,
-    local_tipo: null, local_texto: null, canal: null
+    local_tipo: null, local_texto: null, canal: null,
+    cancelamento_motivo: cancelada ? anterior?.cancelamento_motivo ?? null : null,
+    cancelamento_obs: cancelada ? anterior?.cancelamento_obs ?? null : null,
+    cancelada_em: cancelada ? anterior?.cancelada_em ?? null : null,
+    cancelada_por: cancelada ? anterior?.cancelada_por ?? null : null
   };
 
   if (tipo === 'reuniao') {
@@ -133,7 +146,8 @@ async function montarItem(db, corpo, anterior, lead, usuario) {
 const COLUNAS = [
   'tipo', 'inicio', 'status', 'responsavel', 'participantes', 'pauta',
   'duracao_min', 'tipo_reuniao_erp_id', 'tipo_reuniao_nome',
-  'local_tipo', 'local_texto', 'canal'
+  'local_tipo', 'local_texto', 'canal',
+  'cancelamento_motivo', 'cancelamento_obs', 'cancelada_em', 'cancelada_por'
 ];
 
 /** Realizada conta como último contato do lead — só a data. */
@@ -271,6 +285,7 @@ export async function onRequestPut(context) {
 
   if (corpo.acao === 'iniciar') return iniciar(context, anterior, lead, agora);
   if (corpo.acao === 'finalizar') return finalizar(context, anterior, lead, agora);
+  if (corpo.acao === 'cancelar') return cancelar(context, anterior, lead, agora, corpo);
   if (corpo.acao !== undefined) return json({ error: 'Ação desconhecida.', code: 'ACAO_INVALIDA' }, 400, cabecalhos);
 
   // Em andamento, a reunião só termina finalizando: remarcar, cancelar ou
@@ -421,6 +436,52 @@ async function finalizar(context, anterior, lead, agora) {
   ]);
 
   console.log(`[agenda] ${eu} finalizou a reunião ${anterior.id} (lead ${lead.id})`);
+  const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
+  return json({ item: salvo }, 200, cabecalhos);
+}
+
+/* ==========================================================================
+   CANCELAR com motivo (2.36.2)
+   ========================================================================== */
+
+/**
+ * Pedido de 01/10/2026: cancelar pede um dos quatro motivos do ERP e
+ * aceita uma observação. Só o que está agendado e não começou.
+ */
+async function cancelar(context, anterior, lead, agora, corpo) {
+  const cabecalhos = context.data.cabecalhos;
+  const db = context.env.DB;
+  const eu = String(context.data.usuario.email || '').toLowerCase();
+
+  if (anterior.iniciada_em && !anterior.finalizada_em) {
+    return json({ error: 'A reunião está em andamento. Finalize-a antes de mudar a situação.', code: 'EM_ANDAMENTO' }, 409, cabecalhos);
+  }
+  if (anterior.status !== 'agendada') {
+    return json({ error: 'Só um compromisso agendado pode ser cancelado.', code: 'NAO_AGENDADO' }, 409, cabecalhos);
+  }
+  const motivo = String(corpo.motivo || '');
+  if (!Object.hasOwn(MOTIVOS_CANCELAMENTO, motivo)) {
+    return json({ error: 'Escolha o motivo do cancelamento.', code: 'MOTIVO_OBRIGATORIO' }, 400, cabecalhos);
+  }
+
+  try {
+    await db.batch([
+      db.prepare(
+        `UPDATE agenda_lead SET status = 'cancelada', cancelamento_motivo = ?, cancelamento_obs = ?,
+                cancelada_em = ?, cancelada_por = ?, atualizado_por = ?, atualizado_em = ?
+          WHERE id = ? AND ativo = 1 AND status = 'agendada'`
+      ).bind(motivo, texto(corpo.observacao, 1000), agora, eu, eu, agora, anterior.id),
+      // Gravação que ficou aberta de antes da 2.36.0 termina aqui.
+      db.prepare(`UPDATE gravacoes SET status = 'encerrada', encerrada_em = ? WHERE reuniao_id = ? AND status = 'gravando'`)
+        .bind(agora, anterior.id),
+      comandoRecalcularProximo(db, lead.id)
+    ]);
+  } catch (e) {
+    const semColuna = /no such column/i.test(e.message || '');
+    return json({ error: semColuna ? 'Falta aplicar a migração 022.' : 'Falha ao cancelar.', details: e.message }, 500, cabecalhos);
+  }
+
+  console.log(`[agenda] ${eu} cancelou ${anterior.id} (lead ${lead.id}): ${motivo}`);
   const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
   return json({ item: salvo }, 200, cabecalhos);
 }

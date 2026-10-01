@@ -15,6 +15,17 @@ export const STATUS = ['agendada', 'realizada', 'remarcada', 'cancelada', 'nao_c
 export const LOCAIS = ['online', 'presencial', 'externo'];
 export const CANAIS = ['ligacao', 'whatsapp', 'email', 'outro'];
 
+/**
+ * Os motivos de cancelamento (2.36.2): os quatro do Painel de Operações
+ * do ERP, na mesma ordem. O `agenda.js` da tela tem os mesmos rótulos.
+ */
+export const MOTIVOS_CANCELAMENTO = {
+  cliente: 'Cancelado pelo cliente',
+  consultor: 'Cancelado pelo consultor',
+  agendamento: 'Cancelado pelo agendamento',
+  proposta: 'Proposta cancelada pelo cliente'
+};
+
 /** Hora em que cai um contato que só tem data (planilha, migração). */
 export const HORA_PADRAO = '09:00';
 
