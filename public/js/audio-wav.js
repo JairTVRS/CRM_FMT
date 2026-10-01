@@ -82,11 +82,18 @@ const AudioWav = (() => {
    *
    * @param estado  { segundos: duração do pedaço, pausa: segundos seguidos
    *                  de silêncio no fim dele }
+   * 2.36.6 (teste presencial de 01/10/2026): com fala contínua quase todo
+   * pedaço batia no teto de 15 s, e a frase firme chegava 10–28 s depois
+   * de dita. Pedaços menores: fecham na pausa a partir de 3 s, numa
+   * respiração (0,25 s) a partir de 5 s, e no máximo aos 8 s.
+   *
    * @returns true se é hora de fechar
    */
-  const CORTE = { minimo: 6, teto: 15, pausa: 0.6, limiar: 0.008 };
+  const CORTE = { minimo: 3, teto: 8, pausa: 0.6, meio: 5, respiro: 0.25, limiar: 0.008 };
   function deveFechar({ segundos, pausa }, regra = CORTE) {
-    return segundos >= regra.teto || (segundos >= regra.minimo && pausa >= regra.pausa);
+    return segundos >= regra.teto
+      || (segundos >= regra.minimo && pausa >= regra.pausa)
+      || (segundos >= regra.meio && pausa >= regra.respiro);
   }
 
   /** Bytes → base64, em fatias: um `apply` com 800 mil argumentos estoura a pilha. */

@@ -16,7 +16,7 @@
  *      processo de áudio do navegador e não perde som com a aba em
  *      segundo plano (2.36.1 — o ScriptProcessor de antes perdia ~35%, e
  *      o Whisper "inventava" o que faltava). O pedaço fecha na PAUSA da
- *      fala, entre 6 e 15 s (AudioWav.deveFechar), vira um WAV e vai para
+ *      fala, entre 3 e 8 s (AudioWav.deveFechar, 2.36.6), vira um WAV e vai para
  *      /api/gravacoes, que devolve o texto. O áudio não fica em lugar
  *      nenhum. Pedaço silencioso nem sai do navegador.
  *   3. FINALIZAR: manda o que falta, guarda a hora de fim e a reunião
@@ -46,10 +46,15 @@ const Gravacao = (() => {
    */
   const FALA_MINIMA_S = 0.8;
   /** De quanto em quanto tempo a frase em curso é mostrada, crescendo. */
-  const PROVISORIO_A_CADA_S = 3;
+  const PROVISORIO_A_CADA_S = 2;
   /** Sem som nenhum por tanto tempo, a voz da aba ganha um aviso. */
   const SEGUNDOS_SEM_SOM = 20;
-  const ROTULO_ORIGEM = { formatar: 'Formatar', lead: 'Lead', sala: '' };
+  /**
+   * "Sala" (2.36.6): na presencial o microfone pega todo mundo, então a
+   * fala não é só da Formatar.
+   */
+  const ROTULO_ORIGEM = { formatar: 'Formatar', lead: 'Lead', sala: 'Sala' };
+  const ePresencial = (item) => item?.local_tipo === 'presencial';
 
   const temTelaCompartilhada = () => !!navigator.mediaDevices?.getDisplayMedia;
   const minSeg = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -84,7 +89,9 @@ const Gravacao = (() => {
   let relogio = null;        // só redesenha a janela; o corte vem do áudio
   let travaTela = null;
   let fila = [];
-  let enviando = false;
+  /** Pedaços indo ao transcritor agora (2.36.6: até ENVIOS_JUNTOS ao mesmo tempo). */
+  let emVoo = 0;
+  const ENVIOS_JUNTOS = 3;
   let trechos = [];          // o que já voltou transcrito, para desenhar
   // Texto provisório da frase que acabou de fechar e ainda está na fila:
   // continua na tela, em cinza, até o definitivo chegar (2.36.1).
@@ -261,38 +268,46 @@ const Gravacao = (() => {
     return v && contexto ? (v.amostrasTotais + v.amostrasPedaco) / contexto.sampleRate : 0;
   };
 
-  async function enviarFila() {
-    if (enviando || !gravacao) return;
-    enviando = true;
-    while (fila.length) {
-      desenharEstado();
-      const pedaco = fila[0];
-      try {
-        const r = await fetch(`/api/gravacoes?id=${gravacao.id}&trecho=1`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(pedaco)
-        });
-        const d = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(d.details || d.error || `HTTP ${r.status}`);
-        fila.shift();
-        pendentes.delete(pedaco.chave);
-        if (d.texto) trechos.push({ gravacao_id: gravacao.id, origem: pedaco.origem, inicio_s: pedaco.inicio_s, texto: d.texto });
-        desenharAoVivo();
-      } catch (e) {
-        pedaco.tentativas++;
-        if (pedaco.tentativas >= 3) {
-          fila.shift();
-          pendentes.delete(pedaco.chave);
-          desenharAoVivo();
-          avisar(`Um pedaço (${minSeg(pedaco.inicio_s)}) não foi transcrito: ${e.message}`);
-        } else {
-          await new Promise((ok) => setTimeout(ok, 2000 * pedaco.tentativas));
-        }
-      }
-    }
-    enviando = false;
+  /**
+   * Manda a fila ao transcritor. 2.36.6: até três pedaços ao mesmo tempo —
+   * com pedaços de até 8 s e o transcritor levando de 4 a 13 s, um por vez
+   * deixava a fila crescer. Cada pedaço leva o seu `inicio_s`, então a
+   * conversa sai na ordem certa mesmo que as respostas cheguem trocadas.
+   */
+  function enviarFila() {
+    if (!gravacao) return;
+    while (emVoo < ENVIOS_JUNTOS && fila.length) enviarPedaco(fila.shift());
     desenharEstado();
+  }
+
+  async function enviarPedaco(pedaco) {
+    emVoo++;
+    const id = gravacao.id;
+    try {
+      const r = await fetch(`/api/gravacoes?id=${id}&trecho=1`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pedaco)
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.details || d.error || `HTTP ${r.status}`);
+      pendentes.delete(pedaco.chave);
+      if (d.texto) trechos.push({ gravacao_id: id, origem: pedaco.origem, inicio_s: pedaco.inicio_s, texto: d.texto });
+      desenharAoVivo();
+    } catch (e) {
+      pedaco.tentativas++;
+      if (pedaco.tentativas >= 3) {
+        pendentes.delete(pedaco.chave);
+        desenharAoVivo();
+        avisar(`Um pedaço (${minSeg(pedaco.inicio_s)}) não foi transcrito: ${e.message}`);
+      } else {
+        await new Promise((ok) => setTimeout(ok, 2000 * pedaco.tentativas));
+        fila.unshift(pedaco);              // volta para a frente da fila
+      }
+    } finally {
+      emVoo--;
+      enviarFila();
+    }
   }
 
   async function manterTelaAcesa() {
@@ -379,7 +394,10 @@ const Gravacao = (() => {
     fila = [];
     pendentes.clear();
     const comColetor = await prepararContexto();
-    vozes = [criarVoz(audio.microfone, modo === 'online' ? 'formatar' : 'sala', comColetor)];
+    // Reunião marcada como presencial: o microfone é a sala, mesmo que a
+    // tela tenha sido compartilhada.
+    const doMicrofone = modo === 'online' && !ePresencial(item) ? 'formatar' : 'sala';
+    vozes = [criarVoz(audio.microfone, doMicrofone, comColetor)];
     if (audio.aba) {
       vozes.push(criarVoz(new MediaStream(audio.aba.getAudioTracks()), 'lead', comColetor));
       // Se o CX parar de compartilhar pela barra do navegador, a voz do
@@ -430,11 +448,29 @@ const Gravacao = (() => {
    */
   function vigiarAba() {
     const aba = vozes.find((v) => v.origem === 'lead');
-    if (!aba || pausado || aba.avisouMudo) return;
+    // Na presencial não há som saindo do computador: mudo é o normal.
+    if (!aba || pausado || aba.avisouMudo || ePresencial(reuniao)) return;
     if (Date.now() - aba.ultimoSom > SEGUNDOS_SEM_SOM * 1000) {
       aba.avisouMudo = true;
-      avisar(`O som do computador está mudo há ${SEGUNDOS_SEM_SOM} s: o lado do lead não está chegando. Confira se a reunião está tocando neste computador e se "Compartilhar áudio do sistema" foi ativado ao iniciar.`);
+      avisar(`O som do computador está mudo há ${SEGUNDOS_SEM_SOM} s: o lado do lead não está chegando. Confira se a reunião está tocando neste computador e se "Compartilhar áudio do sistema" foi ativado ao iniciar.`,
+        { rotulo: 'É presencial — ignorar', fazer: virarSala });
     }
+  }
+
+  /**
+   * "É presencial" (2.36.6): a reunião acontece na sala, e o microfone
+   * pega todo mundo. Daqui em diante a fala dele sai como "Sala"; o que já
+   * foi transcrito fica como estava.
+   */
+  function virarSala() {
+    const microfone = vozes[0];
+    if (microfone && microfone.origem === 'formatar') {
+      fecharPedaco(microfone);           // o que já foi dito sai com o nome antigo
+      enviarFila();
+      microfone.origem = 'sala';
+      microfone.seq = 0;
+    }
+    desenharEstado();
   }
 
   /** Para de captar, manda o que falta e encerra a gravação no servidor. */
@@ -444,7 +480,7 @@ const Gravacao = (() => {
     fecharPedacos();
     pausado = true;
     // Espera a fila esvaziar: o último pedaço ainda está sendo transcrito.
-    while (enviando || fila.length) await new Promise((ok) => setTimeout(ok, 500));
+    while (emVoo || fila.length) await new Promise((ok) => setTimeout(ok, 500));
 
     for (const voz of vozes) {
       voz.stream.getTracks().forEach((t) => t.stop());
@@ -607,12 +643,12 @@ const Gravacao = (() => {
       el(`gravacao-${p}`)?.classList.toggle('hidden', p !== passo));
   }
 
-  const ROTULO_MEDIDOR = { formatar: 'Seu microfone', sala: 'Microfone', lead: 'Som do computador (lead)' };
+  const ROTULO_MEDIDOR = { formatar: 'Seu microfone', sala: 'Microfone (sala)', lead: 'Som do computador (lead)' };
 
   function desenharEstado() {
     const estado = el('gravacao-estado');
     if (!estado) return;
-    const transcrevendo = fila.length;
+    const transcrevendo = fila.length + emVoo;
     const desde = reuniao?.iniciada_em ? ` · iniciada às ${horaDe(reuniao.iniciada_em)}` : '';
     estado.innerHTML = `
       <span class="gravacao-ponto${pausado ? ' pausado' : ''}"></span>
@@ -631,11 +667,20 @@ const Gravacao = (() => {
     }
   }
 
-  function avisar(texto) {
+  /** Um aviso na janela; com `acao`, um botão que resolve e some com ele. */
+  function avisar(texto, acao = null) {
     const alvo = el('gravacao-avisos');
     if (!alvo) return;
     const p = document.createElement('p');
     p.textContent = texto;
+    if (acao) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm btn-secondary gravacao-aviso-acao';
+      b.textContent = acao.rotulo;
+      b.addEventListener('click', () => { acao.fazer(); p.remove(); });
+      p.append(' ', b);
+    }
     alvo.appendChild(p);
   }
 

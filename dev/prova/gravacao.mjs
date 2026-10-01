@@ -243,10 +243,13 @@ ok(prov.status === 200 && prov.corpo.provisorio === true && prov.corpo.texto ===
   'a frase em curso volta como texto provisório e NÃO é salva');
 
 console.log('\n=== 7. Onde cortar o pedaço (2.36.1) ===');
-ok(!AudioWav.deveFechar({ segundos: 4, pausa: 2 }), 'antes de 6 s não corta, nem na pausa');
-ok(AudioWav.deveFechar({ segundos: 7, pausa: 0.7 }), 'depois de 6 s, corta na pausa de 0,6 s');
-ok(!AudioWav.deveFechar({ segundos: 12, pausa: 0.3 }), 'pausa curta (entre palavras) não corta');
-ok(AudioWav.deveFechar({ segundos: 15, pausa: 0 }), 'aos 15 s corta mesmo sem pausa (teto)');
+// 2.36.6: pedaços menores, para a frase firme chegar mais cedo.
+ok(!AudioWav.deveFechar({ segundos: 2, pausa: 2 }), 'antes de 3 s não corta, nem na pausa');
+ok(AudioWav.deveFechar({ segundos: 3.5, pausa: 0.7 }), 'depois de 3 s, corta na pausa de 0,6 s');
+ok(!AudioWav.deveFechar({ segundos: 4, pausa: 0.3 }), 'antes de 5 s, a respiração (0,3 s) não corta');
+ok(AudioWav.deveFechar({ segundos: 5.5, pausa: 0.3 }), 'depois de 5 s, corta na respiração');
+ok(!AudioWav.deveFechar({ segundos: 7, pausa: 0.1 }), 'entre palavras (0,1 s) não corta');
+ok(AudioWav.deveFechar({ segundos: 8, pausa: 0 }), 'aos 8 s corta mesmo sem pausa (teto)');
 
 console.log(falhas === 0 ? '\nTUDO PASSOU\n' : `\n${falhas} FALHA(S)\n`);
 process.exit(falhas === 0 ? 0 : 1);

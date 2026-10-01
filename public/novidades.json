@@ -2,6 +2,17 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.36.6",
+      "data": "01/10/2026",
+      "titulo": "Transcrição mais rápida e a reunião presencial",
+      "itens": [
+        "A conversa firma mais cedo: cada trecho fecha numa pausa ou respiração a partir de 3 segundos, e no máximo aos 8 (antes, até 15). A frase em cinza cresce a cada 2 segundos.",
+        "Até três trechos vão ao transcritor ao mesmo tempo, em vez de um por vez: a fila não acumula quando ele demora.",
+        "Na reunião presencial o microfone pega todo mundo, e a fala aparece como \"Sala\" (não mais \"Formatar\").",
+        "O aviso de \"som do computador mudo\" não aparece em reunião marcada como presencial; nas outras, tem o botão \"É presencial — ignorar\", que passa a fala do microfone a sair como \"Sala\"."
+      ]
+    },
+    {
       "versao": "2.36.5",
       "data": "01/10/2026",
       "titulo": "Histórico de cada reunião e contato",

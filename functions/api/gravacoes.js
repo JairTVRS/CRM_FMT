@@ -5,7 +5,7 @@
  * GET  ?reuniao_id=N            as gravações da reunião e a transcrição
  * POST                          começa: { reuniao_id, consentimento, modo } —
  *                               só com a reunião INICIADA por quem grava (2.36.0)
- * POST ?id=N&trecho=1           um pedaço (uma frase, até 15 s): { origem, seq,
+ * POST ?id=N&trecho=1           um pedaço (uma frase, até 8 s desde a 2.36.6): { origem, seq,
  *                               inicio_s, fim_s, audio (WAV base64) } → o texto
  *                               { ..., provisorio: true }: a frase ainda em curso
  *                               (2.36.1) — transcreve e devolve, SEM salvar; a

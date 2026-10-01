@@ -563,3 +563,6 @@
    roteiro — este abria por trás desde a 2.34.0. */
 #modal-gravacao,
 #modal-roteiro { z-index: 1100; }
+
+/* O botão que resolve o aviso (2.36.6: "É presencial — ignorar"). */
+.gravacao-avisos .gravacao-aviso-acao { margin-left: 0.4rem; padding: 0.15rem 0.55rem; font-size: 0.75rem; vertical-align: baseline; }
