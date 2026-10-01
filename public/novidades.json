@@ -2,6 +2,15 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.39.2",
+      "data": "01/10/2026",
+      "titulo": "Documentos de contexto em uma linha cada",
+      "itens": [
+        "A aba Documentos de contexto ficou compacta: uma linha por documento, com a última versão, o nome exato do arquivo e os botões Abrir, Baixar e Nova versão.",
+        "O que cada documento é, e os detalhes da versão (período, fonte, evidências), aparecem ao passar o mouse. As versões anteriores continuam no seletor do visualizador."
+      ]
+    },
+    {
       "versao": "2.39.1",
       "data": "01/10/2026",
       "titulo": "Documentos de contexto do cliente numa aba só",

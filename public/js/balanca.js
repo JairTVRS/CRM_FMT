@@ -26,55 +26,58 @@ const Balanca = (() => {
     if (nome) clienteNome = nome;
     const alvo = el('cli-balanca');
     if (!alvo) return;
-    if (!clienteId) { alvo.innerHTML = '<p class="campo-informativo">Salve o cliente primeiro.</p>'; return; }
+    if (!clienteId) { alvo.innerHTML = linha('<span class="doc-linha-info">salve o cliente primeiro</span>'); return; }
     if (gerando?.id === clienteId) { desenharGerando(); return; }
-    alvo.innerHTML = '<p class="campo-informativo">Carregando…</p>';
+    alvo.innerHTML = linha('<span class="doc-linha-info">carregando…</span>');
     try {
       const d = await fetch(`/api/balanca?cliente_id=${clienteId}`).then((r) => r.json());
       if (id !== clienteId) return;
       versoes = d.versoes || [];
       desenhar(d);
     } catch (e) {
-      alvo.innerHTML = '<p class="campo-informativo">Não foi possível consultar a Balança.</p>';
+      alvo.innerHTML = linha('<span class="doc-linha-info">não foi possível consultar</span>');
     }
   }
 
+  /**
+   * 2.39.2: uma linha — o nome, a versão com o arquivo exato, e os botões.
+   * O período, a fonte e a instrução ficam na dica (passar o mouse).
+   */
+  const DICA = 'O que está funcionando e o que preocupa nos últimos 6 meses, com a evidência das atas e do plano. Os números são calculados pelo CRM.';
+  const linha = (info, botoes = '', dica = '') => `
+    <div class="doc-linha"${dica ? ` title="${esc(dica)}"` : ''}>
+      <span class="doc-contexto-num">3</span>
+      <div class="doc-linha-texto"><strong title="${esc(DICA)}">Balança Avaliativa</strong>${info}</div>
+      <div class="doc-linha-botoes">${botoes}</div>
+    </div>`;
+
   function desenhar(d) {
     const alvo = el('cli-balanca');
-    const ultima = versoes[0];
-    const instrucao = d.instrucao
-      ? `Instrução: ${esc(d.instrucao.rotulo)}${d.instrucao.padrao ? ' (a do CRM; para trocar, envie outra em Configurações → Roteiros)' : ''}`
-      : '';
-    const periodo = d.periodo ? `Período que será lido: ${dataBr(d.periodo.de)} a ${dataBr(d.periodo.ate)}.` : '';
-    alvo.innerHTML = `
-      <div class="cli-prevenda-item cli-balanca-estado">
-        <div>
-          ${ultima
-            ? `<strong>Versão ${esc(ultima.versao)}</strong> · ${esc(quando(ultima.gerado_em))}
-               <div class="recortes-nota">${esc(dataBr(ultima.periodo_de))} a ${esc(dataBr(ultima.periodo_ate))} · ${esc(ultima.reunioes ?? 0)} reunião(ões), ${esc(ultima.acoes ?? 0)} ação(ões)
-               · ${esc(ultima.citacoes ?? 0)} evidência(s), ${esc(ultima.citacoes_nao_encontradas ?? 0)} não encontrada(s)</div>`
-            : '<strong>Nenhuma Balança gerada ainda.</strong>'}
-          ${ultima?.arquivo ? `<code class="doc-contexto-arquivo">${esc(ultima.arquivo)}</code>` : ''}
-          <div class="recortes-nota">${periodo} ${instrucao}</div>
-          ${!d.pode_gerar && d.motivo ? `<div class="recortes-nota recortes-aviso">${esc(d.motivo)}</div>` : ''}
-        </div>
-        <div class="dossie-reuniao-botoes">
-          ${ultima ? '<button type="button" class="btn btn-sm btn-secondary" data-balanca="abrir">Abrir</button>' : ''}
-          ${ultima ? '<button type="button" class="btn btn-sm btn-secondary" data-balanca="baixar">Baixar</button>' : ''}
-          ${d.pode_gerar ? `<button type="button" class="btn btn-sm btn-primary" data-balanca="gerar">${ultima ? 'Gerar nova versão' : 'Gerar a Balança'}</button>` : ''}
-        </div>
-      </div>`;
+    const v = versoes[0];
+    const anteriores = versoes.length - 1;
+    const instrucao = d.instrucao ? `Instrução: ${d.instrucao.rotulo}${d.instrucao.padrao ? ' (a do CRM; para trocar, envie outra em Configurações → Roteiros)' : ''}` : '';
+    const dica = v
+      ? `${dataBr(v.periodo_de)} a ${dataBr(v.periodo_ate)} · ${v.reunioes ?? 0} reunião(ões), ${v.acoes ?? 0} ação(ões) · ${v.citacoes ?? 0} evidência(s), ${v.citacoes_nao_encontradas ?? 0} não encontrada(s). ${instrucao}`
+      : `${d.periodo ? `Vai ler de ${dataBr(d.periodo.de)} a ${dataBr(d.periodo.ate)}. ` : ''}${instrucao}`;
+    const info = v
+      ? `<span class="doc-linha-info">v${esc(v.versao)} · ${esc(quando(v.gerado_em))}${anteriores ? ` · +${anteriores} anterior(es)` : ''}</span>
+         ${v.arquivo ? `<code class="doc-contexto-arquivo">${esc(v.arquivo)}</code>` : ''}`
+      : '<span class="doc-linha-info">nenhuma versão ainda</span>';
+    const aviso = !d.pode_gerar && d.motivo ? `<span class="doc-linha-info recortes-aviso">${esc(d.motivo)}</span>` : '';
+    const botoes = [
+      v ? '<button type="button" class="btn btn-sm btn-secondary" data-balanca="abrir">Abrir</button>' : '',
+      v ? '<button type="button" class="btn btn-sm btn-secondary" data-balanca="baixar">Baixar</button>' : '',
+      d.pode_gerar ? `<button type="button" class="btn btn-sm btn-primary" data-balanca="gerar">${v ? 'Nova versão' : 'Gerar'}</button>` : ''
+    ].join('');
+    alvo.innerHTML = linha(info + aviso, botoes, dica);
   }
 
   function desenharGerando() {
     const alvo = el('cli-balanca');
     if (!alvo || !gerando || gerando.id !== clienteId) return;
     const s = Math.round((Date.now() - gerando.inicio) / 1000);
-    alvo.innerHTML = `
-      <div class="cli-prevenda-item">
-        <div><span class="gravacao-ponto"></span> A IA está pesando a relação… ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}
-          <div class="recortes-nota">Lendo as atas no ERP e o plano de ação. Leva de 1 a 2 minutos; pode fechar a ficha.</div></div>
-      </div>`;
+    alvo.innerHTML = linha(
+      `<span class="doc-linha-info"><span class="gravacao-ponto"></span> gerando… ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} (1 a 2 min; pode fechar a ficha)</span>`);
   }
 
   async function gerar() {

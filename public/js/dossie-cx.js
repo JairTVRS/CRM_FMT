@@ -63,21 +63,6 @@ const DossieCx = (() => {
     return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR');
   }
 
-  /** Meses inteiros desde AAAA-MM-DD. Espelha o `mesesDesde` do servidor. */
-  function mesesDesde(dataIso) {
-    const m = String(dataIso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!m) return null;
-
-    const hoje = new Date();
-    const inicio = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    if (Number.isNaN(inicio.getTime()) || inicio > hoje) return null;
-
-    let meses = (hoje.getFullYear() - inicio.getFullYear()) * 12
-      + (hoje.getMonth() - inicio.getMonth());
-    if (hoje.getDate() < inicio.getDate()) meses -= 1;
-
-    return Math.max(0, meses);
-  }
 
   function mostrar(qual) {
     ['dossie-cx-progresso', 'dossie-cx-visualizacao', 'dossie-cx-erro']
@@ -126,97 +111,26 @@ const DossieCx = (() => {
      A ABA DA FICHA
      ========================================================================== */
 
-  /**
-   * O resumo do que entra no documento.
-   *
-   * Sai da tela e da lista de pessoas já carregada — as mesmas fontes que
-   * a API vai ler. Prometer aqui um conteúdo diferente do que o servidor
-   * monta seria pior que não prometer nada.
-   */
-  async function montarResumo() {
-    const caixa = el('dossie-cx-resumo');
-    if (!caixa) return;
-
-    const ficha = typeof Clientes !== 'undefined' ? Clientes.resumoDaFicha() : {};
-    const nucleos = (typeof Clientes !== 'undefined' ? Clientes.nucleosDaFicha() : []) || [];
-
-    let pessoas = [];
-    try {
-      pessoas = await Stakeholders.garantirCarregado(clienteId);
-    } catch (e) {
-      pessoas = [];
-    }
-
-    const meses = mesesDesde(ficha.inicio);
-    const patrocinadores = pessoas.filter((p) => p.patrocinador).map((p) => p.nome);
-
-    const comPessoa = new Set();
-    pessoas.forEach((p) => (p.nucleoIds || []).forEach((id) => comPessoa.add(Number(id))));
-    const semNinguem = nucleos.filter((n) => !comPessoa.has(n.id)).map((n) => n.nome);
-
-    const naoAvaliadas = pessoas.filter(
-      (p) => p.influencia === 'desconhecida' && p.postura === 'desconhecida'
-    ).length;
-
-    const item = (rotulo, valor, alerta) =>
-      `<li${alerta ? ' class="resumo-alerta"' : ''}><strong>${rotulo}:</strong> ${valor}</li>`;
-
-    const vazio = '<em>não informado</em>';
-
-    caixa.innerHTML = [
-      item('Etapa da jornada', ficha.etapa ? esc(ficha.etapa) : vazio),
-
-      item('Tempo de relação', meses == null
-        ? '<em>sem data de início na ficha</em>'
-        : `${meses} ${meses === 1 ? 'mês' : 'meses'}`),
-
-      item('Núcleos atendidos', nucleos.length
-        ? nucleos.map((n) => esc(n.nome)).join(', ')
-        : '<em>nenhum marcado na Ficha</em>'),
-
-      item('Pessoas mapeadas', pessoas.length || '<em>nenhuma</em>'),
-
-      item('Patrocinador da conta', patrocinadores.length
-        ? patrocinadores.map(esc).join(', ')
-        : '<em>nenhum indicado</em>'),
-
-      // As duas lacunas que o documento vai apontar. Mostrá-las ANTES da
-      // geração dá a chance de preencher em vez de descobrir no PDF.
-      semNinguem.length
-        ? item('Núcleos sem ninguém mapeado', semNinguem.map(esc).join(', '), true)
-        : '',
-
-      naoAvaliadas
-        ? item('Pessoas ainda não avaliadas', `${naoAvaliadas} — influência e postura em branco`, true)
-        : '',
-
-      `<li class="resumo-nota">Reuniões, indicadores, saúde da carteira e NPS ainda não
-        chegam ao CRM. O documento declara essa ausência em seção própria, para que
-        o silêncio não seja lido como "está tudo bem".</li>`
-    ].join('');
-  }
-
   function renderizarVersoes() {
     const caixa = el('dossie-cx-versoes');
     if (!caixa) return;
 
+    // 2.39.2: uma linha só — a última versão, a data e o nome exato do
+    // arquivo. As anteriores ficam no seletor do visualizador.
     if (versoes.length === 0) {
-      caixa.innerHTML = '<div class="coluna-vazia">Nenhuma versão gerada ainda.</div>';
+      caixa.innerHTML = '<span class="doc-linha-info">nenhuma versão ainda</span>';
     } else {
-      // 2.39.1: cada versão com o nome exato do arquivo que se baixa.
-      caixa.innerHTML = versoes.map((v) => `
-        <button type="button" class="dossie-cx-versao" data-versao="${v.versao}">
-          <strong>Versão ${v.versao}</strong>
-          <span>${dataBr(v.gerado_em)} · ${esc(v.gerado_por)} · ${esc(v.provider)}</span>
-          <code class="doc-contexto-arquivo">${esc(montarNomeArquivo(v.versao, v.gerado_em))}</code>
-        </button>`).join('');
+      const v = versoes[0];
+      const anteriores = versoes.length - 1;
+      caixa.innerHTML = `<span class="doc-linha-info" title="${esc(`Gerada por ${v.gerado_por} · ${v.provider}`)}">v${v.versao} · ${dataBr(v.gerado_em)}${anteriores ? ` · +${anteriores} anterior(es)` : ''}</span>
+        <code class="doc-contexto-arquivo">${esc(montarNomeArquivo(v.versao, v.gerado_em))}</code>`;
     }
 
     el('btn-dossie-cx-abrir')?.classList.toggle('hidden', versoes.length === 0);
     el('btn-dossie-cx-baixar-direto')?.classList.toggle('hidden', versoes.length === 0);
 
     const gerar = el('btn-dossie-cx-gerar');
-    if (gerar) gerar.textContent = versoes.length ? 'Gerar nova versão' : 'Gerar dossiê';
+    if (gerar) gerar.textContent = versoes.length ? 'Nova versão' : 'Gerar';
   }
 
   async function carregarVersoes() {
@@ -235,9 +149,12 @@ const DossieCx = (() => {
 
     el('dossie-cx-sem-cliente')?.classList.toggle('hidden', !semCliente);
     el('dossie-cx-painel')?.classList.toggle('hidden', semCliente);
+    el('btn-dossie-cx-gerar')?.classList.toggle('hidden', semCliente);
     if (semCliente) return;
 
-    await Promise.all([montarResumo(), carregarVersoes()]);
+    // 2.39.2: a aba é compacta — só a linha da última versão (o resumo
+    // "O que entra nesta versão" saiu da tela).
+    await carregarVersoes();
   }
 
   /* ==========================================================================

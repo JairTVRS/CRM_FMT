@@ -1621,64 +1621,31 @@
              haver dúvida de qual se baixa e qual já foi baixado.
              ================================================================ -->
         <div id="cli-tab-documentos" class="cli-tab-content hidden">
-          <p class="campo-informativo">
-            Os documentos de contexto deste cliente, do passado para o presente. O nome de cada
-            arquivo diz o tipo, o cliente, o mês e a versão — por exemplo,
-            <code>Balanca_Avaliativa_Cliente_2026_10_v2.html</code>.
-          </p>
+          <!-- 2.39.2 ("área grande demais para 3 arquivos"): uma linha por
+               documento — o nome, a versão com o arquivo exato, e os botões.
+               O que cada um é fica na dica do nome. -->
+          <div class="docs-lista">
+            <!-- 1. Pré-venda: uma linha por reunião com dossiê (dossie-reuniao.js) -->
+            <div id="cli-prevenda-lista"></div>
 
-          <section class="doc-contexto">
-            <header class="doc-contexto-topo">
-              <span class="doc-contexto-num">1</span>
-              <div>
-                <h3>Pré-venda — Dossiê da Reunião</h3>
-                <p>O que foi conversado antes do contrato, reunião por reunião. Só leitura: para gerar uma nova versão, abra a reunião na agenda do lead.</p>
-              </div>
-            </header>
-            <div id="cli-prevenda-lista" class="cli-prevenda-lista"></div>
-          </section>
-
-          <section class="doc-contexto">
-            <header class="doc-contexto-topo">
+            <!-- 2. Dossiê de Experiência (dossie-cx.js) -->
+            <div class="doc-linha" id="doc-linha-experiencia">
               <span class="doc-contexto-num">2</span>
-              <div>
-                <h3>Dossiê de Experiência</h3>
-                <p>O retrato da conta hoje: o que o ERP diz, as pessoas e os núcleos, com a leitura da IA. <strong>Documento interno</strong> — contém juízo da Formatar sobre pessoas nomeadas do cliente.</p>
+              <div class="doc-linha-texto">
+                <strong title="O retrato da conta hoje: o que o ERP diz, as pessoas e os núcleos, com a leitura da IA. Documento interno — contém juízo da Formatar sobre pessoas nomeadas do cliente.">Dossiê de Experiência</strong>
+                <span id="dossie-cx-sem-cliente" class="hidden">salve o cliente primeiro</span>
+                <span id="dossie-cx-painel"><span id="dossie-cx-versoes"></span></span>
               </div>
-            </header>
-
-            <p id="dossie-cx-sem-cliente" class="campo-informativo hidden">
-              Salve o cliente primeiro. O dossiê é gerado sobre uma ficha existente.
-            </p>
-
-            <div id="dossie-cx-painel">
-              <details class="doc-contexto-detalhe">
-                <summary>O que entra nesta versão</summary>
-                <ul id="dossie-cx-resumo" class="dossie-cx-resumo"></ul>
-              </details>
-
-              <div id="dossie-cx-versoes" class="dossie-cx-versoes"></div>
-
-              <div class="pessoa-form-acoes">
-                <button id="btn-dossie-cx-abrir" class="btn btn-secondary btn-sm hidden">Abrir</button>
-                <button id="btn-dossie-cx-baixar-direto" class="btn btn-secondary btn-sm hidden">Baixar</button>
-                <button id="btn-dossie-cx-gerar" class="btn btn-primary btn-sm">
-                  Gerar dossiê
-                </button>
+              <div class="doc-linha-botoes">
+                <button id="btn-dossie-cx-abrir" class="btn btn-sm btn-secondary hidden">Abrir</button>
+                <button id="btn-dossie-cx-baixar-direto" class="btn btn-sm btn-secondary hidden">Baixar</button>
+                <button id="btn-dossie-cx-gerar" class="btn btn-sm btn-primary">Gerar</button>
               </div>
             </div>
-          </section>
 
-          <section class="doc-contexto">
-            <header class="doc-contexto-topo">
-              <span class="doc-contexto-num">3</span>
-              <div>
-                <h3>Balança Avaliativa</h3>
-                <p>O que está funcionando e o que preocupa nos últimos 6 meses, com a evidência das atas e do plano. Os números são calculados pelo CRM.</p>
-              </div>
-            </header>
-            <div id="cli-balanca" class="cli-balanca"></div>
-          </section>
+            <!-- 3. Balança Avaliativa (balanca.js) -->
+            <div id="cli-balanca"></div>
+          </div>
         </div><!-- /cli-tab-documentos -->
 
 

@@ -196,43 +196,50 @@ const DossieReuniao = (() => {
 
   let preVenda = [];            // as reuniões com dossiê do lead de origem
 
+  /**
+   * 2.39.2: uma linha por reunião com dossiê — o nome, a versão com o
+   * arquivo exato, e Abrir/Baixar. Sem dossiê, uma linha dizendo por quê.
+   */
+  const DICA_PREVENDA = 'O que foi conversado antes do contrato, reunião por reunião. Só leitura: para gerar uma nova versão, abra a reunião na agenda do lead.';
+  const linhaVazia = (texto) => `
+    <div class="doc-linha doc-linha-vazia">
+      <span class="doc-contexto-num">1</span>
+      <div class="doc-linha-texto"><strong title="${esc(DICA_PREVENDA)}">Pré-venda</strong>
+        <span class="doc-linha-info">${esc(texto)}</span></div>
+    </div>`;
+
   async function mostrarPreVenda(clienteId) {
     const alvo = el('cli-prevenda-lista');
     if (!alvo) return;
     preVenda = [];
-    if (!clienteId) { alvo.innerHTML = '<p class="campo-informativo">Salve o cliente primeiro.</p>'; return; }
-    alvo.innerHTML = '<p class="campo-informativo">Carregando…</p>';
+    if (!clienteId) { alvo.innerHTML = linhaVazia('salve o cliente primeiro'); return; }
+    alvo.innerHTML = linhaVazia('carregando…');
     try {
       const d = await fetch(`/api/dossie-reuniao?cliente_id=${clienteId}`).then((r) => r.json());
-      if (!d.lead) {
-        alvo.innerHTML = '<p class="campo-informativo">Este cliente não veio de um lead do CRM (entrou pelo ERP ou foi cadastrado à mão): não há pré-venda registrada aqui.</p>';
-        return;
-      }
+      if (!d.lead) { alvo.innerHTML = linhaVazia('não há — o cliente não veio de um lead do CRM'); return; }
       preVenda = (d.reunioes || []).map((x) => ({ ...x, nome: d.lead.nome }));
-      if (!preVenda.length) {
-        alvo.innerHTML = `<p class="campo-informativo">O lead de origem (${esc(d.lead.nome)}) não tem nenhum Dossiê da Reunião gerado.</p>`;
-        return;
-      }
-      const dataBr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '');
-      alvo.innerHTML = `<p class="recortes-nota">Lead de origem: <strong>${esc(d.lead.nome)}</strong></p>`
-        + preVenda.map((x, i) => {
-          const ultima = x.versoes[0];
-          return `
-            <div class="cli-prevenda-item">
-              <div>
-                <strong>${esc(x.tipo_reuniao_nome || 'Reunião')}</strong> · ${esc(dataBr(x.inicio))}
-                <div class="recortes-nota">Versão ${esc(ultima.versao)} de ${x.versoes.length} · ${esc(quando(ultima.gerado_em))}
-                  ${ultima.citacoes != null ? ` · ${esc(ultima.citacoes)} citação(ões), ${esc(ultima.citacoes_nao_encontradas || 0)} não encontrada(s)` : ''}</div>
-                ${ultima.arquivo ? `<code class="doc-contexto-arquivo">${esc(ultima.arquivo)}</code>` : ''}
-              </div>
-              <div class="dossie-reuniao-botoes">
-                <button type="button" class="btn btn-sm btn-secondary" data-prevenda="${i}">Abrir</button>
-                <button type="button" class="btn btn-sm btn-secondary" data-prevenda-baixar="${i}">Baixar</button>
-              </div>
-            </div>`;
-        }).join('');
+      if (!preVenda.length) { alvo.innerHTML = linhaVazia(`o lead de origem (${d.lead.nome}) não tem Dossiê da Reunião`); return; }
+      const dataBr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
+      alvo.innerHTML = preVenda.map((x, i) => {
+        const v = x.versoes[0];
+        const anteriores = x.versoes.length - 1;
+        const detalhe = `Lead de origem: ${d.lead.nome}${v.citacoes != null ? ` · ${v.citacoes} citação(ões), ${v.citacoes_nao_encontradas || 0} não encontrada(s)` : ''}`;
+        return `
+          <div class="doc-linha" title="${esc(detalhe)}">
+            <span class="doc-contexto-num">1</span>
+            <div class="doc-linha-texto">
+              <strong title="${esc(DICA_PREVENDA)}">Pré-venda · ${esc(x.tipo_reuniao_nome || 'Reunião')} (${esc(dataBr(x.inicio))})</strong>
+              <span class="doc-linha-info">v${esc(v.versao)} · ${esc(quando(v.gerado_em))}${anteriores ? ` · +${anteriores} anterior(es)` : ''}</span>
+              ${v.arquivo ? `<code class="doc-contexto-arquivo">${esc(v.arquivo)}</code>` : ''}
+            </div>
+            <div class="doc-linha-botoes">
+              <button type="button" class="btn btn-sm btn-secondary" data-prevenda="${i}">Abrir</button>
+              <button type="button" class="btn btn-sm btn-secondary" data-prevenda-baixar="${i}">Baixar</button>
+            </div>
+          </div>`;
+      }).join('');
     } catch (e) {
-      alvo.innerHTML = '<p class="campo-informativo">Não foi possível consultar a pré-venda.</p>';
+      alvo.innerHTML = linhaVazia('não foi possível consultar');
     }
   }
 
