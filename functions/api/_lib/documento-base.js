@@ -14,6 +14,8 @@
  * externa num projeto sem empacotador.
  */
 
+import { LINK_ICONE } from './icone.js';
+
 /* ==========================================================================
    IDENTIDADE VISUAL
    Manual de Identidade Formatar. Ficam aqui, e não espalhados pelos
@@ -342,6 +344,7 @@ export function documento({ titulo, folhas }) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(titulo)}</title>
+${LINK_ICONE}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">

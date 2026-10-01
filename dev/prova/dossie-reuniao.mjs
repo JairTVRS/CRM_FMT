@@ -154,6 +154,9 @@ const doc = montarDocumento({
   meta: { versao: 3, geradoEm: '2026-10-01T15:00:00.000Z', geradoPor: 'jair@formatar.com.br', instrucaoVersao: 2, provider: 'deepseek', citacoes: 3, naoEncontradas: 1, separacao: true }
 });
 ok(/<title>Dossie_Reuniao_Cedro-Materiais_2026_10<\/title>/.test(doc), 'o nome do arquivo segue o padrão dos documentos', doc.match(/<title>[^<]*/)?.[0]);
+// 2.38.1: o ícone do CRM vai dentro do arquivo — baixado, ele não alcança o site.
+const icone = doc.match(/<link rel="icon" type="image\/png" href="data:image\/png;base64,([^"]+)">/);
+ok(!!icone && Buffer.from(icone[1], 'base64').slice(1, 4).toString() === 'PNG', 'o ícone do CRM vai embutido no documento');
 ok(/Dossiê da Reunião/.test(doc) && /Cedro Materiais/.test(doc) && /versão 2/.test(doc) && /Versão: <strong>3/.test(doc), 'capa com o lead, a versão e a instrução');
 ok(/Citações: 3, das quais 1 não encontrada/.test(doc) && /Salvar como PDF/.test(doc), 'o "como ler" com a contagem, e o botão de PDF');
 

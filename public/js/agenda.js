@@ -466,8 +466,6 @@ const Agenda = (() => {
     aplicarTipo(base.tipo);
     // Gravar e a transcrição (2.35.0): só na reunião que já existe.
     if (typeof Gravacao !== 'undefined') Gravacao.mostrarNaReuniao(item);
-    // Recortes e roteiro (2.37.0): a última análise da conversa.
-    if (typeof Recortes !== 'undefined') Recortes.mostrarNaReuniao(item);
     // O Dossiê da Reunião (2.38.0): gerar e ver as versões.
     if (typeof DossieReuniao !== 'undefined') DossieReuniao.mostrarNaReuniao(item);
     el('modal-agenda').classList.remove('hidden');
@@ -687,7 +685,7 @@ const Agenda = (() => {
     const oQue = emEdicao.tipo === 'reuniao' ? 'a reunião' : 'o contato';
     const aviso = `Resetar ${oQue}? Volta a ficar só agendada, em ${dataBr(emEdicao.inicio)} às ${hora(emEdicao.inicio)}.\n\n`
       + 'Some o que aconteceu depois: início e fim, cancelamento'
-      + (emEdicao.tipo === 'reuniao' ? ', a gravação com a transcrição, os recortes e o dossiê da reunião.' : '.')
+      + (emEdicao.tipo === 'reuniao' ? ', a gravação com a transcrição e o dossiê da reunião.' : '.')
       + ' Não dá para desfazer.';
     if (!confirm(aviso)) return;
     const d = await enviar(`/api/agenda?id=${emEdicao.id}`, 'PUT', { acao: 'resetar' });

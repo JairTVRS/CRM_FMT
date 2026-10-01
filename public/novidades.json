@@ -2,6 +2,15 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.38.1",
+      "data": "01/10/2026",
+      "titulo": "Tela da reunião mais limpa e o ícone nos documentos",
+      "itens": [
+        "Os recortes e o roteiro saíram da janela da gravação e da janela da reunião: o Dossiê da Reunião cobre tudo isso, com mais profundidade. A gravação volta a mostrar só a conversa.",
+        "Os documentos (Dossiê da Reunião, proposta e dossiê do lead) passam a ter o ícone do CRM na aba do navegador, também quando abertos a partir do arquivo baixado."
+      ]
+    },
+    {
       "versao": "2.38.0",
       "data": "01/10/2026",
       "titulo": "Dossiê da Reunião",

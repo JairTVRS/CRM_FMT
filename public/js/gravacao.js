@@ -423,8 +423,6 @@ const Gravacao = (() => {
     desenharTranscricao([]);
     desenharEstado();
     if (audio.aviso) avisar(audio.aviso);
-    // Recortes e roteiro (2.37.0), ao lado da conversa, a cada ~2 min.
-    if (typeof Recortes !== 'undefined') Recortes.acompanhar(item.id);
     el('modal-gravacao').classList.remove('hidden');
     return true;
   }
@@ -478,7 +476,6 @@ const Gravacao = (() => {
   /** Para de captar, manda o que falta e encerra a gravação no servidor. */
   async function pararGravacao() {
     clearInterval(relogio);
-    if (typeof Recortes !== 'undefined') Recortes.parar();
     const segundos = segundosGravados();
     fecharPedacos();
     pausado = true;
@@ -626,8 +623,6 @@ const Gravacao = (() => {
       if (!d.ok) throw new Error(d.error || 'erro');
       final = `Reunião finalizada: ${periodoReal(d.item)}. A transcrição ficou na reunião.`;
       el('gravacao-titulo').textContent = `Reunião finalizada — ${item.lead_nome || ''}`;
-      // A última análise, com a conversa inteira: aparece na janela da reunião.
-      if (typeof Recortes !== 'undefined') Recortes.analisar(item.id, 'agenda-recortes', { silencioso: true });
       await depoisDeMudar(d.item);
     } catch (e) {
       final = `A gravação terminou, mas a reunião não foi finalizada (${e.message}). Abra a reunião e clique em "Finalizar reunião".`;

@@ -535,8 +535,7 @@
             <h3>Roteiros de reunião</h3>
             <p class="card-desc">
               Dois arquivos .md por tipo de reunião: o <strong>roteiro</strong>, com os
-              objetivos e as perguntas (a IA confere durante a reunião o que já foi
-              coberto), e a <strong>instrução do dossiê da reunião</strong>, que a IA
+              objetivos e as perguntas, e a <strong>instrução do dossiê da reunião</strong>, que a IA
               segue para montar o dossiê depois da reunião. Enviar de novo cria a
               versão seguinte — as anteriores continuam consultáveis.
             </p>
@@ -1063,7 +1062,7 @@
   <!-- Gravação da reunião (2.35.0). Só o texto é guardado. Desde a 2.36.0
        abre já gravando, pelo "Iniciar reunião" da janela da reunião. -->
   <div id="modal-gravacao" class="modal-overlay hidden">
-    <div class="modal-card gravacao-janela">
+    <div class="modal-card" style="max-width: 760px;">
       <header class="modal-header">
         <h2 id="gravacao-titulo">Reunião em andamento</h2>
         <button id="btn-gravacao-fechar" class="btn-close" aria-label="Fechar">&times;</button>
@@ -1082,11 +1081,7 @@
           <!-- O volume de cada lado (2.36.1): barra parada = aquele lado não está chegando. -->
           <div id="gravacao-medidores" class="gravacao-medidores"></div>
           <div id="gravacao-avisos" class="gravacao-avisos"></div>
-          <!-- 2.37.0: a conversa à esquerda, os recortes à direita. -->
-          <div class="gravacao-colunas">
-            <div id="gravacao-transcricao" class="transcricao"></div>
-            <aside id="gravacao-recortes" class="recortes-painel" aria-label="Recortes da conversa"></aside>
-          </div>
+          <div id="gravacao-transcricao" class="transcricao"></div>
         </div>
 
         <!-- 2. Finalizada -->
@@ -1364,8 +1359,6 @@
             <div id="agenda-transcricao" class="transcricao transcricao-curta"></div>
             <!-- Dossiê da Reunião (2.38.0): gerar, ver as versões e baixar. -->
             <div id="agenda-dossie-reuniao" class="dossie-reuniao-bloco hidden"></div>
-            <!-- Recortes e roteiro (2.37.0): a última análise da conversa. -->
-            <div id="agenda-recortes" class="recortes-painel recortes-compacto hidden"></div>
           </div>
         </aside>
         </div>
@@ -1723,7 +1716,6 @@
   <script src="js/agenda.js"></script>
   <script src="js/audio-wav.js"></script>
   <script src="js/gravacao.js"></script>
-  <script src="js/recortes.js"></script>
   <script src="js/dossie-reuniao.js"></script>
   <script src="js/roteiros.js"></script>
   <script src="js/novidades.js"></script>

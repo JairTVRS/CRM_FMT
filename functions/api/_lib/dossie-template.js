@@ -40,6 +40,7 @@ function moeda(valor) {
 }
 
 import { nomeDeDocumento, TIPO_DOCUMENTO } from './documento-base.js';
+import { LINK_ICONE } from './icone.js';
 
 const ROTULO_FONTE = {
   brasilapi: 'Receita Federal', opencnpj: 'Receita Federal',
@@ -233,6 +234,7 @@ export function renderizarDossie(dados) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(nomeArquivo)}</title>
+${LINK_ICONE}
 <style>
 :root{
   --laranja:#F2421A; --tinta:#1a1d24; --grafite:#4a5160; --cinza:#7b8494;
