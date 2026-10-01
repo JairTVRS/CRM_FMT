@@ -57,6 +57,8 @@ const PORTA = 8787;
  */
 const USUARIOS = [
   { id: 1, name: 'Jair Tavares', email: 'jairdasilvatj@gmail.com', isActive: true, userGroup: '64e678a7d2042dae072ef102' },
+  // O e-mail da Formatar, com que o Jair entra no dia a dia (30/09/2026).
+  { id: 4, name: 'Jair Tavares', email: 'jair@formatar.com.br', isActive: true, userGroup: '64e678a7d2042dae072ef102' },
   // Os `participants` das reuniões apontam para estes (2.30.0): é assim
   // que a ação sem "Resp.:" ganha o responsável da reunião.
   { id: 'u1', name: 'Marina Alves', email: 'marina@formatar.com.br', isActive: true, userGroup: 'grupo-operacoes' },

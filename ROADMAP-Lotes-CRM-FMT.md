@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 30/09/2026
-**Versão no ar:** 2.36.0 (desde 30/09/2026; binding **Workers AI** `AI` ligado desde 29/09/2026; migrações 008 a 021 aplicadas no D1 remoto, a 021 em 30/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Versão no ar:** 2.36.1 (desde 30/09/2026, à noite; a 2.36.0 subiu à tarde; binding **Workers AI** `AI` ligado desde 29/09/2026; migrações 008 a 021 aplicadas no D1 remoto, a 021 em 30/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -9,12 +9,15 @@ que vem a seguir e o que está travado esperando material.
 ## ▶ Retomada (30/09/2026)
 
 **Onde paramos:** o lote da jornada do lead (JL) está no ar até a
-**2.36.0**: funil com responsável e motivos de perda, agenda do lead,
+**2.36.1**: funil com responsável e motivos de perda, agenda do lead,
 prospects do ERP todo dia às 06:00, chaves de IA e roteiros, barra do
-topo, "O que mudou", a gravação/transcrição da reunião e, desde 30/09,
-**iniciar e finalizar a reunião** (hora real de início e fim, uma em
-andamento por pessoa, cores da agenda). **Retomar pelos testes A, B e C
-da 1.2**, abaixo.
+topo, "O que mudou", a gravação/transcrição da reunião, **iniciar e
+finalizar a reunião** (2.36.0) e, na 2.36.1, a janela larga da reunião e
+a **gravação refeita**: tela inteira com o áudio do sistema, captura sem
+perdas (AudioWorklet), corte na pausa da fala, texto crescendo ao vivo e
+filtros contra invenção do Whisper. **Retomar pelos testes A, B e C da
+1.2**, abaixo, em produção — a qualidade da transcrição com fala real
+ainda não foi vista depois das correções.
 
 ### Pendências, em ordem
 
@@ -32,7 +35,7 @@ segredos do Pages).
 **O teste da 2.36.0 (1.2)**: Ctrl+F5 antes. Leads → Agenda → Semana. As reuniões de 28/09 e 29/09 (testes antigos) aparecem vermelhas, atrasadas: pode marcá-las "Cancelada".
 
 - **Teste A, sem gravar (~3 min):** agendar duas reuniões hoje para um lead de teste, **A** daqui a 2 horas (amarela) e **B** com hora de 1 hora atrás (vermelha) · abrir a B, deixar a caixa do consentimento desmarcada, "Iniciar reunião" e confirmar "sem gravar" → cartão verde e o aviso verde no canto · abrir a A e "Iniciar reunião" → recusa: "Você já tem uma reunião em andamento: …" e oferece abrir a B · na B: Situação travada, sem Excluir e Remarcar · "Finalizar reunião" → "Realizada em 30/09/2026, das HH:MM às HH:MM (N min)", cartão verde-claro, aviso some · na A, a opção "Realizada" da Situação vem desabilitada.
-- **Teste B, gravando com um microfone (~2 min, fone de ouvido):** abrir a A, marcar o consentimento, "Um microfone só", "Iniciar reunião" → a janela "Reunião em andamento" abre **já gravando** · ler *"A Formatar vai separar o custo do cimento por unidade. O CNPJ do cliente começa com 12. O valor do quilômetro é um real e sessenta."* → texto aos ~20 e ~40 s · 20 s de silêncio → nada aparece · Pausar, falar, Continuar → a fala da pausa não aparece · "Finalizar reunião" → "Reunião finalizada: …" · reabrir a A → as horas e a transcrição.
+- **Teste B, gravando (~3 min, fone de ouvido):** abrir a A, consentimento já marcado, "Iniciar reunião" → o navegador pede a tela: **Tela inteira** + **Compartilhar áudio do sistema** → a janela "Reunião em andamento" abre **já gravando**, com as barras "Seu microfone" e "Som do computador (lead)" · tocar um vídeo em português e falar junto → a sua fala como Formatar, a do vídeo como Lead, a frase em curso crescendo em cinza e firmando na pausa · 20 s de silêncio → nada aparece · Pausar, falar, Continuar → a fala da pausa não aparece · "Finalizar reunião" → "Reunião finalizada: …" · reabrir a A → as horas e a transcrição.
 - **Teste C, retomar (~2 min):** agendar outra para agora, iniciar gravando, apertar F5 e aceitar sair → o aviso verde continua no canto · clicar nele → a reunião em andamento, com "Retomar a gravação" e "Finalizar reunião" · retomar, falar 20 s, finalizar.
 - **Mandar:** a captura da agenda no fim e o que pareceu estranho. O Claude confere no D1 (`agenda_lead`: `iniciada_em`/`finalizada_em`; `gravacoes`; `transcricao_trechos`).
 
@@ -41,7 +44,8 @@ segredos do Pages).
 | Versão | Entrega | Depende de |
 |---|---|---|
 | ~~2.36.0~~ | ~~Iniciar e finalizar a reunião~~: no ar em 30/09/2026 (migração 021) | — |
-| **2.36.1** *(era a 2.35.1; desenhada em 29/09; falta o "pode executar e subir")* | **Texto a cada 3 s, crescendo.** A captura é contínua; a cada 3 s manda a frase **inteira até ali** (sem cortar palavra) e o balão mostra o texto provisório, em cinza, substituído pelo maior; a pausa de ~0,6 s fecha a frase (teto ~12 s) e só o texto final vai ao banco. Provisório = opção na `gravacoes.js` que transcreve sem salvar. Custo ≈ 2× os minutos (dentro da cota grátis nos testes). Junto: descartar o eco da dica (texto que é só o nome do lead repetido) e o que os testes da 1.2 mostrarem; ver o que fazer com gravação que ficou em `gravando` | 1.2 |
+| ~~2.36.1~~ | ~~Janela larga e gravação refeita~~: no ar em 30/09/2026 (texto crescendo, eco da dica e "Obrigado" repetido descartados, tela inteira com áudio do sistema, AudioWorklet, corte na pausa, medidores de volume) | — |
+| **depois** *(estudado em 30/09; sem custo por ora, decisão do Jair)* | **Identificar quem fala** ("Pessoa 1 / Pessoa 2"): o Whisper não faz; o caminho é o Deepgram Nova-3 do Workers AI em conexão contínua (`diarize`, pt-BR, ~US$ 0,55/h), provado antes no localhost | os testes da 2.36.1 |
 | **2.37.0** | **Recortes e insights durante a reunião**: frases do lead que captam a expectativa, conferidas por código contra a transcrição (o recorte só vale se a frase existir literalmente); perguntas do roteiro ainda não cobertas. Lê a transcrição, o roteiro da versão gravada e o dossiê | 1.1 e 1.2 |
 | **2.38.0** | **Laudo pós-reunião**: HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão | 2.35.0 (melhor depois da 2.37.0) |
 | depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |
@@ -132,6 +136,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.34.2** | **A versão no canto inferior esquerdo** e, ao clicar, "O que mudou" (`public/novidades.json`, conferido pela `ids.mjs` contra o package.json) |
 | **JL⁵** | **2.35.0** | **Gravação e transcrição da reunião** — consentimento registrado; no computador, microfone e áudio da aba separados (Formatar / Lead); pedaços de 20 s em WAV 16 kHz, transcritos pelo Workers AI (ou OpenAI) e descartados — só o texto fica; encerrar marca a reunião como realizada; a gravação fica presa à versão do roteiro (migração 020) |
 | **JL⁶** | **2.36.0** | **Iniciar e finalizar a reunião** (pedido de 30/09/2026) — "Iniciar reunião" guarda a hora real e já começa a transcrever (com o consentimento marcado; sem ele, começa sem gravar); "Finalizar" guarda o fim e a torna realizada (a lista não pula mais o fim); **uma em andamento por pessoa** (API + índice único da migração 021; admin finaliza a de outra pessoa); em andamento não se cancela, remarca nem exclui; aviso verde no canto leva à reunião aberta, com "Retomar a gravação"; cartões da agenda no formato do Painel de Operações, amarelo/vermelho/verde/verde-claro, redesenhados a cada minuto |
+| — | **2.36.1** | **Janela larga e gravação refeita** — janela da reunião em duas colunas (campos 4 por linha à esquerda; dossiê e andamento à direita), sem rolar em 1280×800; consentimento já marcado; áudio sem escolha: microfone + **tela inteira com áudio do sistema**; captura por **AudioWorklet** (a antiga perdia ~35% do som com a aba em segundo plano — razão medida 1,002 na nova); pedaço fecha na **pausa** (6–15 s); **texto provisório crescendo** a cada ~3 s (`provisorio: true`, não salvo; não pede com a aba do CRM escondida); filtros: outra escrita (islandês), eco da dica, palavra repetida, pedaço com < 0,8 s de voz; medidores de volume e aviso de som mudo |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à
@@ -151,7 +156,7 @@ emitido ou a perda. Uma versão por entrega, cada uma testável sozinha.
 | ~~2.34.0~~ | ~~Chaves de IA e roteiros~~ — entregue | o binding Workers AI no painel (para a 2.35.0) |
 | ~~2.35.0~~ | ~~Gravação e transcrição ao vivo~~ — entregue | um transcritor: binding Workers AI ou chave OpenAI |
 | ~~2.36.0~~ | ~~Iniciar e finalizar a reunião~~ — entregue em 30/09/2026 | migração 021 |
-| **2.36.1** | **Texto a cada 3 s, crescendo**, e descartar o eco da dica | os testes da 2.36.0 |
+| ~~2.36.1~~ | ~~Janela larga e gravação refeita (texto crescendo, eco da dica)~~ — entregue em 30/09/2026 | — |
 | **2.37.0** | **Recortes e insights durante a reunião** — frases do lead que captam a expectativa, conferidas por código contra a transcrição; perguntas do roteiro ainda não cobertas | 2.35.0 |
 | **2.38.0** | **Laudo pós-reunião** — HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão, como histórico da pré-venda | 2.35.0 |
 | depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |

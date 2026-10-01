@@ -5,8 +5,11 @@
  * GET  ?reuniao_id=N            as gravações da reunião e a transcrição
  * POST                          começa: { reuniao_id, consentimento, modo } —
  *                               só com a reunião INICIADA por quem grava (2.36.0)
- * POST ?id=N&trecho=1           um pedaço de ~20 s: { origem, seq, inicio_s,
- *                               fim_s, audio (WAV base64) } → o texto
+ * POST ?id=N&trecho=1           um pedaço (uma frase, até 15 s): { origem, seq,
+ *                               inicio_s, fim_s, audio (WAV base64) } → o texto
+ *                               { ..., provisorio: true }: a frase ainda em curso
+ *                               (2.36.1) — transcreve e devolve, SEM salvar; a
+ *                               tela a mostra crescendo até a frase fechar
  * PUT  ?id=N                    encerra: { encerrar: true, duracao_s }
  *
  * Só o texto é guardado — o áudio passa pela transcrição e é descartado.
@@ -117,7 +120,10 @@ export async function onRequestPost(context) {
 
     const reuniao = await reuniaoDoLead(db, g.reuniao_id);
     try {
-      const { texto } = await transcrever(envIA, { audio, dica: reuniao?.lead_nome });
+      const { texto } = await transcrever(envIA, { audio, lead: reuniao?.lead_nome });
+      // Provisório: a frase em curso, só para a tela. O que vale é o texto
+      // da frase fechada, que chega depois e é o único que fica no banco.
+      if (corpo.provisorio === true) return json({ ok: true, texto, provisorio: true }, 200, cabecalhos);
       if (texto) {
         await db.prepare(
           `INSERT OR REPLACE INTO transcricao_trechos (gravacao_id, origem, seq, inicio_s, fim_s, texto, criado_em)

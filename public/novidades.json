@@ -2,6 +2,21 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.36.1",
+      "data": "30/09/2026",
+      "titulo": "Janela da reunião mais larga e transcrição melhor",
+      "itens": [
+        "Transcrição melhor: o áudio não se perde mais quando você vai para a aba do Meet ou Teams (antes, cerca de um terço sumia), e cada trecho fecha na pausa da fala, sem cortar palavra ao meio.",
+        "A conversa aparece enquanto vocês falam: a frase em curso vai crescendo em cinza a cada ~3 segundos e fica firme quando a pessoa faz uma pausa.",
+        "Texto que sai em outra língua, que só repete o nome do lead ou a mesma palavra (\"Obrigado. Obrigado. Obrigado.\") é descartado.",
+        "Enquanto grava, uma barra mostra o volume do seu microfone e o da aba da reunião: se a da aba não mexe, o lado do lead não está chegando — e um aviso diz isso.",
+        "A janela da reunião ficou larga e em duas colunas: à esquerda os dados, quatro por linha; à direita o dossiê e o andamento da reunião. Cabe na tela sem rolar.",
+        "O contato abre numa janela mais estreita, só com o que ele usa.",
+        "Na reunião nova, um aviso explica que \"Iniciar reunião\" aparece depois de salvar e abrir a reunião na agenda.",
+        "O consentimento do lead já vem marcado, e não é mais preciso escolher de onde vem o áudio: no computador, \"Iniciar reunião\" grava o seu microfone e todo o som do computador — escolha Tela inteira e ative Compartilhar áudio do sistema; vale para Meet, Teams ou Zoom. Presencial: basta cancelar, e grava só o microfone."
+      ]
+    },
+    {
       "versao": "2.36.0",
       "data": "30/09/2026",
       "titulo": "Iniciar e finalizar a reunião",

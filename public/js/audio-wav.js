@@ -74,6 +74,21 @@ const AudioWav = (() => {
     return new Uint8Array(buffer);
   }
 
+  /**
+   * ONDE CORTAR O PEDAÇO (2.36.1). Antes era a cada 20 s fixos, e o corte
+   * partia palavras ao meio — o Whisper erra a borda de cada pedaço.
+   * Agora o pedaço fecha na primeira PAUSA da fala depois de um mínimo,
+   * ou no teto, se a pessoa não parar de falar.
+   *
+   * @param estado  { segundos: duração do pedaço, pausa: segundos seguidos
+   *                  de silêncio no fim dele }
+   * @returns true se é hora de fechar
+   */
+  const CORTE = { minimo: 6, teto: 15, pausa: 0.6, limiar: 0.008 };
+  function deveFechar({ segundos, pausa }, regra = CORTE) {
+    return segundos >= regra.teto || (segundos >= regra.minimo && pausa >= regra.pausa);
+  }
+
   /** Bytes → base64, em fatias: um `apply` com 800 mil argumentos estoura a pilha. */
   function base64(bytes) {
     let bin = '';
@@ -84,7 +99,7 @@ const AudioWav = (() => {
     return btoa(bin);
   }
 
-  return { TAXA_ALVO, juntar, reamostrar, rms, paraWav, base64 };
+  return { TAXA_ALVO, CORTE, juntar, reamostrar, rms, paraWav, base64, deveFechar };
 })();
 
 // Para a prova em Node (o navegador ignora).

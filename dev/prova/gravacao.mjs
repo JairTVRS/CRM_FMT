@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 import * as rota from '../../functions/api/gravacoes.js';
-import { limparTexto, transcritorDisponivel } from '../../functions/api/_lib/transcricao.js';
+import { limparTexto, transcritorDisponivel, dicaDaReuniao } from '../../functions/api/_lib/transcricao.js';
 
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url)).replace(/[\/]$/, '');
 const require = createRequire(import.meta.url);
@@ -157,7 +157,7 @@ const trecho = (corpo) => POST(`/api/gravacoes?id=${G.id}&trecho=1`, { audio: AU
 const t1 = await trecho({ origem: 'lead', seq: 0, inicio_s: 0, fim_s: 20 });
 ok(t1.status === 200 && t1.corpo.texto === 'Bom dia, quero entender o processo.', 'o pedaço volta como texto, limpo');
 ok(chamadasIA[0].modelo.includes('whisper') && chamadasIA[0].entrada.language === 'pt'
-  && chamadasIA[0].entrada.audio === AUDIO && chamadasIA[0].entrada.initial_prompt === 'Acme Prospect',
+  && chamadasIA[0].entrada.audio === AUDIO && chamadasIA[0].entrada.initial_prompt === 'Reunião comercial da Formatar com Acme Prospect, em português do Brasil.',
   'vai ao Whisper em português, com o nome do lead de dica');
 
 respostaIA = { text: 'Obrigado por assistir.' };
@@ -214,6 +214,37 @@ ok(pelaOpenai.corpo.texto === 'Transcrito pela OpenAI.' && pedidos[0].url.includ
 
 ok(limparTexto('  tchau.  ') === '' && limparTexto('Tchau, então nos falamos amanhã.') !== '',
   'o filtro pega a frase fantasma sozinha, não a fala que contém a palavra');
+
+console.log('\n=== 6. Qualidade (2.36.1) ===');
+
+// Os casos reais do teste de 30/09/2026 e de 29/09/2026.
+ok(limparTexto('Nú, Kjálsha, ég er enn hóð. Þá var hlutum deytreið.') === ''
+  && limparTexto('Ouvirar að rússum að rússum að gera') === '',
+  'texto em islandês (letras que o português não usa) é descartado');
+ok(limparTexto('Привет, как дела') === '' && limparTexto('ありがとう') === '', 'cirílico e japonês também');
+ok(limparTexto('O CNPJ começa com 12 e o quilômetro é R$ 1,60.') !== '', 'português com acento, número e símbolo passa');
+const dica = dicaDaReuniao('Jair da Silva');
+ok(dica === 'Reunião comercial da Formatar com Jair da Silva, em português do Brasil.', 'a dica é uma frase em português');
+ok(limparTexto('Jair da Silva Jair da Silva', dica) === '' && limparTexto('Reunião comercial da Formatar.', dica) === '',
+  'texto feito só das palavras da dica é eco, não fala');
+ok(limparTexto('O Jair da Silva pediu a proposta.', dica) !== '', 'mas a fala que cita o nome passa');
+ok(limparTexto('Obrigado. Obrigado. Obrigado. Obrigado.') === '', 'a mesma palavra repetida é descartada');
+ok(limparTexto('Não, só isso. Não, só isso.') !== '', 'mas uma frase repetida de verdade, com várias palavras, passa');
+
+// A frase em curso (provisório): transcreve e devolve, sem salvar.
+respostaIA = { text: 'O custo do cimento por unidade' };
+const antesProv = bd.prepare('SELECT COUNT(*) n FROM transcricao_trechos').get().n;
+const G3 = (await POST('/api/gravacoes', { reuniao_id: 10, consentimento: true, modo: 'presencial' })).corpo.gravacao;
+const prov = await POST(`/api/gravacoes?id=${G3.id}&trecho=1`, { provisorio: true, origem: 'sala', seq: 0, inicio_s: 0, audio: AUDIO });
+ok(prov.status === 200 && prov.corpo.provisorio === true && prov.corpo.texto === 'O custo do cimento por unidade'
+  && bd.prepare('SELECT COUNT(*) n FROM transcricao_trechos').get().n === antesProv,
+  'a frase em curso volta como texto provisório e NÃO é salva');
+
+console.log('\n=== 7. Onde cortar o pedaço (2.36.1) ===');
+ok(!AudioWav.deveFechar({ segundos: 4, pausa: 2 }), 'antes de 6 s não corta, nem na pausa');
+ok(AudioWav.deveFechar({ segundos: 7, pausa: 0.7 }), 'depois de 6 s, corta na pausa de 0,6 s');
+ok(!AudioWav.deveFechar({ segundos: 12, pausa: 0.3 }), 'pausa curta (entre palavras) não corta');
+ok(AudioWav.deveFechar({ segundos: 15, pausa: 0 }), 'aos 15 s corta mesmo sem pausa (teto)');
 
 console.log(falhas === 0 ? '\nTUDO PASSOU\n' : `\n${falhas} FALHA(S)\n`);
 process.exit(falhas === 0 ? 0 : 1);

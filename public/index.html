@@ -1075,6 +1075,8 @@
               <button type="button" id="btn-gravacao-encerrar" class="btn btn-primary btn-sm">&#9632; Finalizar reunião</button>
             </div>
           </div>
+          <!-- O volume de cada lado (2.36.1): barra parada = aquele lado não está chegando. -->
+          <div id="gravacao-medidores" class="gravacao-medidores"></div>
           <div id="gravacao-avisos" class="gravacao-avisos"></div>
           <div id="gravacao-transcricao" class="transcricao"></div>
         </div>
@@ -1126,32 +1128,38 @@
 
   <!-- Compromisso da agenda do lead (2.32.0): reunião ou contato.
        Vem depois da ficha do lead no HTML para abrir POR CIMA dela. -->
+  <!-- A janela da reunião/contato. Desde a 2.36.1 é larga e em duas
+       colunas, para caber sem rolar: à esquerda os dados do compromisso
+       (4 por linha), à direita o dossiê e o andamento da reunião. O
+       contato não tem a coluna da direita e abre estreito. -->
   <div id="modal-agenda" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width: 620px;">
+    <div class="modal-card agenda-janela">
       <header class="modal-header">
-        <h2 id="agenda-titulo">Agendar</h2>
+        <div class="agenda-janela-topo">
+          <h2 id="agenda-titulo">Agendar</h2>
+          <div class="view-toggle agenda-tipo">
+            <button type="button" data-agenda-tipo="reuniao">Reunião</button>
+            <button type="button" data-agenda-tipo="contato">Contato</button>
+          </div>
+        </div>
         <button id="btn-agenda-fechar" class="btn-close" aria-label="Fechar">&times;</button>
       </header>
       <div class="modal-body">
-        <div class="view-toggle agenda-tipo">
-          <button type="button" data-agenda-tipo="reuniao">Reunião</button>
-          <button type="button" data-agenda-tipo="contato">Contato</button>
-        </div>
-
-        <div class="form-grid">
+        <div class="agenda-colunas">
+        <div class="form-grid agenda-campos">
           <!-- Lead: escolhido só quando o compromisso nasce na visão
                Agenda; da ficha, o lead já é o da ficha. -->
           <!-- A busca mostra a lista logo abaixo, e o lead é ESCOLHIDO
                clicando nela. Era um <datalist>, cujas sugestões dependem
                do navegador e somem com extensões de preenchimento. -->
-          <div class="form-group col-span-2 agenda-lead-escolha" id="agenda-lead-bloco">
+          <div class="form-group col-span-4 agenda-lead-escolha" id="agenda-lead-bloco">
             <label for="agenda-lead-busca">Lead *</label>
             <input type="text" id="agenda-lead-busca" class="form-control"
                    placeholder="Digite o nome, CNPJ ou telefone e escolha na lista"
                    autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other">
             <div id="agenda-lead-resultados" class="agenda-lead-resultados hidden" role="listbox"></div>
           </div>
-          <div class="form-group col-span-2 agenda-lead-nome hidden" id="agenda-lead-nome">
+          <div class="form-group col-span-4 agenda-lead-nome hidden" id="agenda-lead-nome">
             <span id="agenda-lead-escolhido"></span>
             <button type="button" id="btn-agenda-lead-trocar" class="btn btn-sm btn-secondary">Trocar</button>
           </div>
@@ -1164,12 +1172,6 @@
             <label for="agenda-hora">Hora *</label>
             <input type="time" id="agenda-hora" class="form-control" step="300">
           </div>
-
-          <!-- Só reunião -->
-          <div class="form-group so-reuniao">
-            <label for="agenda-tipo-reuniao">Tipo de reunião</label>
-            <select id="agenda-tipo-reuniao" class="form-control"></select>
-          </div>
           <div class="form-group so-reuniao">
             <label for="agenda-duracao">Duração</label>
             <select id="agenda-duracao" class="form-control">
@@ -1180,20 +1182,6 @@
               <option value="180">3 h</option>
             </select>
           </div>
-          <p class="form-group col-span-2 so-reuniao agenda-roteiro" id="agenda-roteiro"></p>
-          <div class="form-group so-reuniao">
-            <label for="agenda-local-tipo">Local *</label>
-            <select id="agenda-local-tipo" class="form-control">
-              <option value="online">Online</option>
-              <option value="presencial">Presencial</option>
-              <option value="externo">Externo</option>
-            </select>
-          </div>
-          <div class="form-group so-reuniao">
-            <label for="agenda-local-texto" id="agenda-local-rotulo">Link da sala</label>
-            <input type="text" id="agenda-local-texto" class="form-control" maxlength="500">
-          </div>
-
           <!-- Só contato -->
           <div class="form-group so-contato">
             <label for="agenda-canal">Canal *</label>
@@ -1203,11 +1191,6 @@
               <option value="email">E-mail</option>
               <option value="outro">Outro</option>
             </select>
-          </div>
-
-          <div class="form-group">
-            <label for="agenda-responsavel">CX responsável</label>
-            <select id="agenda-responsavel" class="form-control"></select>
           </div>
           <div class="form-group" id="agenda-status-bloco">
             <label for="agenda-status">Situação</label>
@@ -1220,18 +1203,54 @@
             </select>
           </div>
 
+          <!-- Só reunião -->
+          <div class="form-group col-span-2 so-reuniao">
+            <label for="agenda-tipo-reuniao">Tipo de reunião</label>
+            <select id="agenda-tipo-reuniao" class="form-control"></select>
+          </div>
+          <div class="form-group so-reuniao">
+            <label for="agenda-local-tipo">Local *</label>
+            <select id="agenda-local-tipo" class="form-control">
+              <option value="online">Online</option>
+              <option value="presencial">Presencial</option>
+              <option value="externo">Externo</option>
+            </select>
+          </div>
+          <div class="form-group so-reuniao">
+            <label for="agenda-local-texto" id="agenda-local-rotulo">Link da sala</label>
+            <input type="text" id="agenda-local-texto" class="form-control" maxlength="500">
+          </div>
+          <p class="form-group col-span-4 so-reuniao agenda-roteiro" id="agenda-roteiro"></p>
+
+          <div class="form-group col-span-2">
+            <label for="agenda-responsavel">CX responsável</label>
+            <select id="agenda-responsavel" class="form-control"></select>
+          </div>
           <div class="form-group col-span-2 so-reuniao">
             <label for="agenda-participantes">Participantes do lado do lead</label>
             <input type="text" id="agenda-participantes" class="form-control" maxlength="500"
                    placeholder="Ex.: João (sócio), Maria (financeiro)">
           </div>
-          <div class="form-group col-span-2">
+          <div class="form-group col-span-4">
             <label for="agenda-pauta">Pauta / observações</label>
             <textarea id="agenda-pauta" class="form-control" rows="3" maxlength="4000"></textarea>
           </div>
 
+          <!-- Remarcar: esta vira "remarcada" e nasce outra na data nova. -->
+          <div class="form-group col-span-4 agenda-remarcar hidden" id="agenda-remarcar">
+            <label for="agenda-remarcar-data">Remarcar para</label>
+            <div class="agenda-remarcar-campos">
+              <input type="date" id="agenda-remarcar-data" class="form-control">
+              <input type="time" id="agenda-remarcar-hora" class="form-control" step="300">
+              <button type="button" id="btn-agenda-remarcar-confirmar" class="btn btn-sm btn-primary">Remarcar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- A coluna da direita: só reunião. -->
+        <aside class="agenda-lateral so-reuniao">
           <!-- O dossiê para o CX estudar antes da reunião. -->
-          <div class="form-group col-span-2 so-reuniao agenda-dossie" id="agenda-dossie">
+          <div class="form-group agenda-dossie" id="agenda-dossie">
             <label>Dossiê do lead</label>
             <p id="agenda-dossie-estado" class="campo-informativo"></p>
             <button type="button" id="btn-agenda-dossie" class="btn btn-sm btn-secondary hidden">Abrir o dossiê</button>
@@ -1240,33 +1259,32 @@
           <!-- Iniciar e finalizar a reunião (2.36.0), com a gravação e a
                transcrição (2.35.0): só reunião já salva. "Iniciar" já
                começa a transcrever; "Finalizar" a torna realizada. -->
-          <div class="form-group col-span-2 so-reuniao agenda-gravacao hidden" id="agenda-gravacao">
+          <div class="form-group agenda-gravacao hidden" id="agenda-gravacao">
             <label>Andamento da reunião</label>
             <p id="agenda-gravacao-estado" class="agenda-andamento"></p>
 
             <div id="agenda-preparar" class="hidden">
               <p id="gravacao-sem-transcritor" class="agenda-aviso hidden">
-                Não há como transcrever agora: falta ligar o Workers AI no painel da Cloudflare
-                (binding <strong>AI</strong>) ou cadastrar uma chave da OpenAI nas Configurações.
+                Não há como transcrever agora (falta o Workers AI ou uma chave da OpenAI).
                 A reunião pode ser iniciada, sem gravação.
               </p>
               <label class="gravacao-opcao">
-                <input type="checkbox" id="gravacao-consentimento">
-                <span><strong>O lead foi avisado e concordou com a gravação.</strong>
-                  Fica registrado quem confirmou e quando. Sem esta marca, a reunião é iniciada sem gravar.</span>
+                <input type="checkbox" id="gravacao-consentimento" checked>
+                <span><strong>O lead concordou com a gravação.</strong> Fica registrado quem
+                  confirmou e quando. Sem esta marca, a reunião começa sem gravar.</span>
               </label>
-              <label class="gravacao-opcao">
-                <input type="radio" name="gravacao-modo" id="gravacao-modo-online">
-                <span><strong>Online, no computador</strong> — o seu microfone e o áudio da aba da
-                  reunião, separados. Escolha a <em>aba</em> e marque "Compartilhar áudio da guia".</span>
-              </label>
-              <label class="gravacao-opcao">
-                <input type="radio" name="gravacao-modo" id="gravacao-modo-sala">
-                <span><strong>Um microfone só</strong> — presencial, externo ou celular.</span>
-              </label>
+              <!-- 2.36.1: sem escolha de áudio. No computador grava o
+                   microfone e pede a aba da reunião; sem aba (presencial,
+                   ou Cancelar), segue só com o microfone. -->
+              <p id="gravacao-nota-audio" class="campo-ajuda gravacao-nota-audio">
+                Grava o seu microfone e todo o som do computador (Meet, Teams, Zoom). Ao
+                iniciar, escolha <strong>Tela inteira</strong>, ative <strong>Compartilhar áudio
+                do sistema</strong> e clique em Compartilhar. Use fone de ouvido. Reunião
+                presencial: clique em Cancelar, e grava só o microfone.
+              </p>
               <p id="gravacao-nota-celular" class="campo-ajuda hidden">
-                Neste aparelho só dá para gravar pelo microfone. Deixe a tela ligada durante a
-                reunião: no iPhone, a tela apagada para a gravação.
+                Neste aparelho só dá para gravar pelo microfone. Deixe a tela ligada: no
+                iPhone, a tela apagada para a gravação.
               </p>
             </div>
 
@@ -1277,16 +1295,7 @@
             </div>
             <div id="agenda-transcricao" class="transcricao transcricao-curta"></div>
           </div>
-
-          <!-- Remarcar: esta vira "remarcada" e nasce outra na data nova. -->
-          <div class="form-group col-span-2 agenda-remarcar hidden" id="agenda-remarcar">
-            <label for="agenda-remarcar-data">Remarcar para</label>
-            <div class="agenda-remarcar-campos">
-              <input type="date" id="agenda-remarcar-data" class="form-control">
-              <input type="time" id="agenda-remarcar-hora" class="form-control" step="300">
-              <button type="button" id="btn-agenda-remarcar-confirmar" class="btn btn-sm btn-primary">Remarcar</button>
-            </div>
-          </div>
+        </aside>
         </div>
       </div>
       <footer class="modal-footer agenda-rodape">

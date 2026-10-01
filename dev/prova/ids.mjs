@@ -80,7 +80,10 @@ const classes = [
   // 2.36.0
   'agenda-item-tipo', 'agenda-item-lead', 'agenda-item-part', 'agenda-item-rodape', 'agenda-item-hora',
   'agenda-item-local', 'agenda-relogio', 'compacto', 'cor-futura', 'cor-atrasada', 'cor-andamento',
-  'cor-realizada', 'cor-encerrada', 'agenda-legenda', 'agenda-andamento', 'em-andamento', 'aviso-em-andamento'
+  'cor-realizada', 'cor-encerrada', 'agenda-legenda', 'agenda-andamento', 'em-andamento', 'aviso-em-andamento',
+  // 2.36.1
+  'agenda-janela', 'agenda-janela-topo', 'agenda-colunas', 'agenda-campos', 'agenda-lateral',
+  'gravacao-medidores', 'medidor', 'medidor-barra'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));

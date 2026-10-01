@@ -223,8 +223,48 @@
    Janela do compromisso
    -------------------------------------------------------------------------- */
 
-.agenda-tipo { display: inline-flex; margin-bottom: 1rem; }
+.agenda-tipo { display: inline-flex; }
 .agenda-tipo button:disabled { cursor: default; }
+
+/* 2.36.1: a janela é larga e em duas colunas, para caber sem rolar —
+   à esquerda os campos (4 por linha), à direita o dossiê e o andamento
+   da reunião. Contato não tem a coluna da direita: abre estreito. */
+#modal-agenda .modal-card.agenda-janela { max-width: min(1120px, 96vw); max-height: 94vh; }
+#modal-agenda .modal-card.agenda-janela.modo-contato { max-width: min(720px, 96vw); }
+#modal-agenda .modal-header { padding: 0.75rem 1.5rem; }
+#modal-agenda .modal-body { padding: 1rem 1.5rem; }
+#modal-agenda .modal-footer { padding: 0.75rem 1.5rem; }
+.agenda-janela-topo { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.agenda-janela-topo h2 { margin: 0; }
+
+.agenda-colunas { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.5rem; align-items: start; }
+.modal-card.modo-contato .agenda-colunas { grid-template-columns: minmax(0, 1fr); }
+
+.agenda-campos.form-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 0.9rem; }
+.agenda-campos .col-span-4 { grid-column: 1 / -1; }
+.agenda-campos .form-group { margin-bottom: 0.6rem; gap: 0.3rem; }
+.agenda-campos .agenda-roteiro { margin: -0.2rem 0 0.6rem; }
+
+.agenda-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-left: 1px solid var(--border-color);
+  padding-left: 1.5rem;
+  min-width: 0;
+}
+.agenda-lateral .form-group { margin-bottom: 0.4rem; }
+.agenda-lateral .gravacao-opcao { padding: 0.45rem 0.6rem; margin-bottom: 0.4rem; font-size: 0.8rem; line-height: 1.35; }
+.agenda-lateral .agenda-aviso { font-size: 0.78rem; margin-bottom: 0.4rem; }
+.agenda-lateral .gravacao-acoes { flex-wrap: wrap; }
+.agenda-lateral .gravacao-acoes .btn { white-space: nowrap; padding: 0.5rem 0.85rem; }
+
+/* Tela estreita: uma coluna, e os campos dois a dois. */
+@media (max-width: 960px) {
+  .agenda-colunas { grid-template-columns: minmax(0, 1fr); }
+  .agenda-lateral { border-left: none; padding-left: 0; border-top: 1px solid var(--border-color); padding-top: 0.75rem; }
+  .agenda-campos.form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* Reunião e contato mostram campos diferentes. */
 .modal-card.modo-reuniao .so-contato,
@@ -364,6 +404,13 @@
 @keyframes gravacao-pulso { 50% { opacity: 0.3; } }
 
 .gravacao-avisos p { font-size: 0.8rem; color: #b45309; margin: 0.5rem 0 0; }
+
+/* O volume de cada lado (2.36.1). */
+.gravacao-medidores { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.4rem 1rem; margin-top: 0.6rem; }
+.medidor { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: var(--text-muted); }
+.medidor > span:first-child { white-space: nowrap; }
+.medidor-barra { flex: 1; height: 0.45rem; border-radius: 999px; background: var(--border-color); overflow: hidden; }
+.medidor-barra > span { display: block; height: 100%; background: #1f9d55; transition: width 0.25s linear; }
 .gravacao-final { font-weight: 600; }
 
 /* A conversa transcrita. */
@@ -384,6 +431,9 @@
 .trecho-quando { color: var(--text-subtle); font-size: 0.72rem; margin-right: 0.35rem; font-variant-numeric: tabular-nums; }
 .trecho.origem-lead strong { color: #2563eb; }
 .trecho.origem-formatar strong { color: var(--accent-color); }
+/* A frase em curso (2.36.1): cinza até fechar na pausa. */
+.trecho.provisorio { color: var(--text-muted); font-style: italic; }
+.trecho.provisorio strong { opacity: 0.7; }
 
 /* Janelas que abrem POR CIMA da reunião da agenda (que vem depois delas
    no HTML e, na mesma camada, ficaria na frente): a gravação (2.35.0) e o
