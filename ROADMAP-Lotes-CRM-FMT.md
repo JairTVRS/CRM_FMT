@@ -8,20 +8,38 @@ que vem a seguir e o que está travado esperando material.
 
 ## ▶ Retomada (01/10/2026)
 
-**Onde paramos:** o **lote da jornada do lead (JL) está fechado**, com a
-**2.38.2**. O CX conduz o lead da entrada ao contrato emitido ou à perda:
-funil com responsável e motivos de perda, agenda (semana, quinzena, mês),
-reunião com iniciar/finalizar, cancelar com motivo, situação automática,
-resetar e histórico de cada compromisso, gravação e transcrição, e o
-**Dossiê da Reunião** — a IA segue a instrução .md enviada por tipo de
-reunião e o CRM confere cada citação contra a transcrição —, que vai junto
-quando o lead vira cliente (aba **Pré-venda** da ficha do cliente).
+**Onde paramos (fim de 01/10/2026):** no ar a **2.39.2**. Dois lotes
+fechados no mesmo dia:
+
+- **Jornada do lead (JL)**, fechado com a 2.38.2: funil com responsável e
+  motivos de perda; agenda (semana, quinzena, mês); reunião com
+  iniciar/finalizar, cancelar com motivo, situação automática, resetar e
+  histórico; gravação e transcrição; e o **Dossiê da Reunião** — a IA segue
+  a instrução .md do tipo de reunião e aponta a linha da transcrição; o CRM
+  põe as palavras exatas (`_lib/citacoes.js`) — que vai junto quando o lead
+  vira cliente.
+- **Dossiê lê as atas + Balança Avaliativa**, fechado com a 2.39.2: a IA lê
+  as atas dos últimos 6 meses do ERP (só a parte pública) e o plano de
+  ação, e pesa a relação; os números do período são do código. Na ficha do
+  cliente, a aba **Documentos de contexto** reúne os três documentos, uma
+  linha por documento, com o nome exato do arquivo (`…_v1.html`).
 
 **Validado em produção em 01/10/2026:** reunião presencial real de 24 min
-(gravação 3, 118 trechos); Dossiê da Reunião v1 com 27 citações e nenhuma
-"não encontrada", v2 com 25 e 1 (a IA trocou uma letra de "Gerenção").
+(118 trechos) — Dossiê da Reunião v1 com 27 citações e nenhuma "não
+encontrada"; Balança da Zanna Sound com 42 reuniões, 33 ações, 22
+evidências e nenhuma "não encontrada".
 
-**Próximo passo:** o lote **N — Check-in, NPS/CSAT e Voz do Cliente** (seção 3), a desenhar com o Jair antes de virar código. O lote **Dossiê lê as atas + Balança Avaliativa** foi **fechado em 01/10/2026** (2.39.0 a 2.39.2). O **modelo de contrato** (Lote G) aguarda 4 respostas do Jair: padrão jurídico, formas de preço, contratada, origem do escopo.
+**Próximos passos, em ordem:**
+
+| # | O quê | Para começar |
+|---|---|---|
+| 1 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | só tem o título: **desenhar com o Jair antes do código** — o que medir (NPS, CSAT, os dois?), quando perguntar (depois de reunião, a cada X meses?), como o cliente responde (link, WhatsApp, o CX registra?), onde aparece (ficha, Balança, painel) |
+| 2 | **Modelo de contrato (Lote G)**, a partir do contrato assinado da Trinta Dezessete (14/04/2026) — estrutura proposta em 01/10 | as 4 respostas do Jair: (a) esse contrato é o padrão do jurídico (km R$ 1,75; rescisão da cláusula nona)? (b) formas de preço além de "isento"? (c) a contratada é sempre a Formatar Consultoria Empresarial Ltda? (d) o escopo vem da proposta ou de uma lista de partes? |
+| 3 | **Fase 3 da 2.24.0** | depois do N; migração livre: **027** |
+| 4 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
+
+**Ao retomar:** abrir este bloco; se o Jair responder o contrato antes,
+o contrato pode passar na frente do N (não depende de desenho).
 
 ### Pendências, em ordem
 
