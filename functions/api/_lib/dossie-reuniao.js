@@ -12,19 +12,24 @@
  *   tudo na casca dos documentos da Formatar (_lib/documento-base.js) —
  *   o visual é sempre o mesmo, qualquer que seja a instrução.
  *
- * AS CITAÇÕES
- *   Toda fala que a IA cita vai dentro de <q>. Cada uma é procurada na
- *   transcrição, palavra por palavra (_lib/recortes.js → localizar): a
- *   que existe ganha o minuto em que foi dita; a que não existe fica no
- *   documento com a marca "não encontrada na transcrição". A regra
- *   central da instrução — separar o que foi dito do que é
- *   interpretação — passa a ser conferida por código, não confiada.
+ * AS CITAÇÕES — ANCORADAS NA LINHA (2.38.3)
+ *   A transcrição vai ao prompt com as linhas numeradas, e a IA cita
+ *   apontando a linha: <q>[37] o PGR é o programa…</q>. O CRM procura o
+ *   trecho DENTRO daquela linha (ou das vizinhas, se ela errou por uma) e
+ *   põe no documento as palavras EXATAS da transcrição, com o minuto. O
+ *   que fica entre aspas é sempre a fala real: o erro de uma letra da IA
+ *   ("Gernção" por "Gerenção", na v2 de 01/10/2026) não chega ao papel.
+ *   "Não encontrada na transcrição" só quando a linha apontada não tem
+ *   nada parecido — ou quando a IA cita sem número e o texto não existe
+ *   (aí vale a conferência antiga, palavra por palavra).
+ *   A regra central da instrução — separar o que foi dito do que é
+ *   interpretação — passa a ser garantida por código, não confiada.
  *
  * Funções puras: a prova as chama direto.
  */
 
 import { documento, folha, esc, FORMATAR, nomeDeDocumento } from './documento-base.js';
-import { localizar, transcricaoParaPrompt } from './recortes.js';
+import { localizar, normalizar, LIMITE_TRANSCRICAO } from './recortes.js';
 
 /** O que a IA pode escrever no documento. Qualquer outra tag some (o texto fica). */
 const TAGS = new Set(['h2', 'h3', 'h4', 'p', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li', 'br',
@@ -43,7 +48,7 @@ export const SYSTEM_PROMPT = `Você é analista comercial sênior da Formatar (c
 FORMATO DE SAÍDA — obrigatório, vale mais do que qualquer formato que a instrução sugerir:
 - Só o conteúdo, em HTML simples. Sem <html>, <head>, <body>, <style>, <script>, sem markdown, sem cercas de código.
 - Tags permitidas, SEM atributos: h2 (cada seção da instrução), h3, h4, p, ul, ol, li, strong, em, table, thead, tbody, tr, th, td, q, br.
-- Toda fala tirada da transcrição vai dentro de <q>...</q>, COPIADA LETRA POR LETRA de UMA linha da transcrição: de 3 a 40 palavras seguidas, sem juntar linhas, sem corrigir erros do reconhecimento, sem reticências. O sistema procura cada <q> na transcrição e marca as que não encontrar. Paráfrase, resumo ou interpretação NUNCA vão em <q>.
+- As linhas da transcrição são numeradas: [L37]. Toda fala tirada da transcrição vai dentro de <q>, COMEÇANDO pelo número da linha entre colchetes e seguida do trecho daquela linha: <q>[37] o PGR é o programa de gerência de riscos</q>. De 3 a 40 palavras seguidas de UMA linha, sem juntar linhas, sem reticências. O sistema troca o trecho pelas palavras exatas da linha apontada — o número é o que importa. Paráfrase, resumo ou interpretação NUNCA vão em <q>.
 - Seja direto: frases curtas. Seção sem informação na transcrição: escreva "Não identificado na reunião." e siga.
 - Não repita a instrução nem explique o que vai fazer. Comece pelo primeiro <h2>.
 
@@ -70,7 +75,7 @@ export function montarPrompt({ instrucao, reuniao, separacao, trechos }) {
     `INSTRUÇÃO DE ANÁLISE:\n${String(instrucao || '').slice(0, 60000)}`,
     `DADOS DA REUNIÃO (do CRM):\n${dados}`,
     `VOZES: ${vozes}`,
-    `TRANSCRIÇÃO:\n${transcricaoParaPrompt(trechos)}`
+    `TRANSCRIÇÃO (linhas numeradas):\n${transcricaoNumerada(trechos)}`
   ].join('\n\n');
 }
 
@@ -99,18 +104,118 @@ const desfazerEntidades = (t) => t
   .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const minSeg = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
+const escHtml = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const NOME_VOZ = { lead: 'LEAD', formatar: 'FORMATAR', sala: 'SALA' };
+
 /**
- * Cada <q> do conteúdo, procurado na transcrição. Achou: ganha o minuto.
- * Não achou: fica, marcado "não encontrada na transcrição".
+ * As linhas da transcrição, na ordem da conversa, numeradas a partir de 1.
+ * A MESMA numeração vai ao prompt e à conferência — é ela que liga a
+ * citação da IA à fala real.
+ */
+export function linhasDaTranscricao(trechos) {
+  return [...trechos]
+    .sort((a, b) => (a.gravacao_id - b.gravacao_id) || (a.inicio_s - b.inicio_s))
+    .map((t, i) => ({ n: i + 1, origem: t.origem, inicio_s: t.inicio_s, texto: String(t.texto || '').trim() }));
+}
+
+/** "[L37 03:12] LEAD: ..." — cortada pelo começo se for longa (o fim é o que se cita mais). */
+export function transcricaoNumerada(trechos) {
+  let texto = linhasDaTranscricao(trechos)
+    .map((l) => `[L${l.n} ${minSeg(l.inicio_s || 0)}] ${NOME_VOZ[l.origem] || 'VOZ'}: ${l.texto}`)
+    .join('\n');
+  if (texto.length > LIMITE_TRANSCRICAO) texto = `(início da conversa omitido)\n${texto.slice(-LIMITE_TRANSCRICAO)}`;
+  return texto;
+}
+
+/** Maior subsequência comum entre duas listas de palavras normalizadas. */
+function lcs(a, b) {
+  const m = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      m[i][j] = a[i - 1] === b[j - 1] ? m[i - 1][j - 1] + 1 : Math.max(m[i - 1][j], m[i][j - 1]);
+    }
+  }
+  return m[a.length][b.length];
+}
+
+/** Quanto do trecho precisa bater com a linha apontada para valer. */
+const ACERTO_MINIMO = 0.6;
+
+/**
+ * O trecho citado, dentro das palavras de uma linha (ou de duas, juntas).
+ * Devolve as palavras ORIGINAIS da janela que mais se parece com o trecho,
+ * e quanto ela se parece (0–1).
+ */
+function melhorJanela(palavrasOriginais, alvo) {
+  const norm = palavrasOriginais.map((p) => normalizar(p));
+  let melhor = { nota: 0, inicio: 0, fim: 0 };
+  for (let tam = Math.max(1, alvo.length - 2); tam <= alvo.length + 2; tam++) {
+    for (let i = 0; i + tam <= norm.length; i++) {
+      const janela = norm.slice(i, i + tam).filter(Boolean);
+      const nota = lcs(alvo, janela) / Math.max(alvo.length, janela.length || 1);
+      if (nota > melhor.nota) melhor = { nota, inicio: i, fim: i + tam };
+    }
+  }
+  // A linha inteira é menor que o trecho: compara com ela toda.
+  if (norm.length < alvo.length - 2) {
+    const nota = lcs(alvo, norm.filter(Boolean)) / Math.max(alvo.length, norm.length || 1);
+    if (nota > melhor.nota) melhor = { nota, inicio: 0, fim: norm.length };
+  }
+  return { nota: melhor.nota, texto: palavrasOriginais.slice(melhor.inicio, melhor.fim).join(' ') };
+}
+
+/**
+ * A citação ancorada: o trecho dentro da linha N — ou de N−1, N+1, ou de
+ * N com a seguinte da mesma voz (frase cortada entre dois trechos).
+ * @returns { texto, inicio_s } com as palavras exatas, ou null
+ */
+export function ancorar(numero, trecho, linhas) {
+  const alvo = normalizar(trecho).split(' ').filter(Boolean);
+  if (alvo.length < 2) return null;
+  const linha = (n) => linhas[n - 1];
+  const candidatos = [];
+  for (const n of [numero, numero - 1, numero + 1]) {
+    const l = linha(n);
+    if (!l) continue;
+    candidatos.push({ l, palavras: l.texto.split(/\s+/) });
+    const seguinte = linha(n + 1);
+    if (seguinte && seguinte.origem === l.origem) {
+      candidatos.push({ l, palavras: `${l.texto} ${seguinte.texto}`.split(/\s+/) });
+    }
+  }
+  let melhor = null;
+  for (const c of candidatos) {
+    const r = melhorJanela(c.palavras, alvo);
+    // Na dúvida, fica a linha apontada (a primeira da lista).
+    if (!melhor || r.nota > melhor.nota + 0.0001) melhor = { ...r, inicio_s: c.l.inicio_s };
+  }
+  return melhor && melhor.nota >= ACERTO_MINIMO ? { texto: melhor.texto, inicio_s: melhor.inicio_s } : null;
+}
+
+/**
+ * Cada <q> do conteúdo. Com o número da linha ("[37] trecho"), ancorada:
+ * vira as palavras exatas da transcrição, com o minuto. Sem número, a
+ * conferência antiga: palavra por palavra em qualquer linha. O que não
+ * achar fica, marcado "não encontrada na transcrição".
  */
 export function conferirCitacoes(conteudo, trechos) {
+  const linhas = linhasDaTranscricao(trechos);
   let citacoes = 0;
   let naoEncontradas = 0;
   const html = String(conteudo || '').replace(/<q>([\s\S]*?)<\/q>/g, (inteiro, dentro) => {
-    const texto = desfazerEntidades(semTags(dentro)).replace(/\s+/g, ' ').trim();
-    if (!texto) return '';
+    const bruto = desfazerEntidades(semTags(dentro)).replace(/\s+/g, ' ').trim();
+    if (!bruto) return '';
     citacoes++;
-    const onde = localizar(texto, trechos, null, { minimoPalavras: 3 });
+    const comNumero = bruto.match(/^\[\s*L?\s*(\d+)\s*\]\s*(.*)$/i);
+    if (comNumero) {
+      const achado = ancorar(Number(comNumero[1]), comNumero[2], linhas);
+      if (achado) {
+        return `<q class="confere">${escHtml(achado.texto)}</q> <span class="cit-minuto">${minSeg(achado.inicio_s || 0)}</span>`;
+      }
+      naoEncontradas++;
+      return `<q class="nao-confere">${escHtml(comNumero[2])}</q> <span class="cit-selo">não encontrada na transcrição</span>`;
+    }
+    const onde = localizar(bruto, trechos, null, { minimoPalavras: 3 });
     if (onde) return `<q class="confere">${dentro}</q> <span class="cit-minuto">${minSeg(onde.inicio_s || 0)}</span>`;
     naoEncontradas++;
     return `<q class="nao-confere">${dentro}</q> <span class="cit-selo">não encontrada na transcrição</span>`;

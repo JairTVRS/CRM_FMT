@@ -21,8 +21,7 @@ quando o lead vira cliente (aba **Pré-venda** da ficha do cliente).
 (gravação 3, 118 trechos); Dossiê da Reunião v1 com 27 citações e nenhuma
 "não encontrada", v2 com 25 e 1 (a IA trocou uma letra de "Gerenção").
 
-**Próximo passo:** a citação ancorada na linha (1.1), se aprovada; depois, escolher o próximo lote na seção 3 — o Dossiê que lê as
-atas com a Balança Avaliativa, ou o N (Check-in, NPS/CSAT e Voz do Cliente).
+**Próximo passo:** o lote **Dossiê lê as atas + Balança Avaliativa** (seção 3, a ordem combinada em 01/10: atas + Balança → N → Fase 3); em paralelo, o **modelo de contrato** (Lote G) estruturado a partir do contrato assinado da Trinta Dezessete.
 
 ### Pendências, em ordem
 
@@ -30,8 +29,8 @@ atas com a Balança Avaliativa, ou o N (Check-in, NPS/CSAT e Voz do Cliente).
 
 | # | O quê | Estado |
 |---|---|---|
-| 1.1 | **Citação 100% fiel no Dossiê da Reunião, sem tolerância** — hoje a IA copia a frase e o CRM confere; ela erra uma letra às vezes ("Gernção" × "Gerenção"), e a citação sai "não encontrada". Proposta: a IA só APONTA a linha da transcrição ("[37] o PGR é…") e o CRM põe ali o texto exato daquela linha; o que fica entre aspas é sempre a fala real. "Não encontrada" só se a linha apontada não existir | **aguarda o "pode executar"** do Jair ("o ideal é que não [haja tolerância], mas conseguimos 100%?") |
-| 1.2 | Teste C da gravação (retomar depois de F5) | para quando der; nenhuma reunião tem duas gravações ainda |
+| — | ~~Citação 100% fiel no Dossiê da Reunião~~ | **feito na 2.38.3**: a IA aponta a linha (`[37] trecho`) e o CRM põe as palavras exatas da transcrição; o erro de uma letra da IA não chega ao documento |
+| 1.1 | Teste C da gravação (retomar depois de F5) | para quando der ("ok", 01/10); nenhuma reunião tem duas gravações ainda |
 | — | ~~`LEIAME-progresso.md` vazio~~ | **excluído** em 01/10/2026, a pedido do Jair (o conteúdo da v2.8.1 fica no histórico do git) |
 | — | ~~"Não compareceu" pedir observação~~ | **retirado**: "o não compareceu já é a observação" |
 
@@ -50,27 +49,21 @@ atas com a Balança Avaliativa, ou o N (Check-in, NPS/CSAT e Voz do Cliente).
 | 2.38.1 | **Tela limpa e ícone**: recortes e roteiro fora da tela; ícone do CRM embutido nos documentos (`_lib/icone.js`) |
 | 2.38.2 | **O dossiê vai junto na conversão**: aba **Pré-venda** na ficha do cliente lista os Dossiês da Reunião do lead de origem (`clientes.lead_id`; nada é copiado, os gerados depois também aparecem) |
 
-**Ficaram fora do lote, por decisão do Jair em 01/10/2026:**
+**Eliminados da fila em 01/10/2026** (decisão do Jair): evento no Google Agenda com o Meet; identificar quem fala pelo Deepgram (custo por hora); voz sem terceiros no navegador. Não voltam sem pedido dele.
 
-| Item | Decisão |
-|---|---|
-| Evento no Google Agenda com link do Meet | **por ora não**. Quando voltar: OAuth com escopo de agenda |
-| Identificar quem fala ("Pessoa 1 / Pessoa 2") pelo Deepgram Nova-3 do Workers AI (~US$ 0,55/h) | **descartado: tem custo por hora** |
-| Voz sem terceiros, no próprio computador (separação de vozes no navegador) | **em pausa**. PC do Jair: i5-12450H, vídeo Intel integrado, 7,7 GB — o Whisper bom não cabe no navegador; se voltar, provar só a separação de vozes, com o texto na Cloudflare |
+**3. Os próximos lotes, na ordem combinada em 01/10/2026**
 
-**3. Desenhados e sem material externo: o próximo lote sai daqui (o JL fechou em 01/10/2026)**
-
-| Entrega | O quê | Depende de |
-|---|---|---|
-| **Dossiê lê as atas + Balança Avaliativa** | Aba própria no cliente: positivos e negativos lado a lado, cada um ancorado em ação, ata ou registro com data. Com o plano gravado (2.25.0), lê as ações do banco em vez de reler as atas | nada: `hub:meetings:read` já está na chave |
-| **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**026**; a 025 foi da 2.38.0) | o `contacts` do ERP ter id estável |
-| **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
+| # | Entrega | O quê | Depende de |
+|---|---|---|---|
+| 1 | **Dossiê lê as atas + Balança Avaliativa** | Aba própria no cliente: positivos e negativos lado a lado, cada um ancorado em ação, ata ou registro com data. Com o plano gravado (2.25.0), lê as ações do banco em vez de reler as atas | nada: `hub:meetings:read` já está na chave |
+| 2 | **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
+| 3 | **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**026**; a 025 foi da 2.38.0) | o `contacts` do ERP ter id estável |
 
 **4. Travados, esperando material**
 
 | Lote | Entrega | Falta |
 |---|---|---|
-| **G** | Contrato e boas-vindas (casca do Lote E) | template do contrato em Word; e decidir qual texto vale (km R$ 1,60 × R$ 1,75; cláusula de rescisão), que é do jurídico |
+| **G** | Contrato e boas-vindas (casca do Lote E) | **destravando em 01/10/2026**: o Jair mandou o contrato assinado da Trinta Dezessete (14/04/2026, Clicksign) como base — km **R$ 1,75**, rescisão da cláusula nona (30 dias, sem multa; paga o já executado e o proporcional do mês). Falta aprovar a estrutura do modelo (campos variáveis) |
 | **J** | Webhooks e notas | endpoint das notas da carteira + estrutura dos webhooks |
 | **K** | KPIs Empresariais | endpoint de indicadores |
 | **M** | Saúde de CX | J e K |
@@ -479,6 +472,8 @@ código antigo, onde falha.
 ---
 
 ## Dívidas técnicas registradas
+
+> **01/10/2026, Jair:** "por hora sem problemas de acessos" — os perfis de acesso seguem sem urgência.
 
 **Perfis de acesso não existem.** Aceitável enquanto só uma pessoa usa o
 CX. O Dossiê de Experiência e o mapa de stakeholders guardam juízo sobre

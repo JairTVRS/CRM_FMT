@@ -162,7 +162,37 @@ ok(/Citações: 3, das quais 1 não encontrada/.test(doc) && /Salvar como PDF/.t
 
 const prompt = montarPrompt({ instrucao: INSTRUCAO, reuniao: { lead_nome: 'Cedro', condutor: 'Jair Tavares' }, separacao: false, trechos });
 ok(/MAPA ESTRATÉGICO/.test(prompt) && /Condutor \(CX responsável\): Jair Tavares/.test(prompt) && /NÃO separa as vozes/.test(prompt)
-  && /\[01:05\] LEAD: A gente separa/.test(prompt), 'o prompt leva a instrução, os dados, o aviso das vozes e a conversa');
+  && /\[L2 01:05\] LEAD: A gente separa/.test(prompt), 'o prompt leva a instrução, os dados, o aviso das vozes e a conversa, com as linhas numeradas');
+
+// 2.38.3: a citação ancorada na linha — o texto no documento é sempre o da transcrição.
+const real = [
+  { gravacao_id: 3, origem: 'formatar', inicio_s: 20.7, texto: 'Tudo bem, vamos começar.' },
+  { gravacao_id: 3, origem: 'formatar', inicio_s: 35.7, texto: 'O PGR é o Programa de Gerenção de Riscos.' },
+  { gravacao_id: 3, origem: 'lead', inicio_s: 50, texto: 'A gente tem a documentação do colaborador,' },
+  { gravacao_id: 3, origem: 'lead', inicio_s: 58, texto: 'mas não tem registro de endereço de ninguém.' },
+  { gravacao_id: 3, origem: 'formatar', inicio_s: 70, texto: 'Entendi, e quem cuida disso hoje?' }
+];
+const anc = conferirCitacoes([
+  '<p><q>[2] O PGR é o Programa de Gernção de Riscos.</q></p>',          // o caso real de 01/10: uma letra trocada
+  '<p><q>[1] O PGR é o Programa de Gerenção de Riscos</q></p>',          // errou a linha por uma
+  '<p><q>[L3] documentação do colaborador, mas não tem registro de endereço</q></p>',  // frase cortada entre duas linhas
+  '<p><q>[5] queremos dobrar o faturamento no ano que vem</q></p>',      // a linha apontada não diz isso
+  '<p><q>[99] qualquer coisa dita na reunião aqui</q></p>',             // linha que não existe
+  '<p><q>Entendi, e quem cuida disso hoje?</q></p>'                      // sem número: a conferência antiga
+].join(''), real);
+const qs = [...anc.html.matchAll(/<q class="([^"]+)">([\s\S]*?)<\/q>(?: <span class="([^"]+)">([^<]*)<\/span>)?/g)]
+  .map((m) => ({ classe: m[1], texto: m[2], extra: m[4] }));
+ok(qs[0].classe === 'confere' && qs[0].texto === 'O PGR é o Programa de Gerenção de Riscos.' && qs[0].extra === '00:35',
+  'a letra trocada pela IA some: fica a fala real da linha, com o minuto', JSON.stringify(qs[0]));
+ok(qs[1].classe === 'confere' && /Gerenção/.test(qs[1].texto), 'a linha errada por uma é achada na vizinha');
+ok(qs[2].classe === 'confere' && /documentação do colaborador, mas não tem registro de endereço/.test(qs[2].texto) && qs[2].extra === '00:50',
+  'a frase cortada entre duas linhas da mesma voz vem inteira', JSON.stringify(qs[2]));
+ok(qs[3].classe === 'nao-confere' && qs[4].classe === 'nao-confere', 'linha que não diz aquilo, ou que não existe: "não encontrada"');
+ok(qs[5].classe === 'confere', 'citação sem número continua conferida palavra por palavra');
+ok(anc.citacoes === 6 && anc.naoEncontradas === 2, '6 citações, 2 não encontradas', `${anc.citacoes}/${anc.naoEncontradas}`);
+ok(!/Gernção/.test(anc.html), 'o texto errado da IA não chega ao documento');
+const comTag = conferirCitacoes('<q>[2] O PGR é o <b>Programa</b> &lt;script&gt;</q>', real).html;
+ok(!/<script>|<b>/.test(comTag), 'o texto posto pelo CRM vai escapado, sem tag');
 
 /* ==========================================================================
    4. A API

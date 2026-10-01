@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.38.3",
+      "data": "01/10/2026",
+      "titulo": "Citações 100% fiéis no Dossiê da Reunião",
+      "itens": [
+        "No Dossiê da Reunião, a IA agora aponta a linha da transcrição de onde tirou cada fala, e o CRM coloca entre aspas as palavras exatas daquela linha, com o minuto.",
+        "O que aparece entre aspas é sempre a fala real: um erro de uma letra da IA não chega mais ao documento. \"Não encontrada na transcrição\" só aparece se a linha apontada não disser aquilo.",
+        "Para ver nas reuniões já analisadas, use \"Gerar nova versão\"."
+      ]
+    },
+    {
       "versao": "2.38.2",
       "data": "01/10/2026",
       "titulo": "O Dossiê da Reunião vai junto com o cliente",
