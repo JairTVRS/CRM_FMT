@@ -21,19 +21,19 @@ quando o lead vira cliente (aba **Pré-venda** da ficha do cliente).
 (gravação 3, 118 trechos); Dossiê da Reunião v1 com 27 citações e nenhuma
 "não encontrada", v2 com 25 e 1 (a IA trocou uma letra de "Gerenção").
 
-**Próximo passo:** escolher o próximo lote na seção 3 — o Dossiê que lê as
+**Próximo passo:** a citação ancorada na linha (1.1), se aprovada; depois, escolher o próximo lote na seção 3 — o Dossiê que lê as
 atas com a Balança Avaliativa, ou o N (Check-in, NPS/CSAT e Voz do Cliente).
 
 ### Pendências, em ordem
 
-**1. Pequenas, dependem de uma resposta do Jair**
+**1. Pequenas** (respondidas pelo Jair em 01/10/2026)
 
-| # | O quê | Estado em 01/10 |
+| # | O quê | Estado |
 |---|---|---|
-| 1.1 | `LEIAME-progresso.md` foi esvaziado na pasta local (não pelo Claude) | fora de todos os commits; restaurar (`git checkout -- LEIAME-progresso.md`) ou registrar a exclusão — pergunta em aberto |
-| 1.2 | Tolerância de grafia nas citações do dossiê: aceitar 1 ou 2 letras de diferença numa citação longa, marcando "conferida, com diferença de grafia" | oferecida, sem resposta (hoje a regra é palavra por palavra) |
-| 1.3 | "Não compareceu" pedir observação, como o cancelamento | oferecida, sem resposta |
-| 1.4 | Teste C da gravação (retomar depois de F5) | o único fluxo da gravação ainda não visto em produção |
+| 1.1 | **Citação 100% fiel no Dossiê da Reunião, sem tolerância** — hoje a IA copia a frase e o CRM confere; ela erra uma letra às vezes ("Gernção" × "Gerenção"), e a citação sai "não encontrada". Proposta: a IA só APONTA a linha da transcrição ("[37] o PGR é…") e o CRM põe ali o texto exato daquela linha; o que fica entre aspas é sempre a fala real. "Não encontrada" só se a linha apontada não existir | **aguarda o "pode executar"** do Jair ("o ideal é que não [haja tolerância], mas conseguimos 100%?") |
+| 1.2 | Teste C da gravação (retomar depois de F5) | para quando der; nenhuma reunião tem duas gravações ainda |
+| — | ~~`LEIAME-progresso.md` vazio~~ | **excluído** em 01/10/2026, a pedido do Jair (o conteúdo da v2.8.1 fica no histórico do git) |
+| — | ~~"Não compareceu" pedir observação~~ | **retirado**: "o não compareceu já é a observação" |
 
 **2. Lote JL (jornada do lead): fechado em 01/10/2026**
 
