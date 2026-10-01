@@ -84,6 +84,11 @@ async function montarItem(db, corpo, anterior, lead, usuario) {
   if (tipo === 'reuniao' && status === 'realizada' && anterior?.status !== 'realizada') {
     return { erro: { error: 'Reunião vira realizada ao ser finalizada: use "Iniciar reunião" e depois "Finalizar".', code: 'REALIZADA_SO_FINALIZANDO' } };
   }
+  // A situação é automática (2.36.3): o que já se encerrou (realizado,
+  // cancelado, remarcado, não compareceu) não volta nem troca de situação.
+  if (anterior && status !== anterior.status && anterior.status !== 'agendada') {
+    return { erro: { error: 'Este compromisso já foi encerrado; a situação dele não muda mais.', code: 'JA_ENCERRADO' } };
+  }
   // Cancelar pede o motivo (2.36.2): só pelo botão "Cancelar".
   if (status === 'cancelada' && anterior?.status !== 'cancelada') {
     return { erro: { error: 'Para cancelar, use o botão "Cancelar" e escolha o motivo.', code: 'CANCELAR_COM_MOTIVO' } };

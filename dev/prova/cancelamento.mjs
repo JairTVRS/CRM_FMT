@@ -156,12 +156,20 @@ const pauta = await PUT(10, { pauta: 'Levar a proposta' });
 ok(pauta.status === 200 && item(10).pauta === 'Levar a proposta' && item(10).cancelamento_motivo === 'cliente'
   && item(10).cancelada_por === 'jair@formatar.com.br', 'editar a pauta mantém o motivo, quem e quando');
 
+// 2.36.3: a situação é automática — o cancelado não volta a agendado.
 const volta = await PUT(10, { status: 'agendada' });
-const r10b = item(10);
-ok(volta.status === 200 && r10b.status === 'agendada'
-  && [r10b.cancelamento_motivo, r10b.cancelamento_obs, r10b.cancelada_em, r10b.cancelada_por].every((v) => v === null),
-  'voltar para agendada apaga os quatro campos do cancelamento');
-ok(lead().data_proximo_contato === '2026-10-02', 'e o próximo contato volta a ser ela');
+ok(volta.status === 400 && volta.corpo.code === 'JA_ENCERRADO' && item(10).status === 'cancelada'
+  && item(10).cancelamento_motivo === 'cliente', 'o cancelado não volta a agendado, e o motivo fica');
+ok((await PUT(10, { status: 'nao_compareceu' })).corpo.code === 'JA_ENCERRADO', 'nem vira "não compareceu"');
+ok(lead().data_proximo_contato === '2026-10-12', 'e o próximo contato continua no seguinte agendado (o contato do dia 5 também foi cancelado)', lead().data_proximo_contato);
+
+// Os campos do cancelamento só valem com a situação "cancelada": quem
+// chega a outra situação não os herda.
+reuniao(60, '2026-10-01T08:00');
+const falta = await PUT(60, { status: 'nao_compareceu' });
+ok(falta.status === 200 && item(60).status === 'nao_compareceu' && item(60).cancelamento_motivo === null,
+  '"não compareceu" sai do agendado, sem motivo de cancelamento');
+ok((await PUT(60, { status: 'agendada' })).corpo.code === 'JA_ENCERRADO', 'e também não volta');
 
 const remarca = await PUT(30, { remarcar_para: '2026-10-20T10:00' });
 const nova = item(remarca.corpo.item.id);

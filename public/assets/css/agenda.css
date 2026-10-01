@@ -324,6 +324,21 @@
 .agenda-remarcar-campos { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .agenda-remarcar-campos .form-control { flex: 1; min-width: 8rem; }
 
+/* A situação automática (2.36.3): uma etiqueta na cor do cartão, da
+   altura de um campo, para alinhar com os vizinhos. */
+.agenda-situacao {
+  display: flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--cartao-borda);
+  border-radius: 6px;
+  background: var(--cartao-fundo);
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
 /* Cancelar com motivo (2.36.2), nas cores do cancelado. */
 .agenda-cancelamento {
   border: 1px solid var(--cartao-borda);

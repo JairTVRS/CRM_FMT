@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.36.3",
+      "data": "01/10/2026",
+      "titulo": "A situação acompanha o cartão",
+      "itens": [
+        "Na janela da reunião ou do contato, a Situação deixou de ser uma lista: é automática, com o mesmo nome e a mesma cor do cartão na agenda (Agendada, Atrasada, Em andamento, Realizada, Cancelada…).",
+        "Ela muda só pelos botões: Iniciar e Finalizar reunião, Cancelar (com motivo), Remarcar, \"Não compareceu\" (na reunião, depois da hora marcada) e \"Realizado\" (no contato).",
+        "O que já se encerrou (realizado, cancelado, remarcado, não compareceu) não volta a agendado: para retomar, agende de novo."
+      ]
+    },
+    {
       "versao": "2.36.2",
       "data": "01/10/2026",
       "titulo": "Cancelar com motivo, e o cancelado fica roxo",

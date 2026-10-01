@@ -87,6 +87,11 @@ const Agenda = (() => {
   const ROTULO_SITUACAO = {
     andamento: 'Em andamento', realizada: 'Realizada', atrasada: 'Atrasada', futura: 'Agendada'
   };
+  /** O nome da situação, o mesmo no cartão, no título e na etiqueta da janela. */
+  const rotuloDaSituacao = (item) => {
+    const sit = situacao(item);
+    return ROTULO_SITUACAO[sit] || ROTULO_STATUS[item.status] || item.status;
+  };
   /** "Cancelado pelo cliente" — ou só "Cancelada", no que foi cancelado antes do motivo existir. */
   const rotuloCancelada = (item) => ROTULO_MOTIVO[item.cancelamento_motivo] || 'Cancelada';
   const ROTULO_LOCAL_CURTO = { online: 'Online', presencial: 'Pres.', externo: 'Ext.' };
@@ -399,7 +404,7 @@ const Agenda = (() => {
     };
 
     el('agenda-titulo').textContent = item
-      ? `${item.tipo === 'reuniao' ? 'Reunião' : 'Contato'} — ${item.iniciada_em && !item.finalizada_em ? 'Em andamento' : (ROTULO_STATUS[item.status] || item.status)}`
+      ? `${item.tipo === 'reuniao' ? 'Reunião' : 'Contato'} — ${rotuloDaSituacao(item)}`
       : 'Agendar';
     el('agenda-lead-busca').value = '';
     el('agenda-data').value = base.inicio.slice(0, 10);
@@ -408,7 +413,6 @@ const Agenda = (() => {
     el('agenda-local-tipo').value = base.local_tipo || 'online';
     el('agenda-local-texto').value = base.local_texto || '';
     el('agenda-canal').value = base.canal || 'ligacao';
-    el('agenda-status').value = base.status || 'agendada';
     el('agenda-participantes').value = base.participantes || '';
     el('agenda-pauta').value = base.pauta || '';
     montarResponsaveis(base.responsavel);
@@ -416,21 +420,27 @@ const Agenda = (() => {
     mostrarRoteiro();
     rotuloDoLocal();
 
-    // Na criação o status é sempre "agendada"; muda depois, ao acontecer.
+    // A situação é automática (2.36.3): a mesma do cartão, com a mesma cor.
+    // Na criação não aparece — nasce sempre agendada.
     el('agenda-status-bloco').classList.toggle('hidden', !item);
-    // Reunião vira realizada por "Finalizar" (2.36.0), que guarda as horas
-    // de início e fim; em andamento, só finalizando ela sai do lugar.
+    if (item) {
+      const sit = situacao(item);
+      const chip = el('agenda-situacao');
+      chip.className = `agenda-situacao cor-${sit}`;
+      chip.textContent = rotuloDaSituacao(item);
+    }
+    // Os botões são o único jeito de mudar a situação. Em andamento, só
+    // "Finalizar reunião" (2.36.0) tira a reunião do lugar.
     const andando = !!item?.iniciada_em && !item?.finalizada_em;
-    const opRealizada = el('agenda-status').querySelector('option[value="realizada"]');
-    if (opRealizada) opRealizada.disabled = base.tipo === 'reuniao' && base.status !== 'realizada';
-    // Cancelar pede o motivo (2.36.2): só pelo botão "Cancelar".
-    const opCancelada = el('agenda-status').querySelector('option[value="cancelada"]');
-    if (opCancelada) opCancelada.disabled = base.status !== 'cancelada';
-    el('agenda-status').disabled = andando;
     el('btn-agenda-excluir').classList.toggle('hidden', !item || andando);
     const agendada = !!item && item.status === 'agendada' && !andando;
     el('btn-agenda-remarcar').classList.toggle('hidden', !agendada);
     el('btn-agenda-cancelar-item').classList.toggle('hidden', !agendada);
+    // Contato não se inicia: vira realizado por este botão. "Não
+    // compareceu" só depois da hora marcada.
+    el('btn-agenda-realizado').classList.toggle('hidden', !agendada || item.tipo !== 'contato');
+    el('btn-agenda-nao-compareceu').classList.toggle('hidden',
+      !agendada || item.tipo !== 'reuniao' || situacao(item) !== 'atrasada');
     el('agenda-remarcar').classList.add('hidden');
     el('agenda-cancelamento').classList.add('hidden');
     el('agenda-cancelamento-motivo').value = '';
@@ -465,7 +475,8 @@ const Agenda = (() => {
       local_texto: el('agenda-local-texto').value.trim() || null,
       canal: el('agenda-canal').value,
       responsavel: el('agenda-responsavel').value || null,
-      status: emEdicao ? el('agenda-status').value : 'agendada',
+      // Editando, a situação fica como está (o servidor mantém a anterior).
+      status: emEdicao ? undefined : 'agendada',
       participantes: el('agenda-participantes').value.trim() || null,
       pauta: el('agenda-pauta').value.trim() || null
     };
@@ -541,6 +552,12 @@ const Agenda = (() => {
     await enviar(`/api/agenda?id=${emEdicao.id}`, 'PUT', {
       acao: 'cancelar', motivo, observacao: el('agenda-cancelamento-obs').value.trim() || null
     });
+  }
+
+  /** "Não compareceu" (reunião) e "Realizado" (contato), com o que foi editado junto. */
+  async function encerrarComo(status, pergunta) {
+    if (!emEdicao || !confirm(pergunta)) return;
+    await enviar(`/api/agenda?id=${emEdicao.id}`, 'PUT', { ...lerJanela(), status });
   }
 
   async function excluir() {
@@ -733,6 +750,10 @@ const Agenda = (() => {
     });
     el('btn-agenda-cancelamento-voltar')?.addEventListener('click', () => el('agenda-cancelamento').classList.add('hidden'));
     el('btn-agenda-cancelamento-confirmar')?.addEventListener('click', cancelar);
+    el('btn-agenda-realizado')?.addEventListener('click', () =>
+      encerrarComo('realizada', 'Marcar este contato como realizado?'));
+    el('btn-agenda-nao-compareceu')?.addEventListener('click', () =>
+      encerrarComo('nao_compareceu', 'Marcar que o lead não compareceu a esta reunião?'));
     el('btn-agenda-dossie')?.addEventListener('click', () => {
       if (typeof Dossie !== 'undefined' && leadDaJanela) Dossie.abrir(leadDaJanela);
     });

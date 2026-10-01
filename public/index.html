@@ -1194,14 +1194,11 @@
             </select>
           </div>
           <div class="form-group" id="agenda-status-bloco">
-            <label for="agenda-status">Situação</label>
-            <select id="agenda-status" class="form-control">
-              <option value="agendada">Agendada</option>
-              <option value="realizada">Realizada</option>
-              <option value="nao_compareceu">Não compareceu</option>
-              <option value="cancelada">Cancelada</option>
-              <option value="remarcada" disabled>Remarcada</option>
-            </select>
+            <!-- 2.36.3: a situação é automática, a mesma do cartão na
+                 agenda; muda só pelos botões (iniciar, finalizar,
+                 cancelar, remarcar, não compareceu, realizado). -->
+            <label>Situação</label>
+            <span id="agenda-situacao" class="agenda-situacao"></span>
           </div>
 
           <!-- Só reunião -->
@@ -1330,6 +1327,8 @@
         <div>
           <button type="button" id="btn-agenda-excluir" class="btn btn-sm btn-secondary hidden">Excluir</button>
           <button type="button" id="btn-agenda-remarcar" class="btn btn-sm btn-secondary hidden">Remarcar</button>
+          <button type="button" id="btn-agenda-realizado" class="btn btn-sm btn-secondary hidden">&#10003; Realizado</button>
+          <button type="button" id="btn-agenda-nao-compareceu" class="btn btn-sm btn-secondary hidden">Não compareceu</button>
           <button type="button" id="btn-agenda-cancelar-item" class="btn btn-sm btn-cancelar hidden">Cancelar &#8855;</button>
         </div>
         <div>
