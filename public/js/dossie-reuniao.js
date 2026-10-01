@@ -25,7 +25,10 @@ const DossieReuniao = (() => {
   let versoes = [];
   let htmlAtual = null;
   let gerando = null;          // { id, relogio, inicio } enquanto a IA escreve
-  /** O que o visualizador mostra: { reuniaoId, nome, versoes } — da agenda ou da pré-venda. */
+  /**
+   * O que o visualizador mostra: { titulo, versoes, url(versao) }. Serve ao
+   * Dossiê da Reunião (agenda e pré-venda) e, desde a 2.39.0, à Balança.
+   */
   let noVisor = null;
 
   /* ----------------------------------------------------------
@@ -116,20 +119,26 @@ const DossieReuniao = (() => {
   /** Da janela da reunião: a reunião aberta e as versões dela. */
   function abrir(versao = null) {
     if (!reuniao) return;
-    abrirDocumento({ reuniaoId: reuniao.id, nome: reuniao.lead_nome, versoes }, versao);
+    abrirDocumento(docDaReuniao(reuniao.id, reuniao.lead_nome, versoes), versao);
   }
+
+  const docDaReuniao = (reuniaoId, nome, lista) => ({
+    titulo: `Dossiê da Reunião — ${nome || ''}`,
+    versoes: lista,
+    url: (v) => `/api/dossie-reuniao?reuniao_id=${reuniaoId}&html=1&versao=${v}`
+  });
 
   async function abrirDocumento(doc, versao = null) {
     noVisor = doc;
     const v = versao || doc.versoes[0]?.versao;
-    el('dossie-reuniao-titulo').textContent = `Dossiê da Reunião — ${doc.nome || ''}`;
+    el('dossie-reuniao-titulo').textContent = doc.titulo;
     el('dossie-reuniao-versao').innerHTML = doc.versoes.map((x, i) =>
       `<option value="${x.versao}">Versão ${x.versao}${i === 0 ? ' (mais nova)' : ''} · ${esc(quando(x.gerado_em))}</option>`).join('');
     el('dossie-reuniao-versao').value = String(v);
     el('dossie-reuniao-frame').srcdoc = '<p style="font-family:sans-serif;padding:2rem">Carregando…</p>';
     el('modal-dossie-reuniao').classList.remove('hidden');
     try {
-      const r = await fetch(`/api/dossie-reuniao?reuniao_id=${doc.reuniaoId}&html=1&versao=${v}`);
+      const r = await fetch(doc.url(v));
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
       htmlAtual = await r.text();
       // srcdoc, não a URL: o endpoint exige login, e a navegação do iframe não leva.
@@ -207,7 +216,7 @@ const DossieReuniao = (() => {
     el('cli-prevenda-lista')?.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-prevenda]');
       const x = b && preVenda[Number(b.dataset.prevenda)];
-      if (x) abrirDocumento({ reuniaoId: x.reuniao_id, nome: x.nome, versoes: x.versoes });
+      if (x) abrirDocumento(docDaReuniao(x.reuniao_id, x.nome, x.versoes));
     });
     // Carrega sob demanda, como as outras abas: só quando abrem a Pré-venda.
     document.addEventListener('crm:cliente-aba', (ev) => {
@@ -232,5 +241,5 @@ const DossieReuniao = (() => {
 
   document.addEventListener('DOMContentLoaded', iniciar);
 
-  return { mostrarNaReuniao, abrir, mostrarPreVenda };
+  return { mostrarNaReuniao, abrir, mostrarPreVenda, abrirDocumento };
 })();

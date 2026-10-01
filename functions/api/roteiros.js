@@ -11,7 +11,8 @@
  * 'dossie_reuniao' — a instrução que a IA segue para montar o Dossiê da
  * Reunião. Os dois são um .md por tipo, com versões, e moram na mesma
  * tabela; a numeração é por tipo E finalidade. A lista sem `tipo` traz
- * o em vigor de cada tipo e finalidade.
+ * o em vigor de cada tipo e finalidade. 'balanca' (2.39.0) usa o tipo
+ * `__geral__`: vale para todos os clientes.
  *
  * O roteiro é um arquivo .md feito pela equipe, com os objetivos e as
  * perguntas da reunião. Nas próximas entregas a IA o lê durante a
@@ -26,8 +27,13 @@ import { exigirAdmin } from './_lib/admin.js';
 /** ~200 mil caracteres: um roteiro de reunião cabe com muita folga. */
 export const LIMITE_ROTEIRO = 200_000;
 
-export const FINALIDADES = ['roteiro', 'dossie_reuniao'];
-const NOME_FINALIDADE = { roteiro: 'roteiro', dossie_reuniao: 'instrução do dossiê da reunião' };
+export const FINALIDADES = ['roteiro', 'dossie_reuniao', 'balanca'];
+const NOME_FINALIDADE = { roteiro: 'roteiro', dossie_reuniao: 'instrução do dossiê da reunião', balanca: 'instrução da Balança Avaliativa' };
+/**
+ * A instrução da Balança Avaliativa (2.39.0) vale para todos os clientes,
+ * não para um tipo de reunião: mora com o "tipo" `__geral__`.
+ */
+export const TIPO_GERAL = '__geral__';
 /** A finalidade pedida; `null` se veio uma que não existe. */
 const finalidadeDe = (valor) => {
   const f = String(valor || 'roteiro').trim();
@@ -106,10 +112,11 @@ export async function onRequestPost(context) {
   try { corpo = await context.request.json(); }
   catch (e) { return json({ error: 'Corpo inválido.' }, 400, cabecalhos); }
 
-  const tipo = String(corpo.tipo_reuniao_erp_id || '').trim().slice(0, 64);
-  if (!tipo) return json({ error: 'Escolha o tipo de reunião.', code: 'TIPO_OBRIGATORIO' }, 400, cabecalhos);
   const finalidade = finalidadeDe(corpo.finalidade);
   if (!finalidade) return json({ error: 'Finalidade inválida.', code: 'FINALIDADE_INVALIDA' }, 400, cabecalhos);
+  // A da Balança vale para todos: o tipo é sempre o geral.
+  const tipo = finalidade === 'balanca' ? TIPO_GERAL : String(corpo.tipo_reuniao_erp_id || '').trim().slice(0, 64);
+  if (!tipo) return json({ error: 'Escolha o tipo de reunião.', code: 'TIPO_OBRIGATORIO' }, 400, cabecalhos);
 
   const nomeArquivo = String(corpo.nome_arquivo || '').trim().slice(0, 200) || null;
   if (nomeArquivo && !/\.(md|markdown|txt)$/i.test(nomeArquivo)) {

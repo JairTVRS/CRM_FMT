@@ -2,6 +2,18 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.39.0",
+      "data": "01/10/2026",
+      "titulo": "Balança Avaliativa do cliente",
+      "itens": [
+        "Na ficha do cliente (Jornada do cliente), a nova aba \"Balança\": a IA lê as atas das reuniões dos últimos 6 meses no ERP e o plano de ação, e pesa a relação — o que está funcionando e o que preocupa, lado a lado.",
+        "Cada ponto traz a evidência com as palavras exatas da ata ou da ação de onde veio, e a origem ao lado (\"ata de 15/09/2026\", \"ação 7 do plano\"). Só a parte das atas compartilhada com o cliente é lida: as notas privadas ficam de fora.",
+        "Os números do período — reuniões, cancelamentos pelo cliente, ações concluídas, atrasadas e repactuadas — são calculados pelo CRM, não pela IA, e vão numa tabela própria.",
+        "Quando há, o dossiê da pré-venda entra para comparar o que o cliente esperava com o que está sendo entregue.",
+        "A IA segue a instrução padrão V1.0 (em Manuais). Para mudar a análise, envie outra em Configurações → Roteiros, no bloco da Balança. O documento tem versões e se abre, baixa e salva em PDF."
+      ]
+    },
+    {
       "versao": "2.38.3",
       "data": "01/10/2026",
       "titulo": "Citações 100% fiéis no Dossiê da Reunião",

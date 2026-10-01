@@ -109,6 +109,35 @@ export function ehNotaPrivada(linha) {
   return letras === letras.toUpperCase();
 }
 
+/**
+ * A ata sem as notas privadas: o corpo (as linhas, como vieram) e as notas.
+ *
+ * As notas vêm no FIM do documento, então varremos de trás para frente e
+ * paramos na primeira linha que não é nota. Procurar em qualquer lugar
+ * transformaria um título em caixa alta no meio do texto em "nota
+ * privada" e o esconderia do cliente sem ninguém pedir.
+ *
+ * Exportada na 2.39.0: a Balança Avaliativa manda à IA só o corpo. A nota
+ * privada nunca sai do servidor — vale para ela também.
+ */
+export function separarNotasPrivadas(texto) {
+  // \r\n do Word, \n do resto. Normalizar aqui evita um `\r` grudado no
+  // fim de cada campo, que quebraria toda comparação depois.
+  const linhas = String(texto || '').replace(/\r\n?/g, '\n').split('\n');
+  const notasPrivadas = [];
+  let ultima = linhas.length - 1;
+
+  while (ultima >= 0) {
+    const l = linhas[ultima].trim();
+    if (!l) { ultima--; continue; }
+    if (!ehNotaPrivada(l)) break;
+    notasPrivadas.unshift(l);
+    ultima--;
+  }
+
+  return { corpo: linhas.slice(0, ultima + 1), notasPrivadas };
+}
+
 /* ==========================================================================
    CABEÇALHO — as quatro primeiras linhas
    ========================================================================== */
@@ -265,27 +294,7 @@ export function lerAta(texto, { hoje = new Date(), cabecalhoDoErp = {} } = {}) {
     return vazio(['A ata está vazia.']);
   }
 
-  // \r\n do Word, \n do resto. Normalizar aqui evita um `\r` grudado no
-  // fim de cada campo, que quebraria toda comparação depois.
-  const linhas = bruto.replace(/\r\n?/g, '\n').split('\n');
-
-  /* ---------------- Notas privadas ----------------
-     Vêm no FIM do documento, então varremos de trás para frente e
-     paramos na primeira linha que não é nota. Procurar em qualquer lugar
-     transformaria um título em caixa alta no meio do texto em "nota
-     privada" e o esconderia do cliente sem ninguém pedir. */
-  const notasPrivadas = [];
-  let ultima = linhas.length - 1;
-
-  while (ultima >= 0) {
-    const l = linhas[ultima].trim();
-    if (!l) { ultima--; continue; }
-    if (!ehNotaPrivada(l)) break;
-    notasPrivadas.unshift(l);
-    ultima--;
-  }
-
-  const corpo = linhas.slice(0, ultima + 1);
+  const { corpo, notasPrivadas } = separarNotasPrivadas(bruto);
 
   /* ---------------- Cabeçalho ---------------- */
   const naoVazias = corpo.map((l, i) => ({ l: l.trim(), i })).filter((x) => x.l);

@@ -21,7 +21,7 @@ quando o lead vira cliente (aba **Pré-venda** da ficha do cliente).
 (gravação 3, 118 trechos); Dossiê da Reunião v1 com 27 citações e nenhuma
 "não encontrada", v2 com 25 e 1 (a IA trocou uma letra de "Gerenção").
 
-**Próximo passo:** o lote **Dossiê lê as atas + Balança Avaliativa** (seção 3, a ordem combinada em 01/10: atas + Balança → N → Fase 3); em paralelo, o **modelo de contrato** (Lote G) estruturado a partir do contrato assinado da Trinta Dezessete.
+**Próximo passo:** o lote **N — Check-in, NPS/CSAT e Voz do Cliente** (seção 3; a ordem combinada em 01/10: atas + Balança ✔ → N → Fase 3); o **modelo de contrato** (Lote G) aguarda as 4 respostas do Jair (padrão jurídico, formas de preço, contratada, origem do escopo).
 
 ### Pendências, em ordem
 
@@ -55,9 +55,9 @@ quando o lead vira cliente (aba **Pré-venda** da ficha do cliente).
 
 | # | Entrega | O quê | Depende de |
 |---|---|---|---|
-| 1 | **Dossiê lê as atas + Balança Avaliativa** | Aba própria no cliente: positivos e negativos lado a lado, cada um ancorado em ação, ata ou registro com data. Com o plano gravado (2.25.0), lê as ações do banco em vez de reler as atas | nada: `hub:meetings:read` já está na chave |
+| ~~1~~ | ~~**Dossiê lê as atas + Balança Avaliativa**~~ | **no ar na 2.39.0** (01/10/2026, migração 026, `balancas`): aba Balança no cliente; a IA lê as atas dos últimos 6 meses do ERP (só a parte pública — `separarNotasPrivadas` do `_lib/ata.js`) e o plano (`acoes_cx`), com a pré-venda como referência; números do período em código; evidências ancoradas na linha (`_lib/citacoes.js`, módulo comum com o Dossiê da Reunião); instrução padrão V1.0 em `Manuais/Instrucao-Balanca-Avaliativa-V1.0.md` (cópia no código, conferida pela prova) ou a enviada nas Configurações (`roteiros.finalidade = balanca`, tipo `__geral__`). Só a Balança: o Dossiê de Experiência ficou como estava (decisão de 01/10). **Falta ver** com o ERP e a DeepSeek reais | — |
 | 2 | **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
-| 3 | **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**026**; a 025 foi da 2.38.0) | o `contacts` do ERP ter id estável |
+| 3 | **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**027**; a 026 foi da 2.39.0) | o `contacts` do ERP ter id estável |
 
 **4. Travados, esperando material**
 

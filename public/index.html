@@ -536,8 +536,9 @@
             <p class="card-desc">
               Dois arquivos .md por tipo de reunião: o <strong>roteiro</strong>, com os
               objetivos e as perguntas, e a <strong>instrução do dossiê da reunião</strong>, que a IA
-              segue para montar o dossiê depois da reunião. Enviar de novo cria a
-              versão seguinte — as anteriores continuam consultáveis.
+              segue para montar o dossiê depois da reunião. No topo, a instrução da
+              <strong>Balança Avaliativa</strong>, que vale para todos os clientes. Enviar de
+              novo cria a versão seguinte — as anteriores continuam consultáveis.
             </p>
             <div id="roteiros-lista" class="roteiros-lista"></div>
             <input type="file" id="roteiro-arquivo" accept=".md,.markdown,.txt,text/markdown,text/plain" class="hidden">
@@ -1430,6 +1431,7 @@
         <button class="cli-tab-btn" data-cli-tab="cli-tab-pessoas">Stakeholders</button>
         <button class="cli-tab-btn" data-cli-tab="cli-tab-dossie">Dossiê de Experiência</button>
         <button class="cli-tab-btn" data-cli-tab="cli-tab-prevenda">Pré-venda</button>
+        <button class="cli-tab-btn" data-cli-tab="cli-tab-balanca">Balança</button>
       </nav>
 
       <div class="modal-body">
@@ -1656,6 +1658,17 @@
           </p>
           <div id="cli-prevenda-lista" class="cli-prevenda-lista"></div>
         </div><!-- /cli-tab-prevenda -->
+
+        <!-- Balança Avaliativa (2.39.0): positivos e negativos da relação,
+             lado a lado, cada um preso à ata ou à ação de onde veio. -->
+        <div id="cli-tab-balanca" class="cli-tab-content hidden">
+          <p class="campo-informativo">
+            A IA lê as atas dos últimos 6 meses (só a parte compartilhada com o cliente) e o plano de
+            ação, e pesa a relação: o que está funcionando e o que preocupa, cada ponto com a evidência.
+            Os números do período são calculados pelo CRM. Leva de 1 a 2 minutos.
+          </p>
+          <div id="cli-balanca" class="cli-balanca"></div>
+        </div><!-- /cli-tab-balanca -->
       </div>
 
       <footer class="modal-footer">
@@ -1728,6 +1741,7 @@
   <script src="js/audio-wav.js"></script>
   <script src="js/gravacao.js"></script>
   <script src="js/dossie-reuniao.js"></script>
+  <script src="js/balanca.js"></script>
   <script src="js/roteiros.js"></script>
   <script src="js/novidades.js"></script>
   <script src="js/leads.js"></script>

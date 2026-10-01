@@ -22,7 +22,9 @@ const Roteiros = (() => {
 
   let emVigor = new Map();     // 'tipo|finalidade' → resumo da versão em vigor
   const chave = (tipo, finalidade = 'roteiro') => `${tipo}|${finalidade}`;
-  const NOME = { roteiro: 'Roteiro', dossie_reuniao: 'Instrução do dossiê da reunião' };
+  const NOME = { roteiro: 'Roteiro', dossie_reuniao: 'Instrução do dossiê da reunião', balanca: 'Instrução da Balança Avaliativa' };
+  /** A instrução da Balança (2.39.0) vale para todos os clientes: mora no tipo geral. */
+  const TIPO_GERAL = '__geral__';
   let tiposVendas = [];
 
   async function carregar() {
@@ -54,6 +56,7 @@ const Roteiros = (() => {
     const tipos = [...tiposVendas];
     for (const r of emVigor.values()) {
       const id = r.tipo_reuniao_erp_id;
+      if (id === TIPO_GERAL) continue;
       if (!tipos.some((t) => t.erp_id === id)) tipos.push({ erp_id: id, nome: `${r.tipo_reuniao_nome || id} (fora do Time Vendas)` });
     }
 
@@ -69,7 +72,7 @@ const Roteiros = (() => {
         <div class="roteiro-linha" data-tipo="${esc(t.erp_id)}" data-nome="${esc(t.nome)}" data-finalidade="${finalidade}">
           <div class="roteiro-linha-info">
             <span class="roteiro-finalidade">${esc(NOME[finalidade])}</span>
-            <span>${r ? `versão ${r.versao} · ${dataBr(r.enviado_em)} · ${esc(r.enviado_por)}${r.nome_arquivo ? ` · ${esc(r.nome_arquivo)}` : ''}` : 'não enviado'}</span>
+            <span>${r ? `versão ${r.versao} · ${dataBr(r.enviado_em)} · ${esc(r.enviado_por)}${r.nome_arquivo ? ` · ${esc(r.nome_arquivo)}` : ''}` : (finalidade === 'balanca' ? 'não enviada — vale a instrução padrão V1.0 do CRM (Manuais/Instrucao-Balanca-Avaliativa-V1.0.md)' : 'não enviado')}</span>
           </div>
           <div class="roteiro-linha-acoes">
             ${r ? '<button type="button" class="btn btn-sm btn-secondary" data-acao="ver">Ver</button>' : ''}
@@ -77,7 +80,13 @@ const Roteiros = (() => {
           </div>
         </div>`;
     };
-    lista.innerHTML = tipos.map((t) => `
+    // A Balança Avaliativa (2.39.0): uma instrução só, para todos os clientes.
+    const balanca = `
+      <div class="roteiro-tipo">
+        <strong>Balança Avaliativa — todos os clientes</strong>
+        ${arquivo({ erp_id: TIPO_GERAL, nome: 'Balança Avaliativa' }, 'balanca')}
+      </div>`;
+    lista.innerHTML = balanca + tipos.map((t) => `
       <div class="roteiro-tipo">
         <strong>${esc(t.nome)}</strong>
         ${arquivo(t, 'roteiro')}

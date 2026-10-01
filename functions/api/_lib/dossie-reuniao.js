@@ -29,7 +29,8 @@
  */
 
 import { documento, folha, esc, FORMATAR, nomeDeDocumento } from './documento-base.js';
-import { localizar, normalizar, LIMITE_TRANSCRICAO } from './recortes.js';
+import { localizar, LIMITE_TRANSCRICAO } from './recortes.js';
+import { conferirCitacoesAncoradas } from './citacoes.js';
 
 /** O que a IA pode escrever no documento. Qualquer outra tag some (o texto fica). */
 const TAGS = new Set(['h2', 'h3', 'h4', 'p', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li', 'br',
@@ -99,12 +100,8 @@ export function limparConteudo(bruto) {
   return t.trim();
 }
 
-const semTags = (t) => String(t || '').replace(/<[^>]+>/g, ' ');
-const desfazerEntidades = (t) => t
-  .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const minSeg = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-const escHtml = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const NOME_VOZ = { lead: 'LEAD', formatar: 'FORMATAR', sala: 'SALA' };
 
 /**
@@ -127,107 +124,29 @@ export function transcricaoNumerada(trechos) {
   return texto;
 }
 
-/** Maior subsequência comum entre duas listas de palavras normalizadas. */
-function lcs(a, b) {
-  const m = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      m[i][j] = a[i - 1] === b[j - 1] ? m[i - 1][j - 1] + 1 : Math.max(m[i - 1][j], m[i][j - 1]);
-    }
-  }
-  return m[a.length][b.length];
-}
-
-/** Quanto do trecho precisa bater com a linha apontada para valer. */
-const ACERTO_MINIMO = 0.6;
-
 /**
- * O trecho citado, dentro das palavras de uma linha (ou de duas, juntas).
- * Devolve as palavras ORIGINAIS da janela que mais se parece com o trecho,
- * e quanto ela se parece (0–1).
- */
-function melhorJanela(palavrasOriginais, alvo) {
-  const norm = palavrasOriginais.map((p) => normalizar(p));
-  let melhor = { nota: 0, inicio: 0, fim: 0 };
-  for (let tam = Math.max(1, alvo.length - 2); tam <= alvo.length + 2; tam++) {
-    for (let i = 0; i + tam <= norm.length; i++) {
-      const janela = norm.slice(i, i + tam).filter(Boolean);
-      const nota = lcs(alvo, janela) / Math.max(alvo.length, janela.length || 1);
-      if (nota > melhor.nota) melhor = { nota, inicio: i, fim: i + tam };
-    }
-  }
-  // A linha inteira é menor que o trecho: compara com ela toda.
-  if (norm.length < alvo.length - 2) {
-    const nota = lcs(alvo, norm.filter(Boolean)) / Math.max(alvo.length, norm.length || 1);
-    if (nota > melhor.nota) melhor = { nota, inicio: 0, fim: norm.length };
-  }
-  return { nota: melhor.nota, texto: palavrasOriginais.slice(melhor.inicio, melhor.fim).join(' ') };
-}
-
-/**
- * A citação ancorada: o trecho dentro da linha N — ou de N−1, N+1, ou de
- * N com a seguinte da mesma voz (frase cortada entre dois trechos).
- * @returns { texto, inicio_s } com as palavras exatas, ou null
- */
-export function ancorar(numero, trecho, linhas) {
-  const alvo = normalizar(trecho).split(' ').filter(Boolean);
-  if (alvo.length < 2) return null;
-  const linha = (n) => linhas[n - 1];
-  const candidatos = [];
-  for (const n of [numero, numero - 1, numero + 1]) {
-    const l = linha(n);
-    if (!l) continue;
-    candidatos.push({ l, palavras: l.texto.split(/\s+/) });
-    const seguinte = linha(n + 1);
-    if (seguinte && seguinte.origem === l.origem) {
-      candidatos.push({ l, palavras: `${l.texto} ${seguinte.texto}`.split(/\s+/) });
-    }
-  }
-  let melhor = null;
-  for (const c of candidatos) {
-    const r = melhorJanela(c.palavras, alvo);
-    // Na dúvida, fica a linha apontada (a primeira da lista).
-    if (!melhor || r.nota > melhor.nota + 0.0001) melhor = { ...r, inicio_s: c.l.inicio_s };
-  }
-  return melhor && melhor.nota >= ACERTO_MINIMO ? { texto: melhor.texto, inicio_s: melhor.inicio_s } : null;
-}
-
-/**
- * Cada <q> do conteúdo. Com o número da linha ("[37] trecho"), ancorada:
- * vira as palavras exatas da transcrição, com o minuto. Sem número, a
- * conferência antiga: palavra por palavra em qualquer linha. O que não
- * achar fica, marcado "não encontrada na transcrição".
+ * Cada <q> do conteúdo, ancorada na linha da transcrição (_lib/citacoes.js):
+ * vira as palavras exatas, com o minuto. Sem número, a conferência antiga,
+ * palavra por palavra em qualquer linha.
  */
 export function conferirCitacoes(conteudo, trechos) {
-  const linhas = linhasDaTranscricao(trechos);
-  let citacoes = 0;
-  let naoEncontradas = 0;
-  const html = String(conteudo || '').replace(/<q>([\s\S]*?)<\/q>/g, (inteiro, dentro) => {
-    const bruto = desfazerEntidades(semTags(dentro)).replace(/\s+/g, ' ').trim();
-    if (!bruto) return '';
-    citacoes++;
-    const comNumero = bruto.match(/^\[\s*L?\s*(\d+)\s*\]\s*(.*)$/i);
-    if (comNumero) {
-      const achado = ancorar(Number(comNumero[1]), comNumero[2], linhas);
-      if (achado) {
-        return `<q class="confere">${escHtml(achado.texto)}</q> <span class="cit-minuto">${minSeg(achado.inicio_s || 0)}</span>`;
-      }
-      naoEncontradas++;
-      return `<q class="nao-confere">${escHtml(comNumero[2])}</q> <span class="cit-selo">não encontrada na transcrição</span>`;
+  const linhas = linhasDaTranscricao(trechos).map((l) => ({ ...l, grupo: l.origem }));
+  return conferirCitacoesAncoradas(conteudo, linhas, {
+    fonte: 'transcrição',
+    rotulo: (l) => minSeg(l.inicio_s || 0),
+    semNumero: (texto) => {
+      const onde = localizar(texto, trechos, null, { minimoPalavras: 3 });
+      return onde ? { rotulo: minSeg(onde.inicio_s || 0) } : null;
     }
-    const onde = localizar(bruto, trechos, null, { minimoPalavras: 3 });
-    if (onde) return `<q class="confere">${dentro}</q> <span class="cit-minuto">${minSeg(onde.inicio_s || 0)}</span>`;
-    naoEncontradas++;
-    return `<q class="nao-confere">${dentro}</q> <span class="cit-selo">não encontrada na transcrição</span>`;
   });
-  return { html, citacoes, naoEncontradas };
 }
 
 /* ==========================================================================
    O DOCUMENTO
    ========================================================================== */
 
-const ESTILO = `<style>
+/** Os estilos do documento — a Balança Avaliativa (2.39.0) usa os mesmos. */
+export const ESTILO = `<style>
 .capa-dossie{display:flex;flex-direction:column;gap:4mm}
 .capa-dossie .kicker{font-size:9pt}
 .capa-dossie h1{font-size:28pt;color:#fff;margin:0}
@@ -240,6 +159,7 @@ const ESTILO = `<style>
 .dossie-corpo h3{color:var(--tinta-suave)}
 .dossie-corpo h4{font-size:9.5pt;margin:3mm 0 1mm;color:var(--cinza);text-transform:uppercase;letter-spacing:.06em}
 .dossie-corpo td,.dossie-corpo th{font-size:8.5pt}
+.dossie-corpo td p,.dossie-corpo td li{text-align:left}
 .dossie-corpo table{page-break-inside:auto}
 .dossie-corpo tr{page-break-inside:avoid}
 .dossie-corpo blockquote{border-left:2px solid #d9d4c9;padding-left:3mm;margin:2mm 0;color:var(--tinta-suave)}
