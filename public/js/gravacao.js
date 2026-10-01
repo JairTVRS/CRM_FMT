@@ -586,6 +586,7 @@ const Gravacao = (() => {
       const d = await acaoNaReuniao(item, 'finalizar');
       if (!d.ok) throw new Error(d.error || 'erro');
       final = `Reunião finalizada: ${periodoReal(d.item)}. A transcrição ficou na reunião.`;
+      el('gravacao-titulo').textContent = `Reunião finalizada — ${item.lead_nome || ''}`;
       await depoisDeMudar(d.item);
     } catch (e) {
       final = `A gravação terminou, mas a reunião não foi finalizada (${e.message}). Abra a reunião e clique em "Finalizar reunião".`;

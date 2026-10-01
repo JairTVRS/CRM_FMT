@@ -12,6 +12,7 @@
  * PUT    ?id=N { acao: 'finalizar' }       a reunião termina agora e vira realizada
  * PUT    ?id=N { acao: 'cancelar', motivo, observacao }
  *                                          cancela com um dos motivos do ERP (2.36.2)
+ * PUT    ?id=N { acao: 'resetar' }         volta a ser só agendada (2.36.4)
  * DELETE ?id=N                             exclui (lógica) — para o que foi
  *                                          lançado por engano; o que não
  *                                          aconteceu é "cancelada"
@@ -291,6 +292,7 @@ export async function onRequestPut(context) {
   if (corpo.acao === 'iniciar') return iniciar(context, anterior, lead, agora);
   if (corpo.acao === 'finalizar') return finalizar(context, anterior, lead, agora);
   if (corpo.acao === 'cancelar') return cancelar(context, anterior, lead, agora, corpo);
+  if (corpo.acao === 'resetar') return resetar(context, anterior, lead, agora);
   if (corpo.acao !== undefined) return json({ error: 'Ação desconhecida.', code: 'ACAO_INVALIDA' }, 400, cabecalhos);
 
   // Em andamento, a reunião só termina finalizando: remarcar, cancelar ou
@@ -487,6 +489,55 @@ async function cancelar(context, anterior, lead, agora, corpo) {
   }
 
   console.log(`[agenda] ${eu} cancelou ${anterior.id} (lead ${lead.id}): ${motivo}`);
+  const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
+  return json({ item: salvo }, 200, cabecalhos);
+}
+
+/* ==========================================================================
+   RESETAR (2.36.4)
+   ========================================================================== */
+
+/**
+ * Pedido de 01/10/2026, como o "resetar reunião" do ERP: o compromisso
+ * volta a ser SÓ o que foi cadastrado — agendado, no horário de origem
+ * (que nunca muda ao iniciar). Some o que aconteceu depois: início e fim,
+ * cancelamento, não compareceu, e a gravação com a transcrição.
+ *
+ * Remarcada não se reseta: a nova já existe e é ela que vale.
+ * Quem reseta: o CX responsável, quem iniciou, ou admin — apaga
+ * transcrição, então não é de qualquer um.
+ */
+async function resetar(context, anterior, lead, agora) {
+  const cabecalhos = context.data.cabecalhos;
+  const db = context.env.DB;
+  const eu = String(context.data.usuario.email || '').toLowerCase();
+
+  if (anterior.status === 'remarcada') {
+    return json({ error: 'Remarcada não se reseta: abra a reunião nova, que substituiu esta.', code: 'REMARCADA' }, 409, cabecalhos);
+  }
+  if (anterior.status === 'agendada' && !anterior.iniciada_em) {
+    return json({ error: 'Este compromisso já está só agendado.', code: 'NADA_A_RESETAR' }, 409, cabecalhos);
+  }
+  const dono = [anterior.responsavel, anterior.iniciada_por].includes(eu);
+  if (!dono && !(await avaliarAdmin(context.env, context.data.usuario)).admin) {
+    return json({ error: 'Só o CX responsável, quem iniciou a reunião ou um admin pode resetá-la.', code: 'SEM_PERMISSAO' }, 403, cabecalhos);
+  }
+
+  await db.batch([
+    db.prepare(
+      `UPDATE agenda_lead SET status = 'agendada',
+              iniciada_em = NULL, iniciada_por = NULL, finalizada_em = NULL, finalizada_por = NULL,
+              cancelamento_motivo = NULL, cancelamento_obs = NULL, cancelada_em = NULL, cancelada_por = NULL,
+              atualizado_por = ?, atualizado_em = ?
+        WHERE id = ? AND ativo = 1`
+    ).bind(eu, agora, anterior.id),
+    db.prepare('DELETE FROM transcricao_trechos WHERE gravacao_id IN (SELECT id FROM gravacoes WHERE reuniao_id = ?)')
+      .bind(anterior.id),
+    db.prepare('DELETE FROM gravacoes WHERE reuniao_id = ?').bind(anterior.id),
+    comandoRecalcularProximo(db, lead.id)
+  ]);
+
+  console.log(`[agenda] ${eu} resetou ${anterior.id} (lead ${lead.id}), que estava ${anterior.status}`);
   const salvo = await db.prepare(`${SELECT_ITEM} WHERE a.id = ?`).bind(anterior.id).first();
   return json({ item: salvo }, 200, cabecalhos);
 }

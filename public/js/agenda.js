@@ -111,14 +111,18 @@ const Agenda = (() => {
      ---------------------------------------------------------- */
 
   let escala = 'semana';
-  try { if (localStorage.getItem('crm_agenda_escala') === 'mes') escala = 'mes'; } catch (e) { /* sem storage */ }
+  try {
+    const salva = localStorage.getItem('crm_agenda_escala');
+    if (['quinzena', 'mes'].includes(salva)) escala = salva;
+  } catch (e) { /* sem storage */ }
   let referencia = new Date();
   let itensNaTela = [];
 
   function periodo() {
-    if (escala === 'semana') {
+    // Quinzena (2.36.4): duas semanas a partir da segunda-feira de hoje.
+    if (escala === 'semana' || escala === 'quinzena') {
       const de = inicioDaSemana(referencia);
-      return { de, ate: somarDias(de, 6) };
+      return { de, ate: somarDias(de, escala === 'semana' ? 6 : 13) };
     }
     const primeiro = new Date(referencia.getFullYear(), referencia.getMonth(), 1);
     const de = inicioDaSemana(primeiro);
@@ -218,14 +222,15 @@ const Agenda = (() => {
     const dias = [];
     for (let d = new Date(de); d <= ate; d = somarDias(d, 1)) dias.push(new Date(d));
 
-    if (escala === 'semana') {
-      grade.className = 'agenda-grade semana';
+    // Semana e quinzena: os cartões completos; a quinzena em duas fileiras.
+    if (escala === 'semana' || escala === 'quinzena') {
+      grade.className = `agenda-grade semana${escala === 'quinzena' ? ' quinzena' : ''}`;
       grade.innerHTML = dias.map((d, i) => {
         const iso = diaIso(d);
         const itens = porDia.get(iso) || [];
         return `
           <section class="agenda-dia${iso === hoje ? ' hoje' : ''}" data-dia="${iso}">
-            <header class="agenda-dia-topo">${DIAS[i]} <strong>${dataBr(iso).slice(0, 5)}</strong></header>
+            <header class="agenda-dia-topo">${DIAS[i % 7]} <strong>${dataBr(iso).slice(0, 5)}</strong></header>
             <div class="agenda-dia-lista">
               ${itens.length ? itens.map((x) => cartaoDoItem(x, false, agora)).join('') : '<span class="agenda-dia-vazio">—</span>'}
             </div>
@@ -254,8 +259,8 @@ const Agenda = (() => {
   }
 
   function mover(passo) {
-    referencia = escala === 'semana'
-      ? somarDias(referencia, 7 * passo)
+    referencia = escala !== 'mes'
+      ? somarDias(referencia, (escala === 'semana' ? 7 : 14) * passo)
       : new Date(referencia.getFullYear(), referencia.getMonth() + passo, 1);
     carregar();
   }
@@ -441,6 +446,10 @@ const Agenda = (() => {
     el('btn-agenda-realizado').classList.toggle('hidden', !agendada || item.tipo !== 'contato');
     el('btn-agenda-nao-compareceu').classList.toggle('hidden',
       !agendada || item.tipo !== 'reuniao' || situacao(item) !== 'atrasada');
+    // Resetar (2.36.4): o que começou ou se encerrou volta a só agendado.
+    // Remarcada não — a nova é que vale.
+    el('btn-agenda-resetar').classList.toggle('hidden',
+      !item || item.status === 'remarcada' || (item.status === 'agendada' && !item.iniciada_em));
     el('agenda-remarcar').classList.add('hidden');
     el('agenda-cancelamento').classList.add('hidden');
     el('agenda-cancelamento-motivo').value = '';
@@ -558,6 +567,19 @@ const Agenda = (() => {
   async function encerrarComo(status, pergunta) {
     if (!emEdicao || !confirm(pergunta)) return;
     await enviar(`/api/agenda?id=${emEdicao.id}`, 'PUT', { ...lerJanela(), status });
+  }
+
+  /** Volta a ser só o que foi cadastrado: agendada, no horário de origem. */
+  async function resetar() {
+    if (!emEdicao) return;
+    const oQue = emEdicao.tipo === 'reuniao' ? 'a reunião' : 'o contato';
+    const aviso = `Resetar ${oQue}? Volta a ficar só agendada, em ${dataBr(emEdicao.inicio)} às ${hora(emEdicao.inicio)}.\n\n`
+      + 'Some o que aconteceu depois: início e fim, cancelamento'
+      + (emEdicao.tipo === 'reuniao' ? ', e a gravação com a transcrição.' : '.')
+      + ' Não dá para desfazer.';
+    if (!confirm(aviso)) return;
+    const d = await enviar(`/api/agenda?id=${emEdicao.id}`, 'PUT', { acao: 'resetar' });
+    if (d && typeof Gravacao !== 'undefined') Gravacao.atualizarAviso?.();
   }
 
   async function excluir() {
@@ -750,6 +772,7 @@ const Agenda = (() => {
     });
     el('btn-agenda-cancelamento-voltar')?.addEventListener('click', () => el('agenda-cancelamento').classList.add('hidden'));
     el('btn-agenda-cancelamento-confirmar')?.addEventListener('click', cancelar);
+    el('btn-agenda-resetar')?.addEventListener('click', resetar);
     el('btn-agenda-realizado')?.addEventListener('click', () =>
       encerrarComo('realizada', 'Marcar este contato como realizado?'));
     el('btn-agenda-nao-compareceu')?.addEventListener('click', () =>

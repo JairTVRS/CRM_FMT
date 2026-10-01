@@ -58,6 +58,8 @@
 }
 
 .agenda-grade.semana .agenda-dia { min-height: 220px; }
+/* Quinzena (2.36.4): duas fileiras de 7, cada uma mais baixa. */
+.agenda-grade.semana.quinzena .agenda-dia { min-height: 150px; }
 .agenda-grade.mes .agenda-dia { min-height: 96px; }
 
 .agenda-dia.hoje { border-color: var(--accent-color); }

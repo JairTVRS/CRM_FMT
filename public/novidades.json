@@ -2,6 +2,17 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.36.4",
+      "data": "01/10/2026",
+      "titulo": "Resetar a reunião e a agenda por quinzena",
+      "itens": [
+        "Botão \"Resetar\" na reunião ou no contato que já começou ou se encerrou: volta a ficar só agendado, no horário cadastrado. Some o que aconteceu depois — início e fim, cancelamento e a gravação com a transcrição. Pede confirmação e não dá para desfazer.",
+        "Pode resetar o CX responsável, quem iniciou a reunião ou um admin.",
+        "Na agenda, além de Semana e Mês, agora há Quinzena: duas semanas a partir da segunda-feira, com os cartões completos.",
+        "A janela da gravação diz \"Reunião finalizada\" depois de finalizar (antes continuava \"em andamento\")."
+      ]
+    },
+    {
       "versao": "2.36.3",
       "data": "01/10/2026",
       "titulo": "A situação acompanha o cartão",
