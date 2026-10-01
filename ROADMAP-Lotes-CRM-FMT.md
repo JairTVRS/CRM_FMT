@@ -52,7 +52,7 @@ segredos do Pages).
 | **2.36.6** | **Transcrição mais rápida e presencial** (teste real de 01/10/2026: frase firme chegava 10–28 s depois; transcritor 4–13 s por trecho): trechos de 3–8 s (corte na pausa ou respiração), provisório a cada 2 s, até 3 envios juntos; "Sala" na presencial; aviso de som mudo some na presencial e ganha "É presencial — ignorar" | — |
 | **em pausa** *(pedido de 01/10/2026; pausado pelo Jair no mesmo dia)* | **Voz sem terceiros, no próprio computador**: página de teste no localhost que transcreve (Whisper no navegador, WebGPU) e separa vozes (impressão de voz + agrupamento) — medir velocidade, qualidade em português e acerto das vozes no PC do Jair antes de decidir. PC: i5-12450H, vídeo Intel integrado, 7,7 GB — o Whisper bom não cabe no navegador; provar só a separação de vozes, com o texto na Cloudflare. A 2.36.6 ainda não pega 100% numa sala com conversas cruzadas (teste de 01/10), o que pode ser limite do ambiente | retomar quando o Jair pedir |
 | **depois** *(estudado em 30/09; sem custo por ora, decisão do Jair)* | **Identificar quem fala** ("Pessoa 1 / Pessoa 2"): o Whisper não faz; o caminho é o Deepgram Nova-3 do Workers AI em conexão contínua (`diarize`, pt-BR, ~US$ 0,55/h), provado antes no localhost | os testes da 2.36.1 |
-| **2.37.0** | **Recortes e insights durante a reunião**: frases do lead que captam a expectativa, conferidas por código contra a transcrição (o recorte só vale se a frase existir literalmente); perguntas do roteiro ainda não cobertas. Lê a transcrição, o roteiro da versão gravada e o dossiê | 1.1 e 1.2 |
+| ~~2.37.0~~ | ~~Recortes e insights durante a reunião~~: no ar em 01/10/2026 (migração 024, `reuniao_analises`). Recortes do lead em 4 tipos (expectativa, dor, objeção, decisão) conferidos palavra por palavra contra a transcrição (_lib/recortes.js); roteiro coberto/falta com evidência conferida; até 3 perguntas sugeridas (não conferíveis, a tela diz); a cada ~2 min sem chamar a IA se não há trecho novo; análise final ao finalizar; resetar apaga. **Falta ver com a DeepSeek real** quantas citações são descartadas (`reuniao_analises.descartados`): as chaves locais são de exemplo | — |
 | **2.38.0** | **Laudo pós-reunião**: HTML versionado, visível para todos, **só registra** (não mexe no lead); vai com o lead na conversão | 2.35.0 (melhor depois da 2.37.0) |
 | depois | Evento no Google Agenda com link do Meet | OAuth com escopo de agenda |
 
@@ -61,7 +61,7 @@ segredos do Pages).
 | Entrega | O quê | Depende de |
 |---|---|---|
 | **Dossiê lê as atas + Balança Avaliativa** | Aba própria no cliente: positivos e negativos lado a lado, cada um ancorado em ação, ata ou registro com data. Com o plano gravado (2.25.0), lê as ações do banco em vez de reler as atas | nada: `hub:meetings:read` já está na chave |
-| **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**024**; a 023 foi da 2.36.5) | o `contacts` do ERP ter id estável |
+| **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**025**; a 024 foi da 2.37.0) | o `contacts` do ERP ter id estável |
 | **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
 
 **4. Travados, esperando material**

@@ -466,6 +466,8 @@ const Agenda = (() => {
     aplicarTipo(base.tipo);
     // Gravar e a transcrição (2.35.0): só na reunião que já existe.
     if (typeof Gravacao !== 'undefined') Gravacao.mostrarNaReuniao(item);
+    // Recortes e roteiro (2.37.0): a última análise da conversa.
+    if (typeof Recortes !== 'undefined') Recortes.mostrarNaReuniao(item);
     el('modal-agenda').classList.remove('hidden');
   }
 

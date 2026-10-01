@@ -98,6 +98,7 @@ ok(sem.corpo.eventos.length === 1 && sem.corpo.eventos[0].evento === 'criada' &&
 bd.exec(readFileSync(`${RAIZ}/db/migracao-023-agenda-eventos.sql`, 'utf8'));
 bd.exec(readFileSync(`${RAIZ}/db/migracao-023-agenda-eventos.sql`, 'utf8'));
 ok(true, 'a 023 roda duas vezes sem erro');
+bd.exec(readFileSync(`${RAIZ}/db/migracao-024-reuniao-analises.sql`, 'utf8'));   // o resetar apaga as análises
 
 const antiga = (await HIST(5)).corpo;
 ok(!antiga.aviso && antiga.eventos[0].por === 'jair@formatar.com.br' && antiga.eventos[0].em === '2026-09-29T19:00:00.000Z',

@@ -566,3 +566,66 @@
 
 /* O botão que resolve o aviso (2.36.6: "É presencial — ignorar"). */
 .gravacao-avisos .gravacao-aviso-acao { margin-left: 0.4rem; padding: 0.15rem 0.55rem; font-size: 0.75rem; vertical-align: baseline; }
+
+/* --------------------------------------------------------------------------
+   Recortes e roteiro da reunião (2.37.0)
+   -------------------------------------------------------------------------- */
+
+/* A janela da gravação fica larga: a conversa à esquerda, os recortes à
+   direita. Em tela estreita, um embaixo do outro. */
+#modal-gravacao .modal-card.gravacao-janela { max-width: min(1120px, 96vw); }
+.gravacao-colunas { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1rem; align-items: start; }
+.gravacao-colunas .transcricao,
+.gravacao-colunas .recortes-painel { height: min(56vh, 34rem); max-height: none; }
+.gravacao-colunas .transcricao:empty { display: block; }
+@media (max-width: 900px) {
+  .gravacao-colunas { grid-template-columns: minmax(0, 1fr); }
+}
+
+.recortes-painel {
+  margin-top: 0.75rem;
+  max-height: 50vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.65rem 0.75rem;
+  background: var(--card-bg);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.recortes-compacto { max-height: 22rem; }
+.recortes-topo { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.recortes-topo .btn { padding: 0.2rem 0.6rem; font-size: 0.75rem; white-space: nowrap; }
+.recortes-nota { color: var(--text-muted); font-size: 0.75rem; margin: 0.35rem 0; }
+.recortes-aviso { color: #b45309; }
+.recortes-painel h4 { font-size: 0.8rem; margin: 0.8rem 0 0.35rem; }
+.recortes-painel h4 small { font-weight: 400; color: var(--text-muted); }
+
+.recortes-lista, .roteiro-lista, .sugestoes-lista { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.recorte {
+  border-left: 3px solid var(--recorte-cor, var(--border-color));
+  padding: 0.35rem 0 0.35rem 0.55rem;
+  margin-bottom: 0.45rem;
+}
+.recorte q { display: block; margin-top: 0.15rem; font-style: italic; }
+.recorte-tipo {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--recorte-cor, var(--text-muted));
+}
+.recorte-quando { font-size: 0.68rem; color: var(--text-subtle, var(--text-muted)); margin-left: 0.35rem; font-variant-numeric: tabular-nums; }
+.recorte-porque { display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 0.15rem; }
+.recorte.tipo-expectativa { --recorte-cor: #1f9d55; }
+.recorte.tipo-dor         { --recorte-cor: #d13438; }
+.recorte.tipo-objecao     { --recorte-cor: #b45309; }
+.recorte.tipo-decisao     { --recorte-cor: #2563eb; }
+
+.roteiro-lista li { margin: 0.15rem 0; }
+.roteiro-lista li.coberto { color: var(--text-muted); }
+.roteiro-lista li.coberto span { color: #1f9d55; }
+.roteiro-lista li.falta { font-weight: 600; }
+.sugestoes-lista li { margin: 0.2rem 0; padding-left: 0.9rem; position: relative; }
+.sugestoes-lista li::before { content: '?'; position: absolute; left: 0; color: var(--accent-color); font-weight: 700; }

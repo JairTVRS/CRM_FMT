@@ -94,6 +94,7 @@ ok(bd.prepare('SELECT COUNT(*) n FROM agenda_lead').get().n === 1, 'rodar de nov
 bd.exec(readFileSync(`${RAIZ}/db/migracao-021-reuniao-iniciar-finalizar.sql`, 'utf8'));
 bd.exec(readFileSync(`${RAIZ}/db/migracao-022-cancelamento-motivo.sql`, 'utf8'));
 bd.exec(readFileSync(`${RAIZ}/db/migracao-023-agenda-eventos.sql`, 'utf8'));
+bd.exec(readFileSync(`${RAIZ}/db/migracao-024-reuniao-analises.sql`, 'utf8'));
 
 /* ==========================================================================
    CONTEXTO

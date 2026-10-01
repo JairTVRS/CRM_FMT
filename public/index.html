@@ -1061,7 +1061,7 @@
   <!-- Gravação da reunião (2.35.0). Só o texto é guardado. Desde a 2.36.0
        abre já gravando, pelo "Iniciar reunião" da janela da reunião. -->
   <div id="modal-gravacao" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width: 720px;">
+    <div class="modal-card gravacao-janela">
       <header class="modal-header">
         <h2 id="gravacao-titulo">Reunião em andamento</h2>
         <button id="btn-gravacao-fechar" class="btn-close" aria-label="Fechar">&times;</button>
@@ -1080,7 +1080,11 @@
           <!-- O volume de cada lado (2.36.1): barra parada = aquele lado não está chegando. -->
           <div id="gravacao-medidores" class="gravacao-medidores"></div>
           <div id="gravacao-avisos" class="gravacao-avisos"></div>
-          <div id="gravacao-transcricao" class="transcricao"></div>
+          <!-- 2.37.0: a conversa à esquerda, os recortes à direita. -->
+          <div class="gravacao-colunas">
+            <div id="gravacao-transcricao" class="transcricao"></div>
+            <aside id="gravacao-recortes" class="recortes-painel" aria-label="Recortes da conversa"></aside>
+          </div>
         </div>
 
         <!-- 2. Finalizada -->
@@ -1338,6 +1342,8 @@
               <button type="button" id="btn-agenda-iniciar" class="btn btn-primary hidden">&#9654; Iniciar reunião</button>
             </div>
             <div id="agenda-transcricao" class="transcricao transcricao-curta"></div>
+            <!-- Recortes e roteiro (2.37.0): a última análise da conversa. -->
+            <div id="agenda-recortes" class="recortes-painel recortes-compacto hidden"></div>
           </div>
         </aside>
         </div>
@@ -1695,6 +1701,7 @@
   <script src="js/agenda.js"></script>
   <script src="js/audio-wav.js"></script>
   <script src="js/gravacao.js"></script>
+  <script src="js/recortes.js"></script>
   <script src="js/roteiros.js"></script>
   <script src="js/novidades.js"></script>
   <script src="js/leads.js"></script>

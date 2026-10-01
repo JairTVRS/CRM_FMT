@@ -2,6 +2,18 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.37.0",
+      "data": "01/10/2026",
+      "titulo": "Recortes e roteiro durante a reunião",
+      "itens": [
+        "Na janela da gravação, ao lado da conversa, o painel \"Recortes da conversa\": as falas do lead que mostram expectativa, dor, objeção ou como ele decide (orçamento, prazo, quem aprova), cada uma com o minuto em que foi dita.",
+        "Cada citação é conferida, palavra por palavra, contra a transcrição: o que a IA inventar ou mudar é descartado — e a tela diz quantas foram.",
+        "Com roteiro enviado para o tipo de reunião (Configurações → Roteiros), o painel mostra o que já foi coberto e o que falta. E sugere até 3 perguntas para fazer a seguir, puxando também do dossiê do lead.",
+        "Atualiza sozinho a cada ~2 minutos de conversa nova, ou no botão \"Analisar agora\". Ao finalizar, faz a última análise, que fica na janela da reunião.",
+        "Na presencial (Sala), as vozes não são separadas: o painel avisa para conferir se a fala é do lead. Resetar a reunião apaga também os recortes."
+      ]
+    },
+    {
       "versao": "2.36.6",
       "data": "01/10/2026",
       "titulo": "Transcrição mais rápida e a reunião presencial",

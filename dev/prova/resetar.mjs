@@ -58,7 +58,7 @@ bd.exec(`
                       ativo INTEGER DEFAULT 1, data_proximo_contato TEXT, data_ultimo_contato TEXT);
   INSERT INTO leads (id, nome, responsavel) VALUES (1, 'Cedro', 'jair@formatar.com.br');
 `);
-for (const m of ['017-agenda-lead', '019-ia-e-roteiros', '020-gravacao', '021-reuniao-iniciar-finalizar', '022-cancelamento-motivo', '023-agenda-eventos']) {
+for (const m of ['017-agenda-lead', '019-ia-e-roteiros', '020-gravacao', '021-reuniao-iniciar-finalizar', '022-cancelamento-motivo', '023-agenda-eventos', '024-reuniao-analises']) {
   bd.exec(readFileSync(`${RAIZ}/db/migracao-${m}.sql`, 'utf8'));
 }
 
