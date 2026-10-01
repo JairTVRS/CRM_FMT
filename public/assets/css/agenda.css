@@ -629,3 +629,33 @@
 .roteiro-lista li.falta { font-weight: 600; }
 .sugestoes-lista li { margin: 0.2rem 0; padding-left: 0.9rem; position: relative; }
 .sugestoes-lista li::before { content: '?'; position: absolute; left: 0; color: var(--accent-color); font-weight: 700; }
+
+/* --------------------------------------------------------------------------
+   Dossiê da Reunião (2.38.0)
+   -------------------------------------------------------------------------- */
+
+.dossie-reuniao-bloco {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-color);
+  border-radius: 6px;
+  padding: 0.65rem 0.75rem;
+  background: var(--card-bg);
+  font-size: 0.82rem;
+}
+.dossie-reuniao-resumo { margin: 0.35rem 0; line-height: 1.45; }
+.dossie-reuniao-resumo .gravacao-ponto { display: inline-block; width: 0.55rem; height: 0.55rem; margin-right: 0.3rem; }
+.dossie-reuniao-botoes { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+
+#modal-dossie-reuniao { z-index: 1100; }
+#modal-dossie-reuniao .modal-card.dossie-reuniao-janela {
+  max-width: min(1100px, 96vw);
+  height: 94vh;
+  max-height: 94vh;
+}
+.dossie-reuniao-acoes { display: flex; align-items: center; gap: 0.5rem; }
+.dossie-reuniao-acoes .form-control { width: auto; max-width: 22rem; padding: 0.3rem 0.5rem; font-size: 0.8rem; }
+.dossie-reuniao-frame { flex: 1; width: 100%; border: none; background: #8a8a8a; border-radius: 0 0 8px 8px; }
+@media (max-width: 700px) {
+  #modal-dossie-reuniao .modal-header { flex-wrap: wrap; gap: 0.5rem; }
+}

@@ -71,7 +71,7 @@ async function roteiroDaReuniao(db, reuniao) {
     if (!reuniao.tipo_reuniao_erp_id) return null;
     return await db.prepare(
       `SELECT id, versao, tipo_reuniao_nome, conteudo FROM roteiros
-        WHERE tipo_reuniao_erp_id = ? AND ativo = 1 ORDER BY versao DESC LIMIT 1`
+        WHERE tipo_reuniao_erp_id = ? AND finalidade = 'roteiro' AND ativo = 1 ORDER BY versao DESC LIMIT 1`
     ).bind(reuniao.tipo_reuniao_erp_id).first();
   } catch (e) {
     return null;                                   // sem a migração 019

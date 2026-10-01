@@ -173,7 +173,7 @@ export async function onRequestPost(context) {
   if (reuniao.tipo_reuniao_erp_id) {
     try {
       roteiro = await db.prepare(
-        `SELECT id, versao FROM roteiros WHERE tipo_reuniao_erp_id = ? AND ativo = 1 ORDER BY versao DESC LIMIT 1`
+        `SELECT id, versao FROM roteiros WHERE tipo_reuniao_erp_id = ? AND finalidade = 'roteiro' AND ativo = 1 ORDER BY versao DESC LIMIT 1`
       ).bind(reuniao.tipo_reuniao_erp_id).first();
     } catch (e) { /* sem a 019: sem roteiro */ }
   }

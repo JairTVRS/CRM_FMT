@@ -82,6 +82,13 @@ const sep = separacaoDeVozes(conversa);
 ok(sep.separacao && sep.origensDoLead.join() === 'lead', 'online com som do lead: as vozes são separáveis');
 const sala = [{ gravacao_id: 1, origem: 'sala', inicio_s: 0, texto: 'x'.repeat(500) }];
 ok(!separacaoDeVozes(sala).separacao && separacaoDeVozes(sala).origensDoLead === null, 'presencial (Sala): não separa, vale todo texto');
+// O caso de 01/10/2026: 115 trechos no microfone e 3 soltos do computador.
+const quaseTudoNoMicrofone = [
+  ...Array.from({ length: 115 }, (_, i) => ({ gravacao_id: 1, origem: 'formatar', inicio_s: i * 12, texto: 'x'.repeat(150) })),
+  ...Array.from({ length: 3 }, (_, i) => ({ gravacao_id: 1, origem: 'lead', inicio_s: i * 300, texto: 'y'.repeat(120) }))
+];
+ok(!separacaoDeVozes(quaseTudoNoMicrofone).separacao,
+  '3 trechos soltos do computador entre 118 não separam as vozes (a análise vazia de 01/10)');
 
 const conferido = conferirAnalise({
   recortes: [
@@ -138,7 +145,7 @@ bd.exec(`
     ('12345678000195', 1, 'concluido', '{"analise":{"hipotesesDores":[{"dor":"Margem apertada"}]}}'),
     ('12345678000195', 2, 'concluido', '{"analise":{"hipotesesDores":[{"dor":"Custo por unidade desconhecido"}]}}');
 `);
-for (const m of ['017-agenda-lead', '019-ia-e-roteiros', '020-gravacao', '021-reuniao-iniciar-finalizar', '022-cancelamento-motivo', '023-agenda-eventos']) {
+for (const m of ['017-agenda-lead', '019-ia-e-roteiros', '020-gravacao', '021-reuniao-iniciar-finalizar', '022-cancelamento-motivo', '023-agenda-eventos', '025-dossie-reuniao']) {
   bd.exec(readFileSync(`${RAIZ}/db/migracao-${m}.sql`, 'utf8'));
 }
 bd.exec(`INSERT INTO agenda_lead (id, lead_id, tipo, inicio, duracao_min, local_tipo, tipo_reuniao_erp_id, tipo_reuniao_nome, status, responsavel, criado_por, criado_em)

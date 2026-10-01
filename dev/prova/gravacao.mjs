@@ -99,6 +99,7 @@ bd.exec(readFileSync(`${RAIZ}/db/migracao-021-reuniao-iniciar-finalizar.sql`, 'u
 bd.exec(readFileSync(`${RAIZ}/db/migracao-022-cancelamento-motivo.sql`, 'utf8'));
 bd.exec(readFileSync(`${RAIZ}/db/migracao-023-agenda-eventos.sql`, 'utf8'));
 bd.exec(readFileSync(`${RAIZ}/db/migracao-024-reuniao-analises.sql`, 'utf8'));
+bd.exec(readFileSync(`${RAIZ}/db/migracao-025-dossie-reuniao.sql`, 'utf8'));
 
 bd.exec(`
   INSERT INTO agenda_lead (id, lead_id, tipo, inicio, local_tipo, tipo_reuniao_erp_id, status, criado_por, criado_em)

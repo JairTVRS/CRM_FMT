@@ -99,6 +99,7 @@ bd.exec(readFileSync(`${RAIZ}/db/migracao-023-agenda-eventos.sql`, 'utf8'));
 bd.exec(readFileSync(`${RAIZ}/db/migracao-023-agenda-eventos.sql`, 'utf8'));
 ok(true, 'a 023 roda duas vezes sem erro');
 bd.exec(readFileSync(`${RAIZ}/db/migracao-024-reuniao-analises.sql`, 'utf8'));   // o resetar apaga as análises
+bd.exec(readFileSync(`${RAIZ}/db/migracao-025-dossie-reuniao.sql`, 'utf8'));   // e os dossiês da reunião
 
 const antiga = (await HIST(5)).corpo;
 ok(!antiga.aviso && antiga.eventos[0].por === 'jair@formatar.com.br' && antiga.eventos[0].em === '2026-09-29T19:00:00.000Z',

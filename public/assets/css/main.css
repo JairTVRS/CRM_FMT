@@ -659,6 +659,17 @@ body.light-theme .topo-botao .icone-lua { display: block; }
 .roteiro-linha-info { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .roteiro-linha-info span { font-size: 0.8rem; color: var(--text-muted); }
 .roteiro-linha-acoes { display: flex; gap: 0.4rem; }
+/* 2.38.0: por tipo, os dois arquivos — o roteiro e a instrução do dossiê. */
+.roteiro-tipo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+.roteiro-tipo .roteiro-linha { border: none; border-top: 1px dashed var(--border-color); border-radius: 0; padding: 0.4rem 0 0; }
+.roteiro-finalidade { font-weight: 600; color: var(--text-color) !important; font-size: 0.85rem !important; }
 
 .roteiro-topo { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
 .roteiro-topo .form-control { width: auto; }

@@ -534,9 +534,11 @@
           <div class="config-card">
             <h3>Roteiros de reunião</h3>
             <p class="card-desc">
-              Um arquivo .md por tipo de reunião, com os objetivos e as perguntas.
-              Enviar de novo cria a versão seguinte — as anteriores continuam
-              consultáveis. Nas próximas versões a IA lê o roteiro durante a reunião.
+              Dois arquivos .md por tipo de reunião: o <strong>roteiro</strong>, com os
+              objetivos e as perguntas (a IA confere durante a reunião o que já foi
+              coberto), e a <strong>instrução do dossiê da reunião</strong>, que a IA
+              segue para montar o dossiê depois da reunião. Enviar de novo cria a
+              versão seguinte — as anteriores continuam consultáveis.
             </p>
             <div id="roteiros-lista" class="roteiros-lista"></div>
             <input type="file" id="roteiro-arquivo" accept=".md,.markdown,.txt,text/markdown,text/plain" class="hidden">
@@ -1115,6 +1117,24 @@
     </div>
   </div>
 
+  <!-- O Dossiê da Reunião (2.38.0). Mesmo sandbox dos outros
+       visualizadores: sem allow-same-origin, o conteúdo escrito por IA não
+       alcança o CRM; a barra "Salvar como PDF" do documento funciona. -->
+  <div id="modal-dossie-reuniao" class="modal-overlay hidden">
+    <div class="modal-card dossie-reuniao-janela">
+      <header class="modal-header">
+        <h2 id="dossie-reuniao-titulo">Dossiê da Reunião</h2>
+        <div class="dossie-reuniao-acoes">
+          <select id="dossie-reuniao-versao" class="form-control" aria-label="Versão"></select>
+          <button type="button" id="btn-dossie-reuniao-baixar" class="btn btn-sm btn-primary">Baixar</button>
+          <button id="btn-dossie-reuniao-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+        </div>
+      </header>
+      <iframe id="dossie-reuniao-frame" class="dossie-reuniao-frame" title="Dossiê da Reunião"
+              sandbox="allow-scripts allow-modals allow-popups"></iframe>
+    </div>
+  </div>
+
   <!-- Leitura de um roteiro (2.34.0), das Configurações ou da reunião. -->
   <div id="modal-roteiro" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 780px;">
@@ -1342,6 +1362,8 @@
               <button type="button" id="btn-agenda-iniciar" class="btn btn-primary hidden">&#9654; Iniciar reunião</button>
             </div>
             <div id="agenda-transcricao" class="transcricao transcricao-curta"></div>
+            <!-- Dossiê da Reunião (2.38.0): gerar, ver as versões e baixar. -->
+            <div id="agenda-dossie-reuniao" class="dossie-reuniao-bloco hidden"></div>
             <!-- Recortes e roteiro (2.37.0): a última análise da conversa. -->
             <div id="agenda-recortes" class="recortes-painel recortes-compacto hidden"></div>
           </div>
@@ -1702,6 +1724,7 @@
   <script src="js/audio-wav.js"></script>
   <script src="js/gravacao.js"></script>
   <script src="js/recortes.js"></script>
+  <script src="js/dossie-reuniao.js"></script>
   <script src="js/roteiros.js"></script>
   <script src="js/novidades.js"></script>
   <script src="js/leads.js"></script>

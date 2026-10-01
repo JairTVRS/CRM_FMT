@@ -48,6 +48,8 @@ const DB = d1(bd);
 const M019 = readFileSync(`${RAIZ}/db/migracao-019-ia-e-roteiros.sql`, 'utf8');
 bd.exec(M019);
 bd.exec(M019);
+// 2.38.0: os roteiros ganham a finalidade (roteiro | instrução do dossiê).
+bd.exec(readFileSync(`${RAIZ}/db/migracao-025-dossie-reuniao.sql`, 'utf8'));
 
 const SEGREDO = 'segredo-de-teste-das-chaves';
 const ADMIN = { email: 'jair@formatar.com.br', grupoId: '64e678a7d2042dae072ef102' };

@@ -2,6 +2,18 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.38.0",
+      "data": "01/10/2026",
+      "titulo": "Dossiê da Reunião",
+      "itens": [
+        "Na reunião realizada, coluna da direita: \"Gerar o dossiê da reunião\". A IA lê a transcrição inteira e segue a instrução enviada para o tipo de reunião, montando o mapa de inteligência comercial — dores, expectativas, histórico, sinais de compra, objeções, lacunas e as próximas perguntas.",
+        "A instrução é um arquivo .md nas Configurações → Roteiros de reunião, ao lado do roteiro, um por tipo de reunião. Para mudar a análise, basta enviar uma nova versão do arquivo.",
+        "O documento sai no visual da Formatar, para abrir, baixar (.html) ou salvar como PDF. Cada fala citada é conferida contra a transcrição: a que existe ganha o minuto em que foi dita; a que a IA inventou fica marcada \"não encontrada na transcrição\".",
+        "Gerar de novo cria a versão seguinte; as anteriores continuam consultáveis. Leva de 1 a 2 minutos.",
+        "Correção dos recortes: numa reunião presencial com alguns trechos soltos do som do computador, a análise olhava só para esses trechos e voltava vazia. Agora as vozes só contam como separadas quando o lado do lead tem uma parte real da conversa."
+      ]
+    },
+    {
       "versao": "2.37.0",
       "data": "01/10/2026",
       "titulo": "Recortes e roteiro durante a reunião",

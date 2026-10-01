@@ -558,6 +558,8 @@ async function resetar(context, anterior, lead, agora) {
     db.prepare('DELETE FROM gravacoes WHERE reuniao_id = ?').bind(anterior.id),
     // Os recortes (2.37.0) saem da transcrição: vão junto.
     db.prepare('DELETE FROM reuniao_analises WHERE reuniao_id = ?').bind(anterior.id),
+    // O Dossiê da Reunião (2.38.0) também: era desta conversa, que some.
+    db.prepare('DELETE FROM dossies_reuniao WHERE reuniao_id = ?').bind(anterior.id),
     comandoRecalcularProximo(db, lead.id),
     comandoEvento(db, { agendaId: anterior.id, leadId: lead.id, evento: 'resetada',
       detalhe: { estava: anterior.iniciada_em && !anterior.finalizada_em ? 'andamento' : anterior.status, gravacoes: Number(gravacoes) },

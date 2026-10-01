@@ -20,8 +20,14 @@ export const TIPOS_RECORTE = ['expectativa', 'dor', 'objecao', 'decisao'];
 export const LIMITE_TRANSCRICAO = 60000;
 /** Menos que isto de conversa não vale a análise. */
 export const CONVERSA_MINIMA = 200;
-/** O lado do lead só é separável se a voz dele tiver ao menos isto de texto. */
+/**
+ * O lado do lead só é separável se a voz dele tiver ao menos isto de
+ * texto E esta parte da conversa. 2.38.0: no teste presencial de
+ * 01/10/2026, 3 trechos soltos de "som do computador" (de 118) passaram
+ * dos 200 caracteres, a análise olhou só para eles e voltou vazia.
+ */
 const TEXTO_MINIMO_DO_LEAD = 200;
+const PARTE_MINIMA_DO_LEAD = 0.15;
 
 /** Minúsculas, sem acento, só letras e números separados por um espaço. */
 export function normalizar(t) {
@@ -43,8 +49,10 @@ const curto = (t, n) => String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
  * @returns { separacao, origensDoLead: string[] | null }  null = todas
  */
 export function separacaoDeVozes(trechos) {
-  const doLead = trechos.filter((t) => t.origem === 'lead').reduce((n, t) => n + String(t.texto || '').length, 0);
-  return doLead >= TEXTO_MINIMO_DO_LEAD
+  const tamanho = (lista) => lista.reduce((n, t) => n + String(t.texto || '').length, 0);
+  const doLead = tamanho(trechos.filter((t) => t.origem === 'lead'));
+  const total = tamanho(trechos);
+  return doLead >= TEXTO_MINIMO_DO_LEAD && doLead >= total * PARTE_MINIMA_DO_LEAD
     ? { separacao: true, origensDoLead: ['lead'] }
     : { separacao: false, origensDoLead: null };
 }
