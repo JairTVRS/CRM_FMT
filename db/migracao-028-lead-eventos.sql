@@ -9,6 +9,9 @@
 -- Aplicar pelo --command, um comando por instrução (o --file falha com
 -- "Authentication error [code: 10000]" nesta máquina — ver a 021).
 --
+-- Aplicada no D1 remoto em 05/10/2026, pelo --command, e conferida (a
+-- primeira tentativa deu "code 7403" passageiro do Cloudflare; a segunda passou).
+--
 -- Seguro rodar duas vezes? SIM. Só CREATE ... IF NOT EXISTS.
 --
 -- CONFIRA DEPOIS:
