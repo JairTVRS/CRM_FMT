@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 05/10/2026
-**Versão no ar:** 2.41.0 (desde 05/10/2026; migrações 008 a 028 aplicadas no D1 remoto, a 027 e a 028 em 05/10/2026 pelo --command e conferidas; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Versão no ar:** 2.41.1 (desde 05/10/2026; migrações 008 a 028 aplicadas no D1 remoto, a 027 e a 028 em 05/10/2026 pelo --command e conferidas; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
