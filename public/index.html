@@ -285,7 +285,6 @@
             <p class="subtitle">Relacionamento com cliente ativo: etapas da jornada, núcleos de atendimento e ficha do cliente.</p>
           </div>
           <div class="acoes-cabecalho">
-            <button id="btn-gerenciar-cx" class="btn btn-secondary">Núcleos e papéis</button>
             <button id="btn-incluir-cliente" class="btn btn-primary">+ Incluir Cliente</button>
           </div>
         </header>
@@ -296,7 +295,7 @@
                    placeholder="Buscar por razão social, nome fantasia ou CNPJ...">
           </div>
           <div class="filter-box">
-            <!-- As opções vêm do cadastro de núcleos, não de lista fixa -->
+            <!-- 2.44.0: as opções são os núcleos das carteiras ativas no ERP -->
             <select id="filter-nucleo" class="form-control">
               <option value="">Todos os Núcleos</option>
             </select>
@@ -1692,9 +1691,10 @@
 
           <div class="form-group col-span-2">
             <label>Núcleos atendidos</label>
+            <!-- 2.44.0: das carteiras ativas no ERP, só leitura. -->
             <p class="ajuda-campo">
-              O núcleo é o tipo de reunião. Cliente + núcleo é o que forma a
-              <strong>carteira</strong>, que chega com as reuniões do hub.
+              Vêm das <strong>carteiras ativas</strong> do cliente no ERP (cliente + tipo de
+              reunião, agrupados pelo time). Para mudar, é na carteira, no ERP.
             </p>
             <div id="cliente-nucleos" class="tags-caixa"></div>
           </div>
@@ -1771,48 +1771,6 @@
         <button id="btn-cliente-cancel" class="btn btn-secondary">Cancelar</button>
         <button id="btn-cliente-save" class="btn btn-primary">Salvar</button>
       </footer>
-    </div>
-  </div>
-
-  <!-- ====================================================================
-       NÚCLEOS E PAPÉIS
-
-       Cadastro simplificado, a mesma mecânica de advisors e tags. Os
-       papéis nascem vazios de propósito — quem os consome de verdade é o
-       mapa de stakeholders do Dossiê de Experiência (Lote L).
-       ==================================================================== -->
-  <div id="modal-cx" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width: 620px;">
-      <header class="modal-header">
-        <h2>Núcleos e papéis</h2>
-        <button id="btn-cx-fechar" class="btn-close" aria-label="Fechar">&times;</button>
-      </header>
-
-      <div class="modal-body">
-        <p class="etapas-aviso">
-          <strong>Núcleo</strong> é o tipo de reunião — o nível entre o Time
-          (agrupamento interno) e a Carteira (cliente + núcleo).
-          <strong>Papel</strong> é a função da pessoa do lado do cliente.
-          Núcleo em uso por algum cliente não pode ser excluído.
-        </p>
-
-        <h3 class="secao-cadastro">Núcleos de atendimento</h3>
-        <div id="cx-nucleos-lista" class="etapas-lista"></div>
-        <div class="etapa-nova">
-          <input type="color" id="cx-nucleo-cor" value="#6e6e6e" title="Cor do núcleo">
-          <input type="text" id="cx-nucleo-nome" class="form-control"
-                 placeholder="Nome do novo núcleo" maxlength="60">
-          <button id="btn-cx-nucleo-criar" class="btn btn-primary btn-sm">Adicionar</button>
-        </div>
-
-        <h3 class="secao-cadastro">Papéis</h3>
-        <div id="cx-papeis-lista" class="etapas-lista"></div>
-        <div class="etapa-nova">
-          <input type="text" id="cx-papel-nome" class="form-control"
-                 placeholder="Nome do novo papel" maxlength="60">
-          <button id="btn-cx-papel-criar" class="btn btn-primary btn-sm">Adicionar</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -2066,12 +2024,6 @@
               <input type="date" id="conversao-inicio" class="form-control">
             </div>
 
-            <div class="form-group col-span-2">
-              <label>Núcleos de atendimento</label>
-              <div id="conversao-nucleos" class="tags-caixa"></div>
-              <small class="campo-ajuda">Núcleo é o tipo de reunião. Pode ficar
-                vazio agora e ser marcado depois, na ficha.</small>
-            </div>
 
             <div class="form-group col-span-2">
               <label for="conversao-observacoes">Observações</label>

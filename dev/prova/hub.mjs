@@ -140,7 +140,9 @@ try {
   ok(acme?.origem === 'hub' && acme?.semJornada === false && !!acme?.id,
     'quem está nos dois lados vem com a jornada do CRM', `etapa_id=${acme?.etapa_id}`);
   ok(acme?.erp_id === '507f1f77bcf86cd799439011', 'e com o id do ERP');
-  ok(acme?.nucleos === '[1]', 'os núcleos anotados no CRM sobrevivem ao cruzamento');
+  // 2.44.0: os núcleos vêm das carteiras ativas do ERP, não da anotação do CRM.
+  ok(Array.isArray(acme?.nucleosErp) && acme.nucleosErp.some((n) => n.nome === 'Operações'),
+    'os núcleos vêm das carteiras do ERP', JSON.stringify(acme?.nucleosErp));
 
   const valeVerde = porNome['Comercial Vale Verde LTDA'];
   ok(valeVerde?.semJornada === true && valeVerde?.id === null,

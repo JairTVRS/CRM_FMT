@@ -967,23 +967,41 @@
 .plano-avisos summary { cursor: pointer; color: var(--text-subtle); }
 .plano-avisos ul { margin: 0.5rem 0 0; padding-left: 1.1rem; line-height: 1.6; }
 
-/* 2.43.0 — pessoas do ERP com a avaliação da CX */
-.pessoas-estado { font-size: 0.82rem; color: var(--text-muted); margin: 0 0 0.75rem; }
-.pessoa-cartao.pessoa-erp { display: block; padding: 0.75rem 0.9rem; }
-.pessoa-erp.nao-avaliada { border-style: dashed; }
-.pessoa-topo { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
-.pessoa-contato { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
-.pessoa-nucleos { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem; }
-.pessoa-nucleos .tag-chip { cursor: default; font-size: 0.72rem; }
-.pessoa-avaliacao {
+/* 2.43.0/2.44.0 — pessoas do ERP com a avaliação da CX, compactas: uma
+   linha por pessoa (pedido do Jair, 05/10/2026). */
+.pessoas-estado { font-size: 0.82rem; color: var(--text-muted); margin: 0 0 0.5rem; }
+.pessoas-lista .pessoa-linha {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 0.5rem 0.75rem;
-  align-items: end;
-  margin-top: 0.6rem;
+  grid-template-columns: minmax(0, 1fr) 7.2rem 7.2rem 3rem 3.6rem 4.6rem;
+  gap: 0.25rem 0.45rem;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.8rem;
 }
-.pessoa-avaliacao label { font-size: 0.75rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.2rem; }
-.pessoa-avaliacao .pessoa-patrocinador { flex-direction: row; align-items: center; gap: 0.35rem; white-space: nowrap; padding-bottom: 0.45rem; }
-.pessoa-avaliacao textarea { grid-column: 1 / -1; font-size: 0.82rem; }
-.pessoa-salvar { grid-column: 1 / -1; display: flex; align-items: center; gap: 0.6rem; }
-@media (max-width: 640px) { .pessoa-avaliacao { grid-template-columns: 1fr; } }
+.pessoas-lista .pessoa-linha.nao-avaliada .pessoa-quem strong { color: var(--text-muted); }
+.pessoas-lista .pessoa-cabeca {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); padding-top: 0; padding-bottom: 0.25rem;
+}
+.pessoa-quem { min-width: 0; line-height: 1.3; }
+.pessoa-quem strong { font-weight: 600; }
+.pessoa-contato, .pessoa-nucleos {
+  display: block; font-size: 0.72rem; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pessoa-nucleos { color: var(--accent-color); }
+.pessoa-marca { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-color); }
+.pessoa-linha .pessoa-sel { padding: 0.2rem 0.35rem; font-size: 0.76rem; height: auto; }
+.pessoa-linha .pessoa-patroc { justify-self: center; }
+.pessoa-linha .btn { padding: 0.2rem 0.5rem; font-size: 0.72rem; white-space: nowrap; }
+.pessoa-obs-btn.tem-obs::after { content: ' •'; color: var(--accent-color); }
+.pessoa-linha .pessoa-obs { grid-column: 1 / -1; font-size: 0.8rem; margin-top: 0.2rem; }
+@media (max-width: 640px) {
+  .pessoas-lista .pessoa-linha { grid-template-columns: 1fr 1fr; }
+  .pessoas-lista .pessoa-cabeca { display: none; }
+  .pessoa-quem { grid-column: 1 / -1; }
+}
+/* A lista compacta é uma tabela: sem o espaço entre cartões. */
+.pessoas-lista:has(.pessoa-linha) { gap: 0; border-top: 1px solid var(--border-color); }
+.pessoa-cabeca .centro { text-align: center; }

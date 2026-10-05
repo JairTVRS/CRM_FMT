@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.44.0",
+      "data": "05/10/2026",
+      "titulo": "Núcleos pelas carteiras do ERP e Stakeholders compacta",
+      "itens": [
+        "Os núcleos de cada cliente agora vêm das carteiras ativas no ERP (agrupadas pelo time: Gestão Comercial, de Operações, Financeira, de Pessoas, Governança) — na lista e no quadro da Jornada, no filtro \"Todos os Núcleos\" e na ficha.",
+        "Saíram o campo de núcleos marcados à mão (ficha e conversão de lead em cliente) e a janela \"Núcleos e papéis\". Para mudar o núcleo de um cliente, é na carteira, no ERP.",
+        "A aba Stakeholders ficou compacta: uma linha por pessoa, com influência, postura e patrocinador na mesma linha. As observações abrem no botão Obs. (com um ponto quando já há texto)."
+      ]
+    },
+    {
       "versao": "2.43.0",
       "data": "05/10/2026",
       "titulo": "Stakeholders vêm do ERP",

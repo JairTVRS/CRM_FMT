@@ -24,6 +24,7 @@
  * nasce nulo e significa "cadastrado à mão, ainda não conferido".
  */
 
+import { nucleosDasCarteiras, clientesDoNucleo } from './_lib/nucleos-erp.js';
 import { limparCnpj } from './_lib/cnpj.js';
 import { cnpjValido } from './_lib/documento.js';
 import { montarQuadro, comandosDeMover } from './_lib/quadro.js';
@@ -115,7 +116,9 @@ function normalizarCliente(corpo) {
 const CAMPOS = [
   'nome', 'nome_fantasia', 'documento',
   'telefone', 'email', 'contato_nome', 'cidade',
-  'etapa_id', 'nucleos', 'classificacao', 'data_inicio', 'observacoes'
+  // `nucleos` saiu na 2.44.0: o núcleo do cliente vem das carteiras do
+  // ERP (_lib/nucleos-erp.js). A coluna fica no banco, intocada.
+  'etapa_id', 'classificacao', 'data_inicio', 'observacoes'
 ];
 
 /**
@@ -154,7 +157,7 @@ function validarObrigatorios(cliente) {
  * pode mudar o conjunto exibido, e duas cópias do filtro divergiriam na
  * primeira manutenção.
  */
-function montarFiltro(searchParams) {
+async function montarFiltro(searchParams, env) {
   // `inativos=1` é a aba dos desligados. Cliente inativado segue
   // consultável — foi decisão explícita do roadmap —, então a listagem
   // precisa saber olhar para o outro lado do `ativo`.
@@ -163,7 +166,7 @@ function montarFiltro(searchParams) {
 
   const busca = texto(searchParams.get('busca'), 100);
   const classificacao = normalizarClassificacao(searchParams.get('classificacao'));
-  const nucleo = Number(searchParams.get('nucleo')) || null;
+  const nucleo = String(searchParams.get('nucleo') || '').trim() || null;
   const etapaId = Number(searchParams.get('etapa_id')) || null;
 
   if (busca) {
@@ -175,11 +178,12 @@ function montarFiltro(searchParams) {
   if (classificacao) { condicoes.push('classificacao = ?'); valores.push(classificacao); }
   if (etapaId) { condicoes.push('etapa_id = ?'); valores.push(etapaId); }
 
-  // Núcleo mora num JSON de IDs. EXISTS com json_each em vez de LIKE:
-  // um LIKE '%1%' casaria com 1, 10, 11 e 21.
+  // 2.44.0: o núcleo vem das carteiras ativas do ERP. Um parâmetro só
+  // (a lista em JSON): o D1 limita a 100 parâmetros por consulta.
   if (nucleo) {
-    condicoes.push('EXISTS (SELECT 1 FROM json_each(clientes.nucleos) WHERE value = ?)');
-    valores.push(nucleo);
+    const n = await nucleosDasCarteiras(env);
+    condicoes.push('erp_id IN (SELECT value FROM json_each(?))');
+    valores.push(JSON.stringify(n.consultado ? clientesDoNucleo(n, nucleo) : []));
   }
 
   return { onde: `WHERE ${condicoes.join(' AND ')}`, valores };
@@ -217,12 +221,24 @@ export async function onRequestGet(context) {
         .first();
 
       if (!cliente) return json({ error: 'Cliente não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
-      return json({ cliente }, 200, cabecalhos);
+      // 2.44.0: os núcleos atendidos, pelas carteiras ativas do ERP.
+      const n = cliente.erp_id ? await nucleosDasCarteiras(context.env) : null;
+      return json({
+        cliente: { ...cliente, nucleosErp: n?.porCliente.get(cliente.erp_id) || [] },
+        nucleosConsultados: !!n?.consultado,
+        nucleosMotivo: cliente.erp_id ? (n?.motivo || null) : 'Cliente sem vínculo com o ERP.'
+      }, 200, cabecalhos);
+    }
+
+    // --- 2.44.0: os núcleos em uso nas carteiras, para o filtro ---
+    if (searchParams.get('nucleos')) {
+      const n = await nucleosDasCarteiras(context.env);
+      return json({ nucleos: n.nucleos, consultado: n.consultado, motivo: n.motivo || null }, 200, cabecalhos);
     }
 
     // --- Quadro: a jornada inteira de uma vez ---
     if (searchParams.get('quadro')) {
-      const { onde, valores } = montarFiltro(searchParams);
+      const { onde, valores } = await montarFiltro(searchParams, context.env);
       const quadro = await montarQuadro(db, {
         tabela: 'clientes',
         pipeline: PIPELINE,
@@ -233,6 +249,11 @@ export async function onRequestGet(context) {
         somaColuna: null,
         porColuna: searchParams.get('porColuna')
       });
+      // 2.44.0: os núcleos de cada cartão, pelas carteiras do ERP.
+      const n = await nucleosDasCarteiras(context.env);
+      for (const coluna of quadro.colunas || []) {
+        coluna.registros = (coluna.registros || []).map((c) => ({ ...c, nucleosErp: n.porCliente.get(c.erp_id) || [] }));
+      }
       return json(quadro, 200, cabecalhos);
     }
 
@@ -240,7 +261,7 @@ export async function onRequestGet(context) {
     // Também serve ao "carregar mais" de uma coluna do quadro.
     const pagina = Math.max(1, Number(searchParams.get('pagina') || 1));
     const porPagina = Math.min(MAX_POR_PAGINA, Number(searchParams.get('porPagina') || POR_PAGINA));
-    const { onde, valores } = montarFiltro(searchParams);
+    const { onde, valores } = await montarFiltro(searchParams, context.env);
 
     const ordenacao = searchParams.get('etapa_id')
       ? 'posicao, id DESC'
@@ -258,8 +279,9 @@ export async function onRequestGet(context) {
 
     const totalRegistros = Number(total?.n || 0);
 
+    const nErp = await nucleosDasCarteiras(context.env);
     return json({
-      clientes: results || [],
+      clientes: (results || []).map((c) => ({ ...c, nucleosErp: nErp.porCliente.get(c.erp_id) || [] })),
       total: totalRegistros,
       pagina,
       porPagina,

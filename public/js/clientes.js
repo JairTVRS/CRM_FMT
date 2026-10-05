@@ -53,7 +53,6 @@ const Clientes = (() => {
   let naTela = [];
   let idEmEdicao = null;
   let debounce = null;
-  let nucleosSelecionados = new Set();
 
   /* As etapas da jornada são de OUTRO pipeline: o Cadastros carrega as
      do funil comercial, e reaproveitar aquela lista aqui colocaria o
@@ -80,14 +79,18 @@ const Clientes = (() => {
   const soData = (v) => (v ? String(v).slice(0, 10) : '');
 
   /** Os IDs vêm como JSON de texto do D1 — ou já como array, se local. */
+  /**
+   * 2.44.0: os núcleos do cliente vêm das carteiras ativas do ERP
+   * (`nucleosErp`, montado no servidor): [{ id, nome }]. O campo marcado à
+   * mão saiu da tela.
+   */
   function listaDeNucleos(cliente) {
-    if (Array.isArray(cliente?.nucleos)) return cliente.nucleos;
-    try { return JSON.parse(cliente?.nucleos || '[]'); }
+    if (Array.isArray(cliente?.nucleosErp)) return cliente.nucleosErp;
+    try { return []; }
     catch (e) { return []; }
   }
 
-  const nomeDoNucleo = (id) =>
-    (typeof Cadastros !== 'undefined' ? Cadastros.nucleoPorId(id)?.nome : null) || null;
+  const nomeDoNucleo = (n) => n?.nome || null;
 
   const etapaPorId = (id) => etapasJornada.find((e) => e.id === Number(id)) || null;
 
@@ -147,10 +150,7 @@ const Clientes = (() => {
     return lista.filter((c) => {
       if (estado.classificacao && String(c.classificacao) !== String(estado.classificacao)) return false;
 
-      if (estado.nucleo) {
-        const ids = listaDeNucleos(c).map(Number);
-        if (!ids.includes(Number(estado.nucleo))) return false;
-      }
+      if (estado.nucleo && !listaDeNucleos(c).some((n) => n.id === estado.nucleo)) return false;
 
       if (!busca) return true;
 
@@ -466,24 +466,20 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
     if (selecionada) select.value = String(selecionada);
   }
 
-  function montarNucleos() {
+  /**
+   * Os núcleos atendidos, só leitura (2.44.0): as carteiras ativas do
+   * cliente no ERP. Para mudar, é na carteira, no ERP.
+   */
+  function montarNucleos(cliente = null, motivo = null) {
     const caixa = el('cliente-nucleos');
     if (!caixa) return;
-
-    const lista = (typeof Cadastros !== 'undefined' ? Cadastros.nucleos() : []) || [];
-    if (lista.length === 0) {
-      caixa.innerHTML = '<span class="tags-vazio">Nenhum núcleo cadastrado.</span>';
-      return;
+    const lista = listaDeNucleos(cliente);
+    if (lista.length) {
+      caixa.innerHTML = lista.map((n) => `<span class="tag-chip ligada">${esc(n.nome)}</span>`).join('');
+    } else {
+      caixa.innerHTML = `<span class="tags-vazio">${esc(motivo
+        || (cliente?.erp_id ? 'Nenhuma carteira ativa deste cliente no ERP.' : 'Cliente sem vínculo com o ERP.'))}</span>`;
     }
-
-    // Reaproveita o chip das tags do lead — mesma interação (liga e
-    // desliga no clique), mesma variável de cor. Uma classe nova só para
-    // trocar o nome do conceito duplicaria CSS idêntico.
-    caixa.innerHTML = lista.map((n) => `
-      <button type="button" class="tag-chip${nucleosSelecionados.has(n.id) ? ' ligada' : ''}"
-              data-nucleo="${n.id}" style="--cor-tag:${esc(n.cor || '#6e6e6e')}">
-        ${esc(n.nome)}
-      </button>`).join('');
   }
 
   /**
@@ -499,8 +495,7 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
     if (!aba) return;
     aba.querySelectorAll('input, textarea').forEach((campo) => { campo.value = ''; });
     aba.querySelectorAll('select').forEach((campo) => { campo.selectedIndex = 0; });
-    nucleosSelecionados = new Set();
-    montarNucleos();
+    montarNucleos(null);
   }
 
   function preencherFicha(c) {
@@ -519,8 +514,13 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
 
     montarSelectEtapas(c.etapa_id);
 
-    nucleosSelecionados = new Set(listaDeNucleos(c).map(Number));
-    montarNucleos();
+    montarNucleos(c);
+    // Aberto pelo quadro ou por uma lista sem os núcleos: pede ao servidor.
+    if (c.id && !Array.isArray(c.nucleosErp)) {
+      fetch(`/api/clientes?id=${c.id}`).then((r) => r.json()).then((d) => {
+        if (d.cliente && idEmEdicao === c.id) montarNucleos(d.cliente, d.nucleosConsultados ? null : d.nucleosMotivo);
+      }).catch(() => {});
+    }
 
     // O vínculo com o ERP é do Lote F. Enquanto ele não existe, a ficha
     // diz isso em vez de mostrar um campo vazio sem explicação — vazio
@@ -607,8 +607,7 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
       etapa_id: valor('cliente-input-etapa') || null,
       classificacao: valor('cliente-input-classificacao') || null,
       data_inicio: valor('cliente-input-inicio') || null,
-      observacoes: valor('cliente-input-observacoes'),
-      nucleos: [...nucleosSelecionados]
+      observacoes: valor('cliente-input-observacoes')
     };
 
     const url = idEmEdicao ? `/api/clientes?id=${idEmEdicao}` : '/api/clientes';
@@ -726,176 +725,23 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
   }
 
   /* ----------------------------------------------------------
-     Núcleos e papéis
-
-     Cadastro simplificado, a mesma mecânica de advisors e tags: digita
-     o nome, vira opção para todos. O gerenciamento vive aqui e não no
-     modal de etapas porque são coisas de naturezas diferentes — etapa
-     é coluna do quadro, núcleo e papel são vocabulário.
-     ---------------------------------------------------------- */
-
-  function linhaCadastroHtml(item, tipo, temCor) {
-    return `
-      <div class="etapa-linha" data-id="${item.id}" data-tipo="${tipo}">
-        ${temCor
-          ? `<input type="color" value="${esc(item.cor || '#6e6e6e')}" data-campo="cor" title="Cor">`
-          : ''}
-        <input type="text" class="form-control etapa-nome" value="${esc(item.nome)}"
-               data-campo="nome" maxlength="60">
-        <div class="etapa-acoes">
-          <button class="btn-action" data-acao="excluir" title="Excluir">🗑️</button>
-        </div>
-      </div>`;
-  }
-
-  function renderizarCx() {
-    const nucleos = el('cx-nucleos-lista');
-    const papeis = el('cx-papeis-lista');
-    if (!nucleos || !papeis) return;
-
-    const listaNucleos = Cadastros.nucleos();
-    const listaPapeis = Cadastros.papeis();
-
-    nucleos.innerHTML = listaNucleos.length
-      ? listaNucleos.map((n) => linhaCadastroHtml(n, 'nucleos', true)).join('')
-      : '<div class="coluna-vazia">Nenhum núcleo cadastrado.</div>';
-
-    papeis.innerHTML = listaPapeis.length
-      ? listaPapeis.map((p) => linhaCadastroHtml(p, 'papeis', false)).join('')
-      : '<div class="coluna-vazia">Nenhum papel cadastrado ainda.</div>';
-  }
-
-  async function salvarCadastroCx(tipo, id, corpo) {
-    try {
-      const r = await fetch(`/api/cadastros?tipo=${tipo}&id=${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(corpo)
-      });
-      if (!r.ok) {
-        const d = await r.json();
-        alert(d.error || 'Não foi possível salvar.');
-        return false;
-      }
-      await Cadastros.recarregarLista(tipo);
-      return true;
-    } catch (e) {
-      alert('Falha de conexão ao salvar.');
-      return false;
-    }
-  }
-
-  async function excluirCadastroCx(tipo, id, nome) {
-    if (!confirm(`Excluir "${nome}"?`)) return;
-    try {
-      const r = await fetch(`/api/cadastros?tipo=${tipo}&id=${id}`, { method: 'DELETE' });
-      if (!r.ok) {
-        const d = await r.json();
-        // A trava de exclusão condicional diz quantos clientes seguram
-        // o núcleo, em vez de só recusar.
-        alert(d.error || 'Não foi possível excluir.');
-        return;
-      }
-      await Cadastros.recarregarLista(tipo);
-      renderizarCx();
-      montarFiltroNucleos();
-      montarNucleos();
-    } catch (e) {
-      alert('Falha de conexão ao excluir.');
-    }
-  }
-
-  function iniciarCx() {
-    el('btn-gerenciar-cx')?.addEventListener('click', () => {
-      renderizarCx();
-      el('modal-cx')?.classList.remove('hidden');
-    });
-
-    el('btn-cx-fechar')?.addEventListener('click', () => {
-      el('modal-cx')?.classList.add('hidden');
-      // Nome ou cor podem ter mudado: o filtro, os chips da ficha e os
-      // cartões do quadro mostram esses nomes.
-      montarFiltroNucleos();
-      montarNucleos();
-      recarregarVisao();
-    });
-
-    el('btn-cx-nucleo-criar')?.addEventListener('click', async () => {
-      const campo = el('cx-nucleo-nome');
-      const nome = campo?.value.trim();
-      if (!nome) { campo?.focus(); return; }
-      if (!await Cadastros.criarNucleo(nome, el('cx-nucleo-cor')?.value)) {
-        alert('Não foi possível criar o núcleo.');
-        return;
-      }
-      campo.value = '';
-      renderizarCx();
-    });
-
-    el('btn-cx-papel-criar')?.addEventListener('click', async () => {
-      const campo = el('cx-papel-nome');
-      const nome = campo?.value.trim();
-      if (!nome) { campo?.focus(); return; }
-      if (!await Cadastros.criarPapel(nome)) {
-        alert('Não foi possível criar o papel.');
-        return;
-      }
-      campo.value = '';
-      renderizarCx();
-    });
-
-    ['cx-nucleo-nome', 'cx-papel-nome'].forEach((id) => {
-      el(id)?.addEventListener('keydown', (ev) => {
-        if (ev.key !== 'Enter') return;
-        ev.preventDefault();
-        el(id === 'cx-nucleo-nome' ? 'btn-cx-nucleo-criar' : 'btn-cx-papel-criar')?.click();
-      });
-    });
-
-    const modal = el('modal-cx');
-    if (!modal) return;
-
-    modal.addEventListener('change', async (ev) => {
-      const linha = ev.target.closest('.etapa-linha');
-      if (!linha || ev.target.dataset.campo !== 'cor') return;
-      await salvarCadastroCx(linha.dataset.tipo, Number(linha.dataset.id), { cor: ev.target.value });
-    });
-
-    // Nome grava ao sair do campo: por tecla seria uma requisição por letra.
-    modal.addEventListener('blur', async (ev) => {
-      if (ev.target.dataset.campo !== 'nome') return;
-      const linha = ev.target.closest('.etapa-linha');
-      const tipo = linha.dataset.tipo;
-      const id = Number(linha.dataset.id);
-      const nome = ev.target.value.trim();
-      const anterior = (tipo === 'nucleos' ? Cadastros.nucleos() : Cadastros.papeis())
-        .find((i) => i.id === id);
-      if (!nome || nome === anterior?.nome) return;
-      await salvarCadastroCx(tipo, id, { nome });
-    }, true);
-
-    modal.addEventListener('click', (ev) => {
-      const botao = ev.target.closest('[data-acao="excluir"]');
-      if (!botao) return;
-      const linha = botao.closest('.etapa-linha');
-      const tipo = linha.dataset.tipo;
-      const id = Number(linha.dataset.id);
-      const nome = linha.querySelector('[data-campo="nome"]')?.value || '';
-      excluirCadastroCx(tipo, id, nome);
-    });
-  }
-
-  /* ----------------------------------------------------------
      Ligação com a interface
      ---------------------------------------------------------- */
 
-  function montarFiltroNucleos() {
+  /** 2.44.0: as opções do filtro são os núcleos das carteiras ativas no ERP. */
+  let nucleosDoFiltro = null;
+  async function montarFiltroNucleos() {
     const select = el('filter-nucleo');
     if (!select) return;
+    if (!nucleosDoFiltro) {
+      try {
+        const d = await fetch('/api/clientes?nucleos=1').then((r) => r.json());
+        nucleosDoFiltro = d.consultado ? (d.nucleos || []) : null;
+      } catch (e) { nucleosDoFiltro = null; }
+    }
     const escolhido = select.value;
-    const lista = (typeof Cadastros !== 'undefined' ? Cadastros.nucleos() : []) || [];
     select.innerHTML = '<option value="">Todos os Núcleos</option>'
-      + lista.map((n) => `<option value="${n.id}">${esc(n.nome)}</option>`).join('');
+      + (nucleosDoFiltro || []).map((n) => `<option value="${esc(n.id)}">${esc(n.nome)}</option>`).join('');
     select.value = escolhido;
   }
 
@@ -932,14 +778,6 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
       if (ev.target === el('modal-cliente')) fecharFicha();
     });
 
-    el('cliente-nucleos')?.addEventListener('click', (ev) => {
-      const chip = ev.target.closest('[data-nucleo]');
-      if (!chip) return;
-      const id = Number(chip.dataset.nucleo);
-      if (nucleosSelecionados.has(id)) nucleosSelecionados.delete(id);
-      else nucleosSelecionados.add(id);
-      chip.classList.toggle('ligada');
-    });
 
     // Ações da tabela
     el('table-clientes-body')?.addEventListener('click', async (ev) => {
@@ -984,13 +822,8 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
       if (ESTREITO.matches && modo === 'quadro') aplicarModo('tabela');
     });
 
-    // As listas chegam depois da autenticação.
-    document.addEventListener('crm:cadastros', () => {
-      montarFiltroNucleos();
-      montarNucleos();
-    });
-
-    iniciarCx();
+    // O filtro de núcleos pede ao servidor: só depois da autenticação.
+    document.addEventListener('crm:autenticado', () => montarFiltroNucleos(), { once: true });
     aplicarModo(modo, { recarregar: false });
   }
 
@@ -1020,17 +853,6 @@ Isso cria a ficha dele no CRM, já vinculada ao ERP. A etapa inicial pode ser tr
 
     /** null enquanto o cliente não foi salvo — não há a que pendurar pessoa. */
     emEdicao: () => idEmEdicao,
-
-    /**
-     * Os núcleos marcados NA TELA, não os que o banco tem.
-     *
-     * A pessoa é vinculada aos núcleos em que o cliente é atendido, e a
-     * lista honesta é a que o usuário está vendo — inclusive uma marcação
-     * que ele acabou de fazer e ainda não salvou.
-     */
-    nucleosDaFicha: () => [...nucleosSelecionados]
-      .map((id) => (typeof Cadastros !== 'undefined' ? Cadastros.nucleoPorId(id) : null))
-      .filter(Boolean),
 
     /** O que a aba do dossiê mostra como "o que entra nesta versão". */
     resumoDaFicha: () => ({

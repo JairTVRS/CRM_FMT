@@ -25,6 +25,7 @@
  * ONDE COLAR A CHAVE: veja o cabeçalho do `_lib/hub.js`.
  */
 
+import { nucleosDasCarteiras } from './_lib/nucleos-erp.js';
 import {
   listarClientesDoHub, buscarClientePorCnpj, hubConfigurado, pedirAoHub,
   CAMPOS_CLIENTE, ErroHub
@@ -145,6 +146,9 @@ export async function onRequestGet(context) {
       .all();
 
     const doCrm = results || [];
+    // 2.44.0: os núcleos de cada cliente, pelas carteiras ativas do ERP.
+    const nucleosErp = await nucleosDasCarteiras(env);
+    const nucleosDe = (erpId) => (erpId && nucleosErp.porCliente.get(erpId)) || [];
     const porDocumento = new Map(
       doCrm
         .filter((c) => c.documento)
@@ -162,7 +166,7 @@ export async function onRequestGet(context) {
         // O que o CRM anotou por cima, quando existe.
         id: noCrm?.id ?? null,
         etapa_id: noCrm?.etapa_id ?? null,
-        nucleos: noCrm?.nucleos ?? '[]',
+        nucleosErp: nucleosDe(h.erp_id),
         observacoes: noCrm?.observacoes ?? null,
         data_inicio: noCrm?.data_inicio ?? null,
         contato_nome: noCrm?.contato_nome ?? null,
@@ -196,7 +200,7 @@ export async function onRequestGet(context) {
     //    filtro de status (inativo no ERP, por exemplo).
     const soNoCrm = doCrm
       .filter((c) => !usados.has(c.id))
-      .map((c) => ({ ...c, origem: 'crm', semJornada: false, erp_status: null }));
+      .map((c) => ({ ...c, nucleosErp: nucleosDe(c.erp_id), origem: 'crm', semJornada: false, erp_status: null }));
 
     return json({
       clientes: [...juntos, ...soNoCrm],

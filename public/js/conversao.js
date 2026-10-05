@@ -29,7 +29,6 @@
 const Conversao = (() => {
   let leadId = null;
   let etapasJornada = [];
-  let nucleosSelecionados = new Set();
 
   const el = (id) => document.getElementById(id);
 
@@ -173,27 +172,8 @@ const Conversao = (() => {
       : '<option value="">— nenhuma etapa cadastrada —</option>';
   }
 
-  function montarNucleos() {
-    const caixa = el('conversao-nucleos');
-    if (!caixa) return;
-
-    const lista = (typeof Cadastros !== 'undefined' ? Cadastros.nucleos() : []) || [];
-
-    if (lista.length === 0) {
-      caixa.innerHTML = '<span class="tags-vazio">Nenhum núcleo cadastrado ainda.</span>';
-      return;
-    }
-
-    caixa.innerHTML = lista.map((n) => `
-      <button type="button" class="tag-chip${nucleosSelecionados.has(n.id) ? ' ligada' : ''}"
-              data-nucleo="${n.id}" style="--cor-tag:${esc(n.cor || '#6e6e6e')}">
-        ${esc(n.nome)}
-      </button>`).join('');
-  }
-
   async function abrir(id, dados) {
     leadId = id;
-    nucleosSelecionados = new Set();
 
     const s = dados?.sugestao || {};
 
@@ -219,7 +199,6 @@ const Conversao = (() => {
 
     await carregarEtapas();
     montarEtapas();
-    montarNucleos();
 
     el('modal-conversao')?.classList.remove('hidden');
     el('conversao-nome')?.focus();
@@ -242,7 +221,6 @@ const Conversao = (() => {
       nome_fantasia: el('conversao-fantasia')?.value.trim() || null,
       etapa_id: el('conversao-etapa')?.value || null,
       data_inicio: el('conversao-inicio')?.value || null,
-      nucleos: [...nucleosSelecionados],
       observacoes: el('conversao-observacoes')?.value.trim() || null
     };
 
@@ -296,14 +274,6 @@ const Conversao = (() => {
       if (ev.target === el('modal-conversao')) fechar();
     });
 
-    el('conversao-nucleos')?.addEventListener('click', (ev) => {
-      const chip = ev.target.closest('[data-nucleo]');
-      if (!chip) return;
-      const id = Number(chip.dataset.nucleo);
-      if (nucleosSelecionados.has(id)) nucleosSelecionados.delete(id);
-      else nucleosSelecionados.add(id);
-      chip.classList.toggle('ligada');
-    });
 
     el('btn-converter-cliente')?.addEventListener('click', async () => {
       const id = (typeof Leads !== 'undefined' && Leads.emEdicao) ? Leads.emEdicao() : null;
