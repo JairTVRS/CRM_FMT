@@ -264,3 +264,9 @@
 .prop-acoes { flex-wrap: wrap; }
 .prop-acoes .btn { white-space: nowrap; }
 #contrato-pf-aviso { margin: 0 0 0.6rem; }
+
+/* 2.41.0 — o relógio da ficha do lead e o painel do histórico */
+#modal-lead .modal-card { position: relative; }
+.lead-topo-acoes { display: flex; align-items: center; gap: 0.5rem; }
+.lead-historico { width: min(420px, 100%); border-radius: 0; }
+.historico-vazio { color: var(--text-muted); font-style: italic; }

@@ -17,6 +17,7 @@ import { renderizarProposta, SERVICOS } from './_lib/proposta-template.js';
 import { criarVersionador } from './_lib/versionamento.js';
 import { preencherForma } from './_lib/forma-preco.js';
 import { KM_PADRAO } from './_lib/contrato.js';
+import { registrarEventoLead } from './_lib/lead-eventos.js';
 
 /**
  * O versionamento é o mesmo dos dois dossiês e mora no
@@ -264,6 +265,7 @@ export async function onRequestPost(context) {
     }
 
     console.log(`[proposta] lead ${leadId} v${gravacao.versao} por ${usuario.email}`);
+    await registrarEventoLead(db, { leadId, evento: 'proposta_gerada', por: usuario.email, detalhe: { versao: gravacao.versao } });
     return json({
       ok: true,
       versao: gravacao.versao,

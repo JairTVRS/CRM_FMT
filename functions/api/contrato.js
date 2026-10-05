@@ -16,6 +16,7 @@ import { criarVersionador } from './_lib/versionamento.js';
 import { prepararContrato, lerContratada, hojeEmBrasilia } from './_lib/contrato.js';
 import { renderizarContrato } from './_lib/contrato-template.js';
 import { nomeDeDocumento, TIPO_DOCUMENTO } from './_lib/documento-base.js';
+import { registrarEventoLead } from './_lib/lead-eventos.js';
 
 const contratos = criarVersionador({
   tabela: 'contratos',
@@ -162,6 +163,10 @@ export async function onRequestPost(context) {
     }
 
     console.log(`[contrato] lead ${leadId} v${gravacao.versao} por ${usuario.email}`);
+    await registrarEventoLead(db, {
+      leadId, evento: 'contrato_gerado', por: usuario.email,
+      detalhe: { versao: gravacao.versao, proposta_versao: dados.proposta.versao }
+    });
     return json({ ok: true, versao: gravacao.versao, tamanhoBytes: gravacao.tamanhoBytes }, 201, cabecalhos);
 
   } catch (e) {

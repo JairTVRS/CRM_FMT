@@ -510,6 +510,8 @@ const Leads = (() => {
       }
 
       await recarregarVisao();
+      // 2.41.0: o histórico do lead, se estiver aberto, se atualiza.
+      document.dispatchEvent(new CustomEvent('crm:lead-salvo', { detail: { id: d.lead?.id } }));
       return true;
 
     } catch (e) {
@@ -576,6 +578,8 @@ const Leads = (() => {
     // Lead sem id ainda não pode gerar proposta; a aba nasce nos padrões.
     if (typeof Proposta !== 'undefined') Proposta.limpar();
     if (typeof Contrato !== 'undefined') Contrato.abrir(null);
+    // 2.41.0: lead novo não tem histórico — o relógio some.
+    document.dispatchEvent(new CustomEvent('crm:lead-novo'));
   }
   function editar(id) { idEmEdicao = Number(id); }
   function emEdicao() { return idEmEdicao; }

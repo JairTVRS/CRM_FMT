@@ -46,7 +46,7 @@ novas** (as geradas ficam como estão). Migração **027**. Ver "Entregue".
 |---|---|---|
 | 1 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | só tem o título: **desenhar com o Jair antes do código** — o que medir (NPS, CSAT, os dois?), quando perguntar (depois de reunião, a cada X meses?), como o cliente responde (link, WhatsApp, o CX registra?), onde aparece (ficha, Balança, painel) |
 | 2 | **Contrato: primeiro uso real** | o admin cadastra em Configurações → Empresas contratadas **quem assina pela Formatar** (sem isso o contrato não sai) e confere o endereço da sede (veio do cartão CNPJ: Av. Sete de Setembro, 1470, Apto 301); conferir o texto das cláusulas com o jurídico |
-| 3 | **Fase 3 da 2.24.0** | depois do N; migração livre: **028** |
+| 3 | **Fase 3 da 2.24.0** | depois do N; migração livre: **029** |
 | 4 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
 
 **Ao retomar:** abrir este bloco; se o Jair responder o contrato antes,
@@ -86,7 +86,7 @@ o contrato pode passar na frente do N (não depende de desenho).
 |---|---|---|---|
 | ~~1~~ | ~~**Dossiê lê as atas + Balança Avaliativa**~~ | **FECHADO em 01/10/2026** — no ar na 2.39.0 (01/10/2026, migração 026, `balancas`): aba Balança no cliente; a IA lê as atas dos últimos 6 meses do ERP (só a parte pública — `separarNotasPrivadas` do `_lib/ata.js`) e o plano (`acoes_cx`), com a pré-venda como referência; números do período em código; evidências ancoradas na linha (`_lib/citacoes.js`, módulo comum com o Dossiê da Reunião); instrução padrão V1.0 em `Manuais/Instrucao-Balanca-Avaliativa-V1.0.md` (cópia no código, conferida pela prova) ou a enviada nas Configurações (`roteiros.finalidade = balanca`, tipo `__geral__`). Só a Balança: o Dossiê de Experiência ficou como estava (decisão de 01/10). 1ª geração real (Zanna Sound, 01/10): 42 reuniões, 33 ações, 22 evidências, 0 não encontradas. **2.39.1**: Dossiê de Experiência, Pré-venda e Balança numa aba só, "Documentos de contexto", com o nome exato do arquivo e "Baixar" direto; os três com `_vN` no nome (revisa a decisão de 06/09 de não pôr a versão no nome do Dossiê de Experiência) **2.39.2**: a aba ficou compacta, uma linha por documento | — |
 | 2 | **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
-| 3 | **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**028**; a 027 foi da 2.40.0) | o `contacts` do ERP ter id estável |
+| 3 | **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**029**; a 028 foi da 2.41.0) | o `contacts` do ERP ter id estável |
 
 **4. Travados, esperando material**
 
@@ -173,6 +173,8 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.38.1–2.38.2** | Tela da reunião limpa, ícone do CRM nos documentos e a aba **Pré-venda** no cliente — **fecha o lote JL** (01/10/2026) |
 | — | **2.39.0–2.39.2** | **Balança Avaliativa** e a aba **Documentos de contexto** no cliente (01/10/2026) |
 | **G** | **2.40.0** | **Contrato** (05/10/2026) — aba Contrato no lead (km, forma de preço, contratada, quem assina pelo cliente); o app monta o contrato padrão (`_lib/contrato-template.js`) com o escopo e os valores da **última proposta**, valores por extenso (`_lib/extenso.js`), o que falta listado antes de gerar (`prepararContrato`, `_lib/contrato.js`), versões (`contratos`, quarto consumidor do `_lib/versionamento.js`); cadastros **Formas de preço** (texto com marcadores, `_lib/forma-preco.js`) e **Empresas contratadas** nas Configurações, só admin, inativar e excluir só sem lead vinculado; a proposta nova usa o km do lead e traz a forma numa folha própria; o contrato aparece em Documentos de contexto do cliente (migração 027; prova `contrato.mjs`, 73) |
+| — | **2.40.1** | **Contrato sem sair da aba** (05/10/2026) — endereço do cliente (espelho da aba Contato & Endereço, CEP pelo ViaCEP), bloco da proposta com o resumo e "Gerar proposta agora", "Salvar e conferir" |
+| — | **2.41.0** | **Histórico do lead** (05/10/2026, pedido do Jair) — relógio no topo da ficha; quem, quando, campo por campo de → para (`lead_eventos`, migração 028, `_lib/lead-eventos.js`); entram criar, alterar, mover no quadro, proposta e contrato gerados, conversão e exclusão; salvar sem mudar nada não registra; o histórico nunca derruba o salvamento (prova `historico.mjs`, 22) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

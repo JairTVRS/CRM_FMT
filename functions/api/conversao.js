@@ -36,6 +36,7 @@
  *    fora do ERP.
  */
 
+import { registrarEventoLead } from './_lib/lead-eventos.js';
 import { limparCnpj, cnpjValido } from './_lib/cnpj.js';
 import { buscarClientePorCnpj, hubConfigurado, ErroHub } from './_lib/hub.js';
 
@@ -368,6 +369,7 @@ export async function onRequestPost(context) {
       .first();
 
     console.log(`[conversao] lead ${leadId} -> cliente ${registro.id} por ${usuario.email}${registro.erp_id ? ` (ERP ${registro.erp_id})` : ' (sem ERP)'}`);
+    await registrarEventoLead(db, { leadId, evento: 'convertido', por: usuario.email, detalhe: { cliente_id: registro.id } });
 
     return json({ ok: true, cliente: registro, avisoErp: erp.aviso }, 201, cabecalhos);
 

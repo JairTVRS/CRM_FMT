@@ -25,6 +25,7 @@
 import { limparCnpj } from './_lib/cnpj.js';
 import { documentoValido, cpfValido } from './_lib/documento.js';
 import { montarQuadro, comandosDeMover } from './_lib/quadro.js';
+import { registrarEventoLead, diferencas, listarEventosLead } from './_lib/lead-eventos.js';
 
 /** Converte "R$ 25.424,00", "25424.00" ou 25424 em centavos. */
 function paraCentavos(valor) {
@@ -357,6 +358,14 @@ export async function onRequestGet(context) {
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
 
   try {
+    // --- 2.41.0: o histórico do lead (o relógio da ficha) ---
+    const eventosDe = Number(searchParams.get('eventos'));
+    if (eventosDe) {
+      const historico = await listarEventosLead(db, eventosDe);
+      if (!historico) return json({ error: 'Lead não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
+      return json(historico, 200, cabecalhos);
+    }
+
     // --- Um lead específico ---
     const id = searchParams.get('id');
     if (id) {
@@ -504,6 +513,11 @@ export async function onRequestPost(context) {
       .first();
 
     console.log(`[leads] criado ${resultado.id} por ${usuario.email}`);
+    // 2.41.0: a criação, com o que já veio preenchido.
+    await registrarEventoLead(db, {
+      leadId: resultado.id, evento: 'criado', por: usuario.email,
+      detalhe: { mudancas: diferencas({}, resultado, CAMPOS).map(({ campo, para }) => ({ campo, para })) }
+    });
     return json({ lead: resultado }, 201, cabecalhos);
 
   } catch (e) {
@@ -595,6 +609,13 @@ export async function onRequestPut(context) {
       ]);
 
       console.log(`[leads] movido ${idMovido} para etapa ${etapaId} por ${usuario.email}`);
+      // 2.41.0: só troca de etapa entra no histórico; reordenar na coluna não.
+      if (mudouDeEtapa) {
+        await registrarEventoLead(db, {
+          leadId: idMovido, evento: 'movido', por: usuario.email,
+          detalhe: { de: anterior.etapa_id, para: etapaId, ...(motivo?.motivo_perda_id ? { motivo_perda_id: motivo.motivo_perda_id } : {}) }
+        });
+      }
       return json({ ok: true }, 200, cabecalhos);
     } catch (e) {
       return json({ error: 'Falha ao mover o lead.', details: e.message }, 500, cabecalhos);
@@ -609,8 +630,9 @@ export async function onRequestPut(context) {
   const invalido = validarObrigatorios(lead);
   if (invalido) return json(invalido, 400, cabecalhos);
 
+  // A linha inteira (2.41.0): o histórico compara campo por campo.
   const anterior = await db
-    .prepare('SELECT etapa_id, responsavel FROM leads WHERE id = ? AND ativo = 1')
+    .prepare('SELECT * FROM leads WHERE id = ? AND ativo = 1')
     .bind(id).first();
   if (!anterior) return json({ error: 'Lead não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
 
@@ -635,6 +657,11 @@ export async function onRequestPut(context) {
     if (!resultado) return json({ error: 'Lead não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
 
     console.log(`[leads] atualizado ${id} por ${usuario.email}`);
+    // 2.41.0: salvar sem mudar nada não vira registro.
+    const mudancas = diferencas(anterior, resultado, CAMPOS);
+    if (mudancas.length) {
+      await registrarEventoLead(db, { leadId: id, evento: 'alterado', por: usuario.email, detalhe: { mudancas } });
+    }
     return json({ lead: resultado }, 200, cabecalhos);
 
   } catch (e) {
@@ -672,6 +699,7 @@ export async function onRequestDelete(context) {
     if (!resultado) return json({ error: 'Lead não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
 
     console.log(`[leads] excluido ${id} por ${usuario.email}`);
+    await registrarEventoLead(db, { leadId: id, evento: 'excluido', por: usuario.email });
     return json({ ok: true, id: resultado.id }, 200, cabecalhos);
 
   } catch (e) {

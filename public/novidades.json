@@ -2,6 +2,17 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.41.0",
+      "data": "05/10/2026",
+      "titulo": "Histórico do lead",
+      "itens": [
+        "Novo relógio no canto superior direito da ficha do lead: abre o histórico do cadastro, do mais novo para o mais antigo.",
+        "Cada alteração salva mostra quem fez, a data e o horário e, campo por campo, como estava e como ficou.",
+        "Também entram a mudança de etapa arrastando no quadro, a proposta e o contrato gerados, a conversão em cliente e a exclusão.",
+        "O registro começou nesta versão: dos leads que já existiam, aparece a criação e, daqui em diante, o que mudar."
+      ]
+    },
+    {
       "versao": "2.40.1",
       "data": "05/10/2026",
       "titulo": "Contrato sem sair da aba",
