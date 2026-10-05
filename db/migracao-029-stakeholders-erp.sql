@@ -19,6 +19,9 @@
 --
 -- Aplicar pelo --command, um comando por instrução (ver a 021).
 --
+-- Aplicada no D1 remoto em 05/10/2026 e conferida: a coluna existe e só
+-- o idx_stakeholders_erp ficou (stakeholders tinha 0 linhas).
+--
 -- CONFIRA DEPOIS:
 --   npx wrangler d1 execute crm-formatar --remote --command="SELECT name FROM sqlite_master WHERE name IN ('idx_stakeholders_erp', 'idx_stakeholders_nome')"
 --   (deve aparecer só idx_stakeholders_erp)

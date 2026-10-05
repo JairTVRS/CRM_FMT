@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 05/10/2026
-**Versão no ar:** 2.42.0 (desde 05/10/2026; migrações 008 a 028 aplicadas no D1 remoto, a 027 e a 028 em 05/10/2026 pelo --command e conferidas; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Versão no ar:** 2.43.0 (desde 05/10/2026; migrações 008 a 029 aplicadas no D1 remoto, da 027 à 029 em 05/10/2026 pelo --command e conferidas; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -46,7 +46,7 @@ novas** (as geradas ficam como estão). Migração **027**. Ver "Entregue".
 |---|---|---|
 | 1 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | só tem o título: **desenhar com o Jair antes do código** — o que medir (NPS, CSAT, os dois?), quando perguntar (depois de reunião, a cada X meses?), como o cliente responde (link, WhatsApp, o CX registra?), onde aparece (ficha, Balança, painel) |
 | 2 | **Contrato: primeiro uso real** | o admin cadastra em Configurações → Empresas contratadas **quem assina pela Formatar** (sem isso o contrato não sai) e confere o endereço da sede (veio do cartão CNPJ: Av. Sete de Setembro, 1470, Apto 301); conferir o texto das cláusulas com o jurídico |
-| 3 | **Fase 3 da 2.24.0** — estruturada em 05/10/2026 | Respostas do Jair: (1) pessoa não "some" do ERP — a lista espelha o cadastro do cliente no ERP; quem sai é excluído lá; (2) núcleo do cliente = **carteira ativa** do ERP; (3) a CX **não** cadastra pessoa fora do ERP; (4) filtro por núcleo na lista de clientes **fica** (vindo do ERP). Entregas: **2.42.0** conferência (no ar; resultado em 05/10: `contacts` com `_id` em todas) → **2.43.0** aba Stakeholders (pronta) com as pessoas do ERP e a avaliação presa ao código do contato (migração 029; plano B: e-mail) → **2.44.0** núcleos do cliente pelas carteiras, sai o campo da ficha/conversão e os cadastros Núcleos/Papéis (tabelas ficam). Produção em 05/10: 0 pessoas avaliadas no CRM, 1 cliente com núcleo na ficha, 1 papel — nada relevante a migrar |
+| 3 | **Fase 3 da 2.24.0** — estruturada em 05/10/2026 | Respostas do Jair: (1) pessoa não "some" do ERP — a lista espelha o cadastro do cliente no ERP; quem sai é excluído lá; (2) núcleo do cliente = **carteira ativa** do ERP; (3) a CX **não** cadastra pessoa fora do ERP; (4) filtro por núcleo na lista de clientes **fica** (vindo do ERP). Entregas: **2.42.0** conferência (no ar; resultado em 05/10: `contacts` com `_id` em todas) → **2.43.0** aba Stakeholders (no ar em 05/10) com as pessoas do ERP e a avaliação presa ao código do contato (migração 029; plano B: e-mail) → **2.44.0** núcleos do cliente pelas carteiras, sai o campo da ficha/conversão e os cadastros Núcleos/Papéis (tabelas ficam). Produção em 05/10: 0 pessoas avaliadas no CRM, 1 cliente com núcleo na ficha, 1 papel — nada relevante a migrar |
 | 4 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
 
 **Ao retomar:** abrir este bloco; se o Jair responder o contrato antes,
