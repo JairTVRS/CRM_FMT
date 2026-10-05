@@ -789,3 +789,12 @@ body.light-theme .topo-botao .icone-lua { display: block; }
   padding: 0.5rem 0.65rem 0.6rem;
   margin: 0 0 0.5rem;
 }
+
+/* 2.42.0 — conferência das pessoas dos clientes no ERP */
+.diag-form { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.diag-form .form-control { flex: 1; min-width: 240px; }
+.diag-tabela { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 0.75rem; }
+.diag-tabela th, .diag-tabela td { border-bottom: 1px solid var(--border-color); padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+.diag-tabela th { color: var(--text-muted); font-weight: 600; }
+.diag-clientes { font-size: 0.78rem; color: var(--text-muted); padding-left: 1.1rem; margin: 0 0 0.5rem; }
+.diag-clientes li { margin-bottom: 0.25rem; }

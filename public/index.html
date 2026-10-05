@@ -533,6 +533,27 @@
             <button id="btn-prospects-importar" class="btn btn-primary btn-sm hidden">Importar agora</button>
           </div>
 
+          <!-- 2.42.0 (Fase 3 da 2.24.0): como o ERP entrega as pessoas
+               (stakeholders) dos clientes. Só admin; não mostra dados
+               pessoais, só a forma. -->
+          <div class="config-card hidden" id="cartao-diag-pessoas">
+            <hr class="divider">
+            <h3>Pessoas dos clientes no ERP (conferência)</h3>
+            <p class="card-desc">
+              Pergunta ao ERP como chegam os stakeholders dos clientes: se vêm, quantos, quais
+              informações cada pessoa traz e se cada uma tem código próprio. <strong>Não mostra
+              nomes, e-mails nem telefones</strong> — só a forma. Deixe o id vazio para sortear 8
+              clientes, ou cole o id de um cliente do ERP (o final do endereço da tela do cliente no hub).
+            </p>
+            <div class="diag-form">
+              <input type="text" id="diag-erp-id" class="form-control" maxlength="64"
+                     placeholder="Id do cliente no ERP (opcional)">
+              <button type="button" id="btn-diag-pessoas" class="btn btn-primary btn-sm">Conferir</button>
+              <button type="button" id="btn-diag-copiar" class="btn btn-secondary btn-sm hidden">Copiar o resultado</button>
+            </div>
+            <div id="diag-pessoas-resultado" class="diag-resultado"></div>
+          </div>
+
           <hr class="divider">
 
           <!-- 2.34.0: um cartão só para a IA. O provedor em uso vale para

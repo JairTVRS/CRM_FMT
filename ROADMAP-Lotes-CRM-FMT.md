@@ -46,7 +46,7 @@ novas** (as geradas ficam como estão). Migração **027**. Ver "Entregue".
 |---|---|---|
 | 1 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | só tem o título: **desenhar com o Jair antes do código** — o que medir (NPS, CSAT, os dois?), quando perguntar (depois de reunião, a cada X meses?), como o cliente responde (link, WhatsApp, o CX registra?), onde aparece (ficha, Balança, painel) |
 | 2 | **Contrato: primeiro uso real** | o admin cadastra em Configurações → Empresas contratadas **quem assina pela Formatar** (sem isso o contrato não sai) e confere o endereço da sede (veio do cartão CNPJ: Av. Sete de Setembro, 1470, Apto 301); conferir o texto das cláusulas com o jurídico |
-| 3 | **Fase 3 da 2.24.0** | depois do N; migração livre: **029** |
+| 3 | **Fase 3 da 2.24.0** — estruturada em 05/10/2026 | Respostas do Jair: (1) pessoa não "some" do ERP — a lista espelha o cadastro do cliente no ERP; quem sai é excluído lá; (2) núcleo do cliente = **carteira ativa** do ERP; (3) a CX **não** cadastra pessoa fora do ERP; (4) filtro por núcleo na lista de clientes **fica** (vindo do ERP). Entregas: **2.42.0** conferência (no código) → **2.43.0** aba Stakeholders com as pessoas do ERP e a avaliação presa ao código do contato (migração 029; plano B: e-mail) → **2.44.0** núcleos do cliente pelas carteiras, sai o campo da ficha/conversão e os cadastros Núcleos/Papéis (tabelas ficam). Produção em 05/10: 0 pessoas avaliadas no CRM, 1 cliente com núcleo na ficha, 1 papel — nada relevante a migrar |
 | 4 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
 
 **Ao retomar:** abrir este bloco; se o Jair responder o contrato antes,
@@ -177,6 +177,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.41.0** | **Histórico do lead** (05/10/2026, pedido do Jair) — relógio no topo da ficha; quem, quando, campo por campo de → para (`lead_eventos`, migração 028, `_lib/lead-eventos.js`); entram criar, alterar, mover no quadro, proposta e contrato gerados, conversão e exclusão; salvar sem mudar nada não registra; o histórico nunca derruba o salvamento (prova `historico.mjs`, 22) |
 | — | **2.41.1** | **Contrato: tudo editável na aba** (05/10/2026) — CNPJ/CPF espelhado na aba Contrato (lead do ERP sem CNPJ não salvava); escopo e os valores que a forma de preço usa editáveis no bloco Proposta; lista do que falta aponta para a aba; corrigido o "—" escrito no campo de CNPJ vazio |
 | — | **2.41.2** | **Endereço do cadastro** (05/10/2026) — rodapé da proposta e do contrato e assinatura da proposta vêm de Empresas contratadas (a do lead ou a padrão; `buscarContratadaDoLead`/`enderecoDaContratada` em `_lib/contrato.js`); o fixo `FORMATAR.endereco` fica só de reserva (e no Dossiê de Experiência) |
+| — | **2.42.0** | **Conferência das pessoas no ERP** (05/10/2026, 1ª entrega da Fase 3 da 2.24.0) — cartão admin nas Configurações (`/api/hub-diagnostico`, `_lib/diagnostico-pessoas.js`): pede `contacts`, `stakeholders` e `/customers/{id}/stakeholders` e descreve só a forma (campos, quantidades, quantos com código), nunca valores (prova `diagnostico.mjs`, 14) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

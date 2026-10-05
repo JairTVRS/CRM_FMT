@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.42.0",
+      "data": "05/10/2026",
+      "titulo": "Conferência das pessoas dos clientes no ERP",
+      "itens": [
+        "Nas Configurações, só para administradores: o cartão Pessoas dos clientes no ERP pergunta ao ERP como chegam os stakeholders dos clientes — quantos, quais informações cada pessoa traz e se cada uma tem código próprio.",
+        "Não mostra nomes, e-mails nem telefones, só a forma. Aceita o id de um cliente do ERP ou sorteia 8.",
+        "É o primeiro passo da Fase 3: as pessoas do ERP na aba Stakeholders, com a avaliação da CX presa a cada uma."
+      ]
+    },
+    {
       "versao": "2.41.2",
       "data": "05/10/2026",
       "titulo": "Endereço da proposta e do contrato vem do cadastro",

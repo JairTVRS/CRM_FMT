@@ -28,6 +28,9 @@ function initConfiguracoes() {
   // Prospects do ERP (2.33.0)
   mostrarProspects();
 
+  // Pessoas dos clientes no ERP (2.42.0)
+  prepararDiagnosticoPessoas();
+
   // Roteiros de reunião (2.34.0)
   if (typeof Roteiros !== 'undefined') Roteiros.montarConfig();
 }
@@ -238,5 +241,96 @@ async function importarProspectsAgora() {
     botao.disabled = false;
     botao.textContent = 'Importar agora';
     mostrarProspects();
+  }
+}
+
+/* ==========================================================================
+   Pessoas dos clientes no ERP — conferência (2.42.0)
+
+   Primeiro passo da Fase 3 da 2.24.0: saber como o ERP entrega os
+   stakeholders antes de amarrar a avaliação da CX a eles. O servidor
+   devolve só a forma (nomes de campos, quantidades), nunca os dados.
+   ========================================================================== */
+
+let diagUltimo = null;
+
+function prepararDiagnosticoPessoas() {
+  const cartao = document.getElementById('cartao-diag-pessoas');
+  if (!cartao) return;
+  const admin = typeof Auth !== 'undefined' && Auth.usuario?.admin;
+  cartao.classList.toggle('hidden', !admin);
+  const botao = document.getElementById('btn-diag-pessoas');
+  if (botao && !botao.dataset.ligado) {
+    botao.dataset.ligado = '1';
+    botao.addEventListener('click', conferirPessoas);
+    document.getElementById('btn-diag-copiar')?.addEventListener('click', async () => {
+      if (!diagUltimo) return;
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(diagUltimo, null, 2));
+        alert('Resultado copiado. Cole na conversa com o Claude.');
+      } catch (e) {
+        alert('Não foi possível copiar automaticamente.');
+      }
+    });
+  }
+}
+
+const ROTULO_CAMINHO = {
+  contacts: 'campo "contacts"',
+  stakeholders: 'campo "stakeholders"',
+  rotaStakeholders: 'rota /customers/{id}/stakeholders'
+};
+
+function linhaDoCaminho(r) {
+  if (!r) return '—';
+  if (!r.ok) return `<span class="cc-alerta">recusado${r.status ? ` (${r.status})` : ''}</span>`;
+  const f = r.forma || {};
+  if (!f.presente) return 'não veio';
+  if (f.tipo !== 'lista') return `veio como ${escConfig(f.tipo)}`;
+  return `${f.quantidade} pessoa(s), ${f.comId} com código`;
+}
+
+async function conferirPessoas() {
+  const botao = document.getElementById('btn-diag-pessoas');
+  const alvo = document.getElementById('diag-pessoas-resultado');
+  const id = document.getElementById('diag-erp-id')?.value.trim();
+  botao.disabled = true;
+  botao.textContent = 'Conferindo…';
+  alvo.innerHTML = '<p class="campo-ajuda">Perguntando ao ERP… (alguns segundos por cliente)</p>';
+  try {
+    const r = await fetch(`/api/hub-diagnostico${id ? `?erp_id=${encodeURIComponent(id)}` : ''}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(`${d.error || 'erro'}${d.details ? ` (${d.details})` : ''}`);
+    diagUltimo = d;
+    document.getElementById('btn-diag-copiar')?.classList.remove('hidden');
+
+    const resumo = Object.entries(d.resumo).map(([c, x]) => `
+      <tr>
+        <td>${escConfig(ROTULO_CAMINHO[c] || c)}</td>
+        <td>${x.responderam} de ${x.responderam + x.recusaram}</td>
+        <td>${x.clientesComPessoas}</td>
+        <td>${x.pessoas}</td>
+        <td>${x.pessoasComCodigo}</td>
+        <td>${Object.entries(x.chaves).map(([k, n]) => `${escConfig(k)} (${n})`).join(', ') || (x.motivoDaRecusa ? `<span class="cc-alerta">${escConfig(x.motivoDaRecusa)}</span>` : '—')}</td>
+      </tr>`).join('');
+
+    const clientes = d.clientes.map((c) => `
+      <li><strong>${escConfig(c.nome || c.erpId)}</strong>:
+        contacts — ${linhaDoCaminho(c.contacts)} ·
+        stakeholders — ${linhaDoCaminho(c.stakeholders)} ·
+        rota — ${linhaDoCaminho(c.rotaStakeholders)}</li>`).join('');
+
+    alvo.innerHTML = `
+      <table class="diag-tabela">
+        <thead><tr><th>Caminho</th><th>Respondeu</th><th>Clientes com pessoas</th><th>Pessoas</th><th>Com código</th><th>Campos de cada pessoa (preenchidos)</th></tr></thead>
+        <tbody>${resumo}</tbody>
+      </table>
+      <ul class="diag-clientes">${clientes}</ul>
+      <p class="campo-ajuda">Use "Copiar o resultado" e cole na conversa: com isso a Fase 3 segue.</p>`;
+  } catch (e) {
+    alvo.innerHTML = `<p class="cc-alerta">Não foi possível conferir: ${escConfig(e.message)}</p>`;
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Conferir';
   }
 }
