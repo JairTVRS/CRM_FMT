@@ -259,6 +259,7 @@ function prepararDiagnosticoPessoas() {
   if (!cartao) return;
   const admin = typeof Auth !== 'undefined' && Auth.usuario?.admin;
   cartao.classList.toggle('hidden', !admin);
+  if (admin) carregarClientesDoDiagnostico();
   const botao = document.getElementById('btn-diag-pessoas');
   if (botao && !botao.dataset.ligado) {
     botao.dataset.ligado = '1';
@@ -290,15 +291,29 @@ function linhaDoCaminho(r) {
   return `${f.quantidade} pessoa(s), ${f.comId} com código`;
 }
 
+/** Os clientes ligados ao ERP, pelo nome — ninguém precisa saber o id do ERP. */
+async function carregarClientesDoDiagnostico() {
+  const select = document.getElementById('diag-cliente');
+  if (!select || select.dataset.carregado) return;
+  try {
+    const d = await fetch('/api/hub-diagnostico?lista=1').then((r) => r.json());
+    select.innerHTML = '<option value="">Sortear 8 clientes</option>'
+      + (d.clientes || []).map((c) => `<option value="${c.id}">${escConfig(c.nome)}</option>`).join('');
+    select.dataset.carregado = '1';
+  } catch (e) {
+    // Sem a lista, o sorteio continua funcionando.
+  }
+}
+
 async function conferirPessoas() {
   const botao = document.getElementById('btn-diag-pessoas');
   const alvo = document.getElementById('diag-pessoas-resultado');
-  const id = document.getElementById('diag-erp-id')?.value.trim();
+  const id = document.getElementById('diag-cliente')?.value;
   botao.disabled = true;
   botao.textContent = 'Conferindo…';
   alvo.innerHTML = '<p class="campo-ajuda">Perguntando ao ERP… (alguns segundos por cliente)</p>';
   try {
-    const r = await fetch(`/api/hub-diagnostico${id ? `?erp_id=${encodeURIComponent(id)}` : ''}`);
+    const r = await fetch(`/api/hub-diagnostico${id ? `?cliente_id=${encodeURIComponent(id)}` : ''}`);
     const d = await r.json();
     if (!r.ok) throw new Error(`${d.error || 'erro'}${d.details ? ` (${d.details})` : ''}`);
     diagUltimo = d;

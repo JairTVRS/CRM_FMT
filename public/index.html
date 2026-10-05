@@ -542,12 +542,13 @@
             <p class="card-desc">
               Pergunta ao ERP como chegam os stakeholders dos clientes: se vêm, quantos, quais
               informações cada pessoa traz e se cada uma tem código próprio. <strong>Não mostra
-              nomes, e-mails nem telefones</strong> — só a forma. Deixe o id vazio para sortear 8
-              clientes, ou cole o id de um cliente do ERP (o final do endereço da tela do cliente no hub).
+              nomes, e-mails nem telefones</strong> — só a forma. Escolha um cliente que tenha
+              stakeholders cadastrados no ERP, ou deixe em "sortear" para conferir 8 ao acaso.
             </p>
             <div class="diag-form">
-              <input type="text" id="diag-erp-id" class="form-control" maxlength="64"
-                     placeholder="Id do cliente no ERP (opcional)">
+              <select id="diag-cliente" class="form-control">
+                <option value="">Sortear 8 clientes</option>
+              </select>
               <button type="button" id="btn-diag-pessoas" class="btn btn-primary btn-sm">Conferir</button>
               <button type="button" id="btn-diag-copiar" class="btn btn-secondary btn-sm hidden">Copiar o resultado</button>
             </div>

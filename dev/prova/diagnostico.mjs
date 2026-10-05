@@ -33,8 +33,9 @@ ok(descreverForma(undefined).presente === false, 'campo que não veio: presente 
 
 console.log('\n=== 2. A rota ===');
 const bd = new DatabaseSync(':memory:');
-bd.exec(`CREATE TABLE clientes (id INTEGER PRIMARY KEY, nome TEXT, erp_id TEXT, ativo INTEGER DEFAULT 1);
-         INSERT INTO clientes (nome, erp_id) VALUES ('DIVINÓPOLIS CALÇADOS', '64e3bcef79332f21f3dfc3bd'), ('Sem pessoas', 'aaaaaaaaaaaaaaaaaaaaaaaa');`);
+bd.exec(`CREATE TABLE clientes (id INTEGER PRIMARY KEY, nome TEXT, nome_fantasia TEXT, erp_id TEXT, ativo INTEGER DEFAULT 1);
+         INSERT INTO clientes (nome, nome_fantasia, erp_id) VALUES ('DIVICAL CALÇADOS LTDA', 'DIVINÓPOLIS CALÇADOS', '64e3bcef79332f21f3dfc3bd'),
+           ('Sem pessoas', NULL, 'aaaaaaaaaaaaaaaaaaaaaaaa'), ('Sem ERP', NULL, NULL);`);
 const DB = {
   prepare(sql) {
     const st = bd.prepare(sql); let a = [];
@@ -69,11 +70,15 @@ const OUTRO = { email: 'cx@formatar.com.br', grupoId: 'grupo-cx' };
 let r = await api.onRequestGet(ctx('/api/hub-diagnostico', OUTRO));
 ok(r.status === 403, 'quem não é admin não usa');
 
+r = await api.onRequestGet(ctx('/api/hub-diagnostico?lista=1', SOCIO));
+let lista = (await r.json()).clientes;
+ok(lista.length === 2 && lista[0].nome === 'DIVINÓPOLIS CALÇADOS', 'a lista para escolher: os clientes ligados ao ERP, pelo nome fantasia', lista.map((c) => c.nome).join(', '));
+
 esquecerMemoria();
-r = await api.onRequestGet(ctx('/api/hub-diagnostico?erp_id=64e3bcef79332f21f3dfc3bd', SOCIO));
+r = await api.onRequestGet(ctx(`/api/hub-diagnostico?cliente_id=${lista[0].id}`, SOCIO));
 let d = await r.json();
 const texto = JSON.stringify(d);
-ok(r.status === 200 && d.clientes.length === 1 && d.clientes[0].nome === 'DIVINÓPOLIS CALÇADOS', 'um cliente pelo id do ERP, com o nome do cadastro do CRM');
+ok(r.status === 200 && d.clientes.length === 1 && d.clientes[0].nome === 'DIVINÓPOLIS CALÇADOS', 'um cliente escolhido pelo nome — o id do ERP o CRM já sabe');
 ok(d.resumo.contacts.pessoas === 2 && d.resumo.contacts.pessoasComCodigo === 2, 'contacts: 2 pessoas, as 2 com código');
 ok(d.clientes[0].contacts.oQueOCrmEntende.pessoasComNome === 2, 'e o leitor do CRM as reconhece');
 ok(d.clientes[0].stakeholders.ok === false && /API_FIELDS_VALIDATION/.test(d.clientes[0].stakeholders.mensagem), 'campo "stakeholders" recusado: vira recusado, com o motivo');
@@ -83,8 +88,8 @@ ok(!/Júlio|Júlia|jsilva|3732290202/.test(texto), 'nenhum nome, e-mail ou telef
 r = await api.onRequestGet(ctx('/api/hub-diagnostico', SOCIO));
 d = await r.json();
 ok(d.clientes.length === 2 && d.resumo.contacts.clientesComPessoas === 1, 'sem id: sorteia entre os clientes ligados ao ERP');
-r = await api.onRequestGet(ctx('/api/hub-diagnostico?erp_id=../../x', SOCIO));
-ok(r.status === 400, 'id com caractere estranho é recusado');
+r = await api.onRequestGet(ctx('/api/hub-diagnostico?cliente_id=3', SOCIO));
+ok(r.status === 404, 'cliente sem ligação com o ERP: avisa');
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTudo certo.');
 process.exit(falhas ? 1 : 0);

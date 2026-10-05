@@ -7,7 +7,7 @@
       "titulo": "Conferência das pessoas dos clientes no ERP",
       "itens": [
         "Nas Configurações, só para administradores: o cartão Pessoas dos clientes no ERP pergunta ao ERP como chegam os stakeholders dos clientes — quantos, quais informações cada pessoa traz e se cada uma tem código próprio.",
-        "Não mostra nomes, e-mails nem telefones, só a forma. Aceita o id de um cliente do ERP ou sorteia 8.",
+        "Não mostra nomes, e-mails nem telefones, só a forma. O cliente é escolhido pelo nome (ou sorteia 8) — ninguém precisa saber o id do ERP.",
         "É o primeiro passo da Fase 3: as pessoas do ERP na aba Stakeholders, com a avaliação da CX presa a cada uma."
       ]
     },
