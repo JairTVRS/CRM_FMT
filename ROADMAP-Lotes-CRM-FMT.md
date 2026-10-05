@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 05/10/2026
-**Versão no ar:** 2.39.2 (desde 01/10/2026; migrações 008 a 026 aplicadas no D1 remoto, da 022 à 026 em 01/10/2026; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Versão no ar:** 2.40.0 (desde 05/10/2026; migrações 008 a 027 aplicadas no D1 remoto, a 027 em 05/10/2026 pelo --command e conferida; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -29,7 +29,7 @@ fechados no mesmo dia:
 encontrada"; Balança da Zanna Sound com 42 reuniões, 33 ações, 22
 evidências e nenhuma "não encontrada".
 
-**05/10/2026 — Lote G (contrato) pronto na 2.40.0**, passou na frente do N
+**05/10/2026 — Lote G (contrato) no ar na 2.40.0** (`b1a8b0a`), passou na frente do N
 a pedido do Jair. Respostas dele às 4 perguntas: (a) o modelo é padrão e o
 app o monta — o arquivo da Trinta Dezessete serviu só de referência; o km
 é do **cadastro do lead** (negociado por lead); os dados do cliente vêm do

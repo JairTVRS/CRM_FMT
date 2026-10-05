@@ -20,6 +20,10 @@
 --   npx wrangler d1 execute crm-formatar --remote --command="SELECT id, nome, ativa FROM formas_preco ORDER BY ordem"
 --   npx wrangler d1 execute crm-formatar --remote --command="SELECT id, razao_social, cnpj, padrao FROM contratadas"
 --   npx wrangler d1 execute crm-formatar --remote --command="SELECT name FROM sqlite_master WHERE name IN ('contratos', 'idx_contratos_lead')"
+--
+-- Aplicada no D1 remoto em 05/10/2026, pelo --command (20 instruções), e
+-- conferida: 9 colunas, 3 tabelas e o índice; as 6 formas com o texto
+-- idêntico ao do código (acentos e quebras de linha intactos).
 -- ==========================================================
 
 -- ----------------------------------------------------------
