@@ -353,6 +353,8 @@ export async function reunirConta(db, clienteId, env) {
 
     return {
       ...s,
+      // 2.43.0: a avaliação é presa ao código da pessoa no ERP.
+      erp_id: s.erp_contato_id || null,
       patrocinador: !!s.patrocinador,
       papel: s.papel_id ? (nomePapel.get(s.papel_id) || null) : null,
       nucleoIdsLocais: ids
@@ -417,9 +419,9 @@ export async function reunirConta(db, clienteId, env) {
     p.nome ? `nome:${String(p.nome).trim().toLowerCase()}` : null
   ].filter(Boolean);
 
-  // A avaliação da CX é casada por e-mail e, na falta dele, por nome.
-  // É junção de LEITURA, sem migração: a amarra durável pelo id do
-  // contato é a Fase 3, e depende de o ERP ter id estável.
+  // A avaliação da CX é casada pelo CÓDIGO da pessoa no ERP (2.43.0,
+  // migração 029 — o ERP tem `_id` em todas, conferido em 05/10/2026). E-mail
+  // e nome ficam como reserva para avaliação antiga, sem código.
   const avaliacaoPor = new Map();
   for (const a of avaliacoes) {
     for (const k of chavesDe(a)) if (!avaliacaoPor.has(k)) avaliacaoPor.set(k, a);
@@ -471,11 +473,14 @@ export async function reunirConta(db, clienteId, env) {
     };
   });
 
-  // Quem a CX registrou no CRM e o ERP não conhece. Não some da folha:
-  // ou é gente que saiu do cliente, ou é cadastro que nunca existiu lá —
-  // e as duas coisas a CX precisa ver para resolver.
-  const soNoCrm = avaliacoes
-    .filter((a) => !usadas.has(a.id))
+  // Avaliação sem pessoa no ERP. Decidido com o Jair em 05/10/2026: a
+  // lista de pessoas é o cadastro do cliente no ERP — quem sai é excluído
+  // lá, e some daqui. A avaliação fica guardada, mas não vai à folha.
+  //
+  // Só quando o ERP NÃO respondeu é que as avaliações aparecem sozinhas:
+  // aí são tudo o que se sabe da conta, e a folha diz que vêm do CRM.
+  const semPessoaNoErp = avaliacoes.filter((a) => !usadas.has(a.id));
+  const soNoCrm = (pessoasConsultadas ? [] : semPessoaNoErp)
     .map((a) => ({
       nome: a.nome,
       cargo: a.cargo,
@@ -521,6 +526,8 @@ export async function reunirConta(db, clienteId, env) {
       totalNoErp: contatos ? contatos.contatos.length : null,
       temMarcacaoPrincipal: contatos ? contatos.temMarcacaoPrincipal : false,
       soNoCrm: soNoCrm.length,
+      // Avaliações guardadas de pessoas que não estão (mais) no ERP.
+      avaliacoesSemPessoa: pessoasConsultadas ? semPessoaNoErp.length : 0,
       motivo: pessoasConsultadas ? null
         : (conta.erro ? conta.erro.mensagem
           : 'O ERP não devolveu a lista de pessoas desta conta.')

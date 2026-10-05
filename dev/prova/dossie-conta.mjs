@@ -84,7 +84,7 @@ bd.exec(`
     papel_id INTEGER, cargo TEXT, email TEXT, telefone TEXT,
     influencia TEXT DEFAULT 'desconhecida', postura TEXT DEFAULT 'desconhecida',
     patrocinador INTEGER DEFAULT 0, nucleos TEXT DEFAULT '[]', observacoes TEXT,
-    ativo INTEGER DEFAULT 1);
+    ativo INTEGER DEFAULT 1, erp_contato_id TEXT);
 
   INSERT INTO etapas (id, nome, cor, pipeline) VALUES (7, 'Boas-vindas', '#F2421A', 'jornada');
   INSERT INTO nucleos (id, nome, cor) VALUES (1, 'Marcado à mão', '#999999');
@@ -107,6 +107,13 @@ bd.exec(`
                             postura, patrocinador, nucleos, observacoes, ativo)
   VALUES (2, 'Roberto Nunes', 1, NULL, 'roberto@valeverde.com.br', 'alta',
           'promotor', 1, '[]', 'Decide sozinho.', 1);
+
+  -- 2.43.0: avaliação presa ao CÓDIGO do ERP, com nome e e-mail que não
+  -- batem (o ERP renomeou a pessoa): o código é o que vale.
+  INSERT INTO stakeholders (cliente_id, nome, email, influencia, postura, patrocinador,
+                            nucleos, observacoes, ativo, erp_contato_id)
+  VALUES (2, 'T. Nunes (nome antigo)', 'antigo@valeverde.com.br', 'media', 'neutro', 0,
+          '[]', 'Pelo código.', 1, 'c07f1f77bcf86cd799439704');
 
   -- Alguém que a CX registrou e que o ERP não conhece.
   INSERT INTO stakeholders (cliente_id, nome, cargo, email, influencia, postura,
@@ -196,12 +203,17 @@ console.log('\n-- a avaliação da CX cola na pessoa do ERP --');
   ok(roberto.avaliada === true, 'marcada como avaliada');
   ok(roberto.observacoes === 'Decide sozinho.', 'com a observação da CX preservada');
 
-  const fantasma = conta.stakeholders.find((p) => p.nome === 'Fantasma do CRM');
-  ok(!!fantasma, 'quem só existe no CRM NÃO some da folha');
-  ok(fantasma.origem === 'crm', 'e vai marcado como tal',
-     'ou é gente que saiu do cliente, ou cadastro que nunca existiu no ERP');
+  // 2.43.0: a avaliação presa ao código do ERP vence nome e e-mail.
+  const tiago = conta.stakeholders.find((p) => p.nome === 'Tiago Nunes');
+  ok(tiago.influencia === 'media' && tiago.observacoes === 'Pelo código.',
+     'a avaliação presa ao código do ERP acha a pessoa mesmo com nome e e-mail diferentes');
 
-  ok(conta.fontes.pessoas.soNoCrm === 1, 'e a folha sabe quantos são');
+  // Decidido em 05/10/2026: a lista é o cadastro do ERP — quem não está lá
+  // não aparece. A avaliação fica guardada e é contada.
+  const fantasma = conta.stakeholders.find((p) => p.nome === 'Fantasma do CRM');
+  ok(!fantasma, 'quem não está no ERP não aparece na folha (o ERP é o cadastro)');
+  ok(conta.fontes.pessoas.soNoCrm === 0 && conta.fontes.pessoas.avaliacoesSemPessoa === 1,
+     'a avaliação sem pessoa no ERP fica guardada e contada');
 }
 
 console.log('\n-- o cruzamento núcleo × pessoa sai da presença nas reuniões --');

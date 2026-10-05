@@ -839,12 +839,25 @@ export function traduzirContato(bruto) {
 
   const marcado = campos.principal;
 
+  // 2.43.0: o cargo no ERP real vem em `office` (conferido em 05/10/2026).
+  // Na tela do ERP ele é uma lista de escolha, então pode chegar como
+  // texto ("SÓCIO"), como objeto ({ name }) ou como referência a outra
+  // coleção (ObjectId). Referência não é cargo legível: fica nulo em vez
+  // de imprimir um código.
+  const cargo = (() => {
+    const c = campos.cargo;
+    if (c == null) return null;
+    if (typeof c === 'object') return c.name || c.title || c.label || c.description || null;
+    const t = String(c).trim();
+    return /^[0-9a-f]{24}$/i.test(t) ? null : t || null;
+  })();
+
   return {
     erp_id: campos.erp_id ? String(campos.erp_id) : null,
     nome: campos.nome ? String(campos.nome) : null,
     email: campos.email ? String(campos.email) : null,
     telefone: campos.telefone ? String(campos.telefone) : null,
-    cargo: campos.cargo ? String(campos.cargo) : null,
+    cargo: cargo ? String(cargo) : null,
 
     // Só vira booleano se houve marcação; senão continua "não sei".
     principal: marcado === null

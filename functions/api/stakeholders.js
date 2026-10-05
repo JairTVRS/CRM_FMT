@@ -1,26 +1,24 @@
 /**
- * /api/stakeholders — as pessoas do lado do cliente.
+ * /api/stakeholders — as pessoas do lado do cliente (2.43.0, Fase 3 da 2.24.0).
  *
- * Autenticação garantida pelo _middleware.js: se chegou aqui, o usuário
- * tem ID token válido e cadastro ativo no hub.
+ * Decidido com o Jair em 05/10/2026:
+ *   - as pessoas SÃO as do cadastro do cliente no ERP (campo `contacts`,
+ *     conferido na 2.42.0: todas com código `_id`). Quem sai é excluído
+ *     no ERP e some daqui;
+ *   - a CX não cadastra pessoa no CRM — o cadastro é no ERP;
+ *   - o CRM guarda só a AVALIAÇÃO da CX: influência, postura, patrocinador
+ *     e observações, presa ao código da pessoa no ERP (migração 029).
  *
- * GET    ?cliente_id=123   lista as pessoas de um cliente
- * POST   ?cliente_id=123   cria
- * PUT    ?id=45            atualiza
- * DELETE ?id=45            remove (exclusão lógica, como em toda parte)
+ * GET ?cliente_id=N                       as pessoas do ERP, cada uma com a avaliação
+ * PUT ?cliente_id=N&erp_contato_id=X      grava a avaliação de uma pessoa
  *
- * Sempre no escopo de um cliente. Não existe listagem geral de
- * stakeholders de propósito: uma tela com todas as pessoas de todos os
- * clientes seria uma agenda de contatos, e agenda de contatos é o ERP.
- * O que existe aqui é o mapa de UMA conta.
- *
- * A listagem devolve o papel e os núcleos já resolvidos em NOME, além
- * dos IDs. Quem consome — a ficha e o Dossiê de Experiência — quer
- * mostrar texto, e fazer os dois repetirem o cruzamento seria duas
- * cópias da mesma junção.
+ * A leitura é a mesma do Dossiê de Experiência (`reunirConta`): a aba e o
+ * documento enxergam exatamente as mesmas pessoas, com os mesmos núcleos.
+ * Não há mais POST nem DELETE: criar e excluir pessoa é no ERP.
  */
 
 import { INFLUENCIAS, POSTURAS } from './_lib/schema-dossie-cx.js';
+import { reunirConta } from './dossie-cx.js';
 
 function json(objeto, status, cabecalhos) {
   return new Response(JSON.stringify(objeto), { status, headers: cabecalhos });
@@ -33,191 +31,64 @@ const texto = (v, limite = 500) => {
 };
 
 /**
- * Influência e postura caem em 'desconhecida' quando vêm fora da lista.
- *
- * Não é tolerância preguiçosa: é a única resposta honesta. Cadastrar uma
- * pessoa não é ter avaliado a pessoa, e qualquer outro padrão — "média",
- * "neutro" — carimbaria no mapa um juízo que ninguém emitiu. O documento
- * conta separadamente quantas ainda não foram avaliadas.
+ * Fora da lista vira 'desconhecida': cadastrar não é avaliar, e qualquer
+ * outro padrão carimbaria um juízo que ninguém emitiu.
  */
 const umDe = (valor, permitidos) => {
   const v = String(valor || '').toLowerCase();
   return permitidos.includes(v) ? v : 'desconhecida';
 };
 
-/** Núcleos chegam como lista de IDs; guardamos JSON com números. */
-function normalizarNucleos(valor) {
-  if (!Array.isArray(valor)) return '[]';
-  const ids = [...new Set(
-    valor.map(Number).filter((n) => Number.isInteger(n) && n > 0)
-  )].slice(0, 20);
-  return JSON.stringify(ids);
-}
-
-function normalizar(corpo) {
-  return {
-    nome: texto(corpo.nome, 120),
-    papel_id: corpo.papel_id ? Number(corpo.papel_id) : null,
-    cargo: texto(corpo.cargo, 120),
-    email: texto(corpo.email, 160),
-    telefone: texto(corpo.telefone, 30),
-    influencia: umDe(corpo.influencia, INFLUENCIAS),
-    postura: umDe(corpo.postura, POSTURAS),
-    patrocinador: corpo.patrocinador ? 1 : 0,
-    nucleos: normalizarNucleos(corpo.nucleos),
-    observacoes: texto(corpo.observacoes, 2000)
-  };
-}
-
-const CAMPOS = [
-  'nome', 'papel_id', 'cargo', 'email', 'telefone',
-  'influencia', 'postura', 'patrocinador', 'nucleos', 'observacoes'
-];
-
-function erroDeBanco(e) {
-  if (/UNIQUE|idx_stakeholders_nome/i.test(String(e?.message || ''))) {
-    return {
-      codigo: 'DUPLICADO',
-      mensagem: 'Já existe uma pessoa com este nome neste cliente.'
-    };
-  }
-  return null;
-}
-
-/**
- * Resolve papel e núcleos em nome, e devolve também os IDs.
- *
- * Uma consulta para cada vocabulário, não uma por pessoa: as duas listas
- * são pequenas e o cruzamento sai em memória.
- */
-async function comNomes(db, linhas) {
-  if (!linhas || linhas.length === 0) return [];
-
-  const [papeis, nucleos] = await Promise.all([
-    db.prepare('SELECT id, nome FROM papeis').all(),
-    db.prepare('SELECT id, nome, cor FROM nucleos').all()
-  ]);
-
-  const nomePapel = new Map((papeis.results || []).map((p) => [p.id, p.nome]));
-  const dadosNucleo = new Map((nucleos.results || []).map((n) => [n.id, n]));
-
-  return linhas.map((s) => {
-    let ids = [];
-    try { ids = JSON.parse(s.nucleos || '[]'); } catch (e) { ids = []; }
-
-    return {
-      ...s,
-      patrocinador: !!s.patrocinador,
-      papel: s.papel_id ? (nomePapel.get(s.papel_id) || null) : null,
-      nucleoIds: ids,
-      nucleos: ids.map((id) => dadosNucleo.get(id)?.nome).filter(Boolean)
-    };
-  });
-}
+const CODIGO_ERP = /^[A-Za-z0-9_-]{6,64}$/;
 
 /* ==========================================================================
-   GET
+   GET — as pessoas do ERP, com a avaliação da CX
    ========================================================================== */
 
 export async function onRequestGet(context) {
   const cabecalhos = context.data.cabecalhos;
-  const { searchParams } = new URL(context.request.url);
   const db = context.env.DB;
-
+  const { searchParams } = new URL(context.request.url);
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
 
   const clienteId = Number(searchParams.get('cliente_id'));
-  if (!clienteId) {
-    return json({ error: 'Informe o cliente.', code: 'CLIENTE_OBRIGATORIO' }, 400, cabecalhos);
-  }
+  if (!clienteId) return json({ error: 'Informe o cliente.' }, 400, cabecalhos);
 
   try {
-    // O patrocinador primeiro, depois a influência do maior para o menor:
-    // a ordem da tabela é a ordem em que se pensa a conta.
-    const { results } = await db
-      .prepare(
-        `SELECT * FROM stakeholders
-         WHERE cliente_id = ? AND ativo = 1
-         ORDER BY patrocinador DESC,
-                  CASE influencia WHEN 'alta' THEN 1 WHEN 'media' THEN 2
-                                  WHEN 'baixa' THEN 3 ELSE 4 END,
-                  nome COLLATE NOCASE`
-      )
-      .bind(clienteId)
-      .all();
+    const conta = await reunirConta(db, clienteId, context.env);
+    if (!conta) return json({ error: 'Cliente não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
 
-    return json({ stakeholders: await comNomes(db, results || []) }, 200, cabecalhos);
-
+    const p = conta.fontes.pessoas;
+    return json({
+      consultado: !!p.consultado,
+      motivo: p.motivo || null,
+      // Gente que o ERP tem e não sabemos nomear (contato como referência).
+      totalNoErp: p.totalNoErp,
+      avaliacoesSemPessoa: p.avaliacoesSemPessoa || 0,
+      nucleosConsultados: !!conta.fontes.nucleos.consultado,
+      pessoas: conta.stakeholders.map((s) => ({
+        erpContatoId: s.erpContatoId,
+        nome: s.nome,
+        cargo: s.cargo,
+        email: s.email,
+        telefone: s.telefone,
+        principal: s.principal,
+        nucleos: s.nucleos || [],
+        influencia: s.influencia,
+        postura: s.postura,
+        patrocinador: !!s.patrocinador,
+        observacoes: s.observacoes,
+        avaliada: !!s.avaliada,
+        origem: s.origem
+      }))
+    }, 200, cabecalhos);
   } catch (e) {
-    return json({ error: 'Falha ao carregar as pessoas do cliente.', details: e.message }, 500, cabecalhos);
+    return json({ error: 'Falha ao consultar as pessoas.', details: e.message }, 500, cabecalhos);
   }
 }
 
 /* ==========================================================================
-   POST — cria
-   ========================================================================== */
-
-export async function onRequestPost(context) {
-  const cabecalhos = context.data.cabecalhos;
-  const usuario = context.data.usuario;
-  const db = context.env.DB;
-  const { searchParams } = new URL(context.request.url);
-
-  if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
-
-  const clienteId = Number(searchParams.get('cliente_id'));
-  if (!clienteId) {
-    return json({ error: 'Informe o cliente.', code: 'CLIENTE_OBRIGATORIO' }, 400, cabecalhos);
-  }
-
-  let corpo;
-  try { corpo = await context.request.json(); }
-  catch (e) { return json({ error: 'Corpo da requisição inválido.' }, 400, cabecalhos); }
-
-  const pessoa = normalizar(corpo);
-  if (!pessoa.nome) {
-    return json({ error: 'Informe o nome da pessoa.', code: 'NOME_OBRIGATORIO' }, 400, cabecalhos);
-  }
-
-  // Sem FOREIGN KEY no esquema — o D1 não as verifica por padrão —, a
-  // checagem é aqui. Pessoa pendurada num cliente que não existe é lixo
-  // que ninguém encontra para limpar depois.
-  const cliente = await db
-    .prepare('SELECT id FROM clientes WHERE id = ? AND ativo = 1')
-    .bind(clienteId)
-    .first();
-
-  if (!cliente) {
-    return json({ error: 'Cliente não encontrado.', code: 'CLIENTE_NAO_ENCONTRADO' }, 404, cabecalhos);
-  }
-
-  const agora = new Date().toISOString();
-
-  try {
-    const registro = await db
-      .prepare(
-        `INSERT INTO stakeholders
-           (cliente_id, ${CAMPOS.join(', ')}, criado_por, criado_em, ativo)
-         VALUES (?, ${CAMPOS.map(() => '?').join(', ')}, ?, ?, 1)
-         RETURNING *`
-      )
-      .bind(clienteId, ...CAMPOS.map((c) => pessoa[c]), usuario.email, agora)
-      .first();
-
-    const [comNome] = await comNomes(db, [registro]);
-    return json({ stakeholder: comNome }, 201, cabecalhos);
-
-  } catch (e) {
-    const conhecido = erroDeBanco(e);
-    if (conhecido) {
-      return json({ error: conhecido.mensagem, code: conhecido.codigo }, 409, cabecalhos);
-    }
-    return json({ error: 'Falha ao salvar a pessoa.', details: e.message }, 500, cabecalhos);
-  }
-}
-
-/* ==========================================================================
-   PUT — atualiza
+   PUT — a avaliação de uma pessoa do ERP
    ========================================================================== */
 
 export async function onRequestPut(context) {
@@ -225,83 +96,72 @@ export async function onRequestPut(context) {
   const usuario = context.data.usuario;
   const db = context.env.DB;
   const { searchParams } = new URL(context.request.url);
-
   if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
 
-  const id = Number(searchParams.get('id'));
-  if (!id) return json({ error: 'ID ausente.' }, 400, cabecalhos);
+  const clienteId = Number(searchParams.get('cliente_id'));
+  const codigo = String(searchParams.get('erp_contato_id') || '').trim();
+  if (!clienteId) return json({ error: 'Informe o cliente.' }, 400, cabecalhos);
+  if (!CODIGO_ERP.test(codigo)) {
+    return json({ error: 'Pessoa sem código do ERP: a avaliação só é guardada para quem está no cadastro do cliente no ERP.', code: 'SEM_CODIGO' }, 400, cabecalhos);
+  }
 
   let corpo;
-  try { corpo = await context.request.json(); }
-  catch (e) { return json({ error: 'Corpo da requisição inválido.' }, 400, cabecalhos); }
+  try { corpo = await context.request.json(); } catch (e) { return json({ error: 'Corpo inválido.' }, 400, cabecalhos); }
 
-  const pessoa = normalizar(corpo);
-  if (!pessoa.nome) {
-    return json({ error: 'Informe o nome da pessoa.', code: 'NOME_OBRIGATORIO' }, 400, cabecalhos);
-  }
+  const cliente = await db.prepare('SELECT id FROM clientes WHERE id = ?').bind(clienteId).first();
+  if (!cliente) return json({ error: 'Cliente não encontrado.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
+
+  // O nome, o cargo e o contato vão como FOTO do que o ERP dizia quando a
+  // avaliação foi gravada: servem a quem ler o banco, não à tela, que
+  // sempre mostra o ERP de agora.
+  const v = {
+    nome: texto(corpo.nome, 120) || '(sem nome no ERP)',
+    cargo: texto(corpo.cargo, 120),
+    email: texto(corpo.email, 160),
+    telefone: texto(corpo.telefone, 30),
+    influencia: umDe(corpo.influencia, INFLUENCIAS),
+    postura: umDe(corpo.postura, POSTURAS),
+    patrocinador: corpo.patrocinador ? 1 : 0,
+    observacoes: texto(corpo.observacoes, 2000)
+  };
+  const agora = new Date().toISOString();
 
   try {
-    const registro = await db
-      .prepare(
-        `UPDATE stakeholders
-            SET ${CAMPOS.map((c) => `${c} = ?`).join(', ')},
+    const existente = await db.prepare(
+      'SELECT id FROM stakeholders WHERE cliente_id = ? AND erp_contato_id = ? AND ativo = 1'
+    ).bind(clienteId, codigo).first();
+
+    let registro;
+    if (existente) {
+      registro = await db.prepare(
+        `UPDATE stakeholders SET nome = ?, cargo = ?, email = ?, telefone = ?,
+                influencia = ?, postura = ?, patrocinador = ?, observacoes = ?,
                 atualizado_por = ?, atualizado_em = ?
-          WHERE id = ? AND ativo = 1
-      RETURNING *`
-      )
-      .bind(...CAMPOS.map((c) => pessoa[c]), usuario.email, new Date().toISOString(), id)
-      .first();
-
-    if (!registro) {
-      return json({ error: 'Pessoa não encontrada.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
+          WHERE id = ? RETURNING *`
+      ).bind(v.nome, v.cargo, v.email, v.telefone, v.influencia, v.postura, v.patrocinador, v.observacoes,
+        usuario.email, agora, existente.id).first();
+    } else {
+      registro = await db.prepare(
+        `INSERT INTO stakeholders (cliente_id, erp_contato_id, nome, cargo, email, telefone,
+                                   influencia, postura, patrocinador, nucleos, observacoes,
+                                   criado_por, criado_em, ativo)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?, ?, ?, 1) RETURNING *`
+      ).bind(clienteId, codigo, v.nome, v.cargo, v.email, v.telefone, v.influencia, v.postura,
+        v.patrocinador, v.observacoes, usuario.email, agora).first();
     }
 
-    const [comNome] = await comNomes(db, [registro]);
-    return json({ stakeholder: comNome }, 200, cabecalhos);
-
+    console.log(`[stakeholders] cliente ${clienteId} pessoa ${codigo} avaliada por ${usuario.email}`);
+    return json({
+      ok: true,
+      avaliacao: {
+        erpContatoId: codigo,
+        influencia: registro.influencia,
+        postura: registro.postura,
+        patrocinador: !!registro.patrocinador,
+        observacoes: registro.observacoes
+      }
+    }, 200, cabecalhos);
   } catch (e) {
-    const conhecido = erroDeBanco(e);
-    if (conhecido) {
-      return json({ error: conhecido.mensagem, code: conhecido.codigo }, 409, cabecalhos);
-    }
-    return json({ error: 'Falha ao atualizar a pessoa.', details: e.message }, 500, cabecalhos);
-  }
-}
-
-/* ==========================================================================
-   DELETE — exclusão lógica
-   ========================================================================== */
-
-export async function onRequestDelete(context) {
-  const cabecalhos = context.data.cabecalhos;
-  const usuario = context.data.usuario;
-  const db = context.env.DB;
-  const { searchParams } = new URL(context.request.url);
-
-  if (!db) return json({ error: 'Banco de dados não configurado.', code: 'SEM_BINDING' }, 500, cabecalhos);
-
-  const id = Number(searchParams.get('id'));
-  if (!id) return json({ error: 'ID ausente.' }, 400, cabecalhos);
-
-  try {
-    // Lógica, como em leads e clientes: o dossiê de uma versão anterior
-    // cita esta pessoa pelo nome, e apagar a linha faria o histórico
-    // referenciar alguém que o banco jura nunca ter existido.
-    const removido = await db
-      .prepare(
-        `UPDATE stakeholders SET ativo = 0, atualizado_por = ?, atualizado_em = ?
-          WHERE id = ? AND ativo = 1 RETURNING id`
-      )
-      .bind(usuario.email, new Date().toISOString(), id)
-      .first();
-
-    if (!removido) {
-      return json({ error: 'Pessoa não encontrada.', code: 'NAO_ENCONTRADO' }, 404, cabecalhos);
-    }
-
-    return json({ ok: true, id }, 200, cabecalhos);
-
-  } catch (e) {
-    return json({ error: 'Falha ao remover a pessoa.', details: e.message }, 500, cabecalhos);
+    return json({ error: 'Falha ao gravar a avaliação.', details: e.message }, 500, cabecalhos);
   }
 }

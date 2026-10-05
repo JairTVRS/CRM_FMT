@@ -2,6 +2,17 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.43.0",
+      "data": "05/10/2026",
+      "titulo": "Stakeholders vêm do ERP",
+      "itens": [
+        "A aba Stakeholders do cliente agora mostra as pessoas do cadastro do cliente no ERP — nome, cargo, e-mail, telefone e os núcleos de que cada uma participa nas reuniões.",
+        "Para incluir, corrigir ou excluir alguém, é no ERP: quem sai de lá some daqui.",
+        "Em cada pessoa, a CX registra influência, postura, patrocinador e observações e clica em Salvar. A avaliação fica presa à pessoa no ERP, mesmo que o nome ou o cargo mudem lá.",
+        "Saíram o \"+ Adicionar pessoa\", o papel (vale o cargo do ERP) e os núcleos marcados à mão por pessoa. O Dossiê de Experiência usa a mesma lista."
+      ]
+    },
+    {
       "versao": "2.42.0",
       "data": "05/10/2026",
       "titulo": "Conferência das pessoas dos clientes no ERP",

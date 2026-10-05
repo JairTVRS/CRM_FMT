@@ -1710,102 +1710,22 @@
              ABA 2: STAKEHOLDERS — as pessoas do lado do cliente
              ================================================================ -->
         <div id="cli-tab-pessoas" class="cli-tab-content hidden">
+          <!-- 2.43.0 (Fase 3 da 2.24.0): as pessoas SÃO as do cadastro do
+               cliente no ERP. O CRM guarda só a avaliação da CX, presa ao
+               código de cada pessoa no ERP. -->
           <p class="ajuda-campo">
-            Quem decide, quem influencia e quem participa de cada núcleo.
-            <strong>Influência</strong> e <strong>postura</strong> são a leitura
-            da CX — enquanto ninguém as avaliar, ficam como "não avaliada", que
-            é diferente de neutra.
+            As pessoas vêm do <strong>cadastro do cliente no ERP</strong> (aba stakeholders de lá):
+            para incluir, corrigir ou excluir alguém, é no ERP. Aqui a CX registra a leitura dela —
+            <strong>influência</strong>, <strong>postura</strong>, patrocinador e observações.
+            Enquanto ninguém avaliar, fica "não avaliada", que é diferente de neutra.
           </p>
 
-          <!-- Pessoa pende de um cliente que já existe. Antes do primeiro
-               salvamento não há a que pendurar, e a aba diz isso em vez de
-               oferecer um formulário que falharia ao gravar. -->
           <p id="pessoas-sem-cliente" class="campo-informativo hidden">
-            Salve o cliente primeiro. As pessoas são mapeadas dentro de uma
-            ficha que já existe.
+            Salve o cliente primeiro.
           </p>
 
+          <p id="pessoas-estado" class="pessoas-estado"></p>
           <div id="pessoas-lista" class="pessoas-lista"></div>
-
-          <div id="pessoas-acoes">
-            <button id="btn-pessoa-nova" class="btn btn-secondary btn-sm">+ Adicionar pessoa</button>
-          </div>
-
-          <!-- Formulário de uma pessoa. Um só, reaproveitado pela inclusão e
-               pela edição: dois formulários com os mesmos dez campos
-               divergiriam na primeira manutenção. -->
-          <div id="pessoa-form" class="pessoa-form hidden">
-            <div class="form-grid">
-              <div class="form-group col-span-2">
-                <label for="pessoa-input-nome">Nome *</label>
-                <input type="text" id="pessoa-input-nome" class="form-control" maxlength="120">
-              </div>
-
-              <div class="form-group">
-                <label for="pessoa-input-papel">Papel</label>
-                <div class="campo-com-botao">
-                  <select id="pessoa-input-papel" class="form-control"></select>
-                  <button id="btn-papel-novo" class="btn btn-secondary btn-sm"
-                          title="Criar um papel novo">+</button>
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="pessoa-input-cargo">Cargo declarado</label>
-                <input type="text" id="pessoa-input-cargo" class="form-control" maxlength="120">
-              </div>
-
-              <div class="form-group">
-                <label for="pessoa-input-email">E-mail</label>
-                <input type="email" id="pessoa-input-email" class="form-control" maxlength="160">
-              </div>
-              <div class="form-group">
-                <label for="pessoa-input-telefone">Telefone</label>
-                <input type="text" id="pessoa-input-telefone" class="form-control" maxlength="30">
-              </div>
-
-              <div class="form-group">
-                <label for="pessoa-input-influencia">Influência na decisão</label>
-                <select id="pessoa-input-influencia" class="form-control">
-                  <option value="desconhecida">Não avaliada</option>
-                  <option value="alta">Alta</option>
-                  <option value="media">Média</option>
-                  <option value="baixa">Baixa</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="pessoa-input-postura">Postura com a Formatar</label>
-                <select id="pessoa-input-postura" class="form-control">
-                  <option value="desconhecida">Não avaliada</option>
-                  <option value="promotor">Promotor</option>
-                  <option value="neutro">Neutro</option>
-                  <option value="resistente">Resistente</option>
-                </select>
-              </div>
-
-              <div class="form-group col-span-2">
-                <label class="filtro-inativos" for="pessoa-input-patrocinador">
-                  <input type="checkbox" id="pessoa-input-patrocinador">
-                  Patrocinador da conta — quem responde por ela do lado do cliente
-                </label>
-              </div>
-
-              <div class="form-group col-span-2">
-                <label>Participa dos núcleos</label>
-                <div id="pessoa-nucleos" class="tags-caixa"></div>
-              </div>
-
-              <div class="form-group col-span-2">
-                <label for="pessoa-input-observacoes">Observações</label>
-                <textarea id="pessoa-input-observacoes" class="form-control" rows="2"
-                          maxlength="2000"></textarea>
-              </div>
-            </div>
-
-            <div class="pessoa-form-acoes">
-              <button id="btn-pessoa-cancelar" class="btn btn-secondary btn-sm">Cancelar</button>
-              <button id="btn-pessoa-salvar" class="btn btn-primary btn-sm">Salvar pessoa</button>
-            </div>
-          </div>
         </div><!-- /cli-tab-pessoas -->
 
         <!-- ================================================================
