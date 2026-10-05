@@ -6,51 +6,36 @@
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
 
-## ▶ Retomada (01/10/2026)
+## ▶ Retomada (05/10/2026)
 
-**Onde paramos (fim de 01/10/2026):** no ar a **2.39.2**. Dois lotes
-fechados no mesmo dia:
+**Onde paramos (fim de 05/10/2026):** no ar a **2.44.0**. No mesmo dia:
 
-- **Jornada do lead (JL)**, fechado com a 2.38.2: funil com responsável e
-  motivos de perda; agenda (semana, quinzena, mês); reunião com
-  iniciar/finalizar, cancelar com motivo, situação automática, resetar e
-  histórico; gravação e transcrição; e o **Dossiê da Reunião** — a IA segue
-  a instrução .md do tipo de reunião e aponta a linha da transcrição; o CRM
-  põe as palavras exatas (`_lib/citacoes.js`) — que vai junto quando o lead
-  vira cliente.
-- **Dossiê lê as atas + Balança Avaliativa**, fechado com a 2.39.2: a IA lê
-  as atas dos últimos 6 meses do ERP (só a parte pública) e o plano de
-  ação, e pesa a relação; os números do período são do código. Na ficha do
-  cliente, a aba **Documentos de contexto** reúne os três documentos, uma
-  linha por documento, com o nome exato do arquivo (`…_v1.html`).
+- **Lote G — Contrato** (2.40.0 a 2.41.2): aba Contrato no lead (km,
+  forma de preço, contratada, quem assina, endereço e CNPJ, escopo e
+  valores da proposta — tudo editável na própria aba); o app monta o
+  contrato padrão a partir da última proposta; cadastros **Formas de
+  preço** e **Empresas contratadas** (só admin); o endereço dos documentos
+  vem do cadastro da contratada (hoje: R. Pitangui, 845 - Bom Pastor).
+- **Histórico do lead** (2.41.0): relógio na ficha, quem/quando/de → para.
+- **Fase 3 da 2.24.0 — fechada** (2.42.0 a 2.44.0): as pessoas do cliente
+  vêm do `contacts` do ERP (todas com `_id`); a CX guarda só a avaliação
+  (aba Stakeholders compacta); núcleos do cliente pelas carteiras ativas.
 
-**Validado em produção em 01/10/2026:** reunião presencial real de 24 min
-(118 trechos) — Dossiê da Reunião v1 com 27 citações e nenhuma "não
-encontrada"; Balança da Zanna Sound com 42 reuniões, 33 ações, 22
-evidências e nenhuma "não encontrada".
-
-**05/10/2026 — Lote G (contrato) no ar na 2.40.0** (`b1a8b0a`), passou na frente do N
-a pedido do Jair. Respostas dele às 4 perguntas: (a) o modelo é padrão e o
-app o monta — o arquivo da Trinta Dezessete serviu só de referência; o km
-é do **cadastro do lead** (negociado por lead); os dados do cliente vêm do
-lead; (b) formas de preço num **cadastro** (Claude sugeriu 6), com editar,
-inativar e excluir — **não exclui se vinculada a lead**; inativa some das
-opções; (c) contratada padrão Formatar Consultoria Empresarial Ltda, com
-**cadastro** para outros CNPJs; (d) o escopo vem da **proposta**. Depois:
-cadastros **só admin**; a forma de preço vale também para as **propostas
-novas** (as geradas ficam como estão). Migração **027**. Ver "Entregue".
+**Validado em produção em 05/10/2026:** aba Stakeholders da Zanna Sound
+(2 pessoas do ERP, cargo e núcleos certos, avaliação salva); conferência
+das pessoas (Agência Bloo 4/4 e Divinópolis Calçados 14/14 com código).
 
 **Próximos passos, em ordem:**
 
 | # | O quê | Para começar |
 |---|---|---|
-| 1 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | só tem o título: **desenhar com o Jair antes do código** — o que medir (NPS, CSAT, os dois?), quando perguntar (depois de reunião, a cada X meses?), como o cliente responde (link, WhatsApp, o CX registra?), onde aparece (ficha, Balança, painel) |
-| 2 | **Contrato: primeiro uso real** | o admin cadastra em Configurações → Empresas contratadas **quem assina pela Formatar** (sem isso o contrato não sai) e confere o endereço da sede (veio do cartão CNPJ: Av. Sete de Setembro, 1470, Apto 301); conferir o texto das cláusulas com o jurídico |
-| ~~3~~ | ~~**Fase 3 da 2.24.0**~~ | **FECHADA em 05/10/2026** (2.42.0 a 2.44.0): pessoas e núcleos vêm do ERP; o CRM guarda só a avaliação da CX, presa ao `_id` do contato. Ver "Entregue" |
-| 4 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
+| 1 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | **desenhar com o Jair antes do código** — o que medir, quando perguntar, como o cliente responde, onde aparece |
+| 2 | Conferir os núcleos da Zanna Sound (era o único cliente com núcleo à mão: Financeira, Operações, Pessoas, Comercial, Governança) contra as carteiras do ERP | o Jair abre a ficha em produção |
+| 3 | Primeiro contrato real lido pelo jurídico | cláusulas fixas em `_lib/contrato-template.js` |
+| 4 | Endereço do Dossiê de Experiência (ainda o fixo antigo) | decidir se usa a contratada padrão |
+| 5 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
 
-**Ao retomar:** abrir este bloco; se o Jair responder o contrato antes,
-o contrato pode passar na frente do N (não depende de desenho).
+Migração livre: **030**.
 
 ### Pendências, em ordem
 
