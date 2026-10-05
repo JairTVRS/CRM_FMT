@@ -13,7 +13,7 @@
  */
 
 import { criarVersionador } from './_lib/versionamento.js';
-import { prepararContrato, lerContratada, hojeEmBrasilia } from './_lib/contrato.js';
+import { prepararContrato, buscarContratadaDoLead, hojeEmBrasilia } from './_lib/contrato.js';
 import { renderizarContrato } from './_lib/contrato-template.js';
 import { nomeDeDocumento, TIPO_DOCUMENTO } from './_lib/documento-base.js';
 import { registrarEventoLead } from './_lib/lead-eventos.js';
@@ -48,16 +48,14 @@ export async function carregarContexto(db, leadId) {
     lead.forma_preco_id
       ? db.prepare('SELECT * FROM formas_preco WHERE id = ?').bind(lead.forma_preco_id).first()
       : null,
-    lead.contratada_id
-      ? db.prepare('SELECT * FROM contratadas WHERE id = ?').bind(lead.contratada_id).first()
-      : db.prepare('SELECT * FROM contratadas WHERE padrao = 1 AND ativa = 1 ORDER BY id LIMIT 1').first()
+    buscarContratadaDoLead(db, lead)
   ]);
 
   return {
     lead,
     proposta: ultima && dadosProposta ? { versao: ultima.versao, gerado_em: ultima.gerado_em, dados: dadosProposta } : null,
     forma: forma || null,
-    contratada: lerContratada(contratada)
+    contratada
   };
 }
 

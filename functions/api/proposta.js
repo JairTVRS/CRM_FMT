@@ -16,7 +16,7 @@
 import { renderizarProposta, SERVICOS } from './_lib/proposta-template.js';
 import { criarVersionador } from './_lib/versionamento.js';
 import { preencherForma } from './_lib/forma-preco.js';
-import { KM_PADRAO } from './_lib/contrato.js';
+import { KM_PADRAO, buscarContratadaDoLead, enderecoDaContratada } from './_lib/contrato.js';
 import { registrarEventoLead } from './_lib/lead-eventos.js';
 
 /**
@@ -212,6 +212,13 @@ export async function onRequestPost(context) {
       error: 'Selecione ao menos um serviço para compor o escopo da proposta.',
       code: 'ESCOPO_VAZIO'
     }, 400, cabecalhos);
+  }
+
+  // 2.41.2: o endereço e a razão social do rodapé vêm do cadastro de
+  // Empresas contratadas (a do lead, ou a padrão), não de texto fixo.
+  const contratada = await buscarContratadaDoLead(db, lead);
+  if (contratada) {
+    dados.contratada = { razao_social: contratada.razao_social, endereco: enderecoDaContratada(contratada) };
   }
 
   // 2.40.0: a forma de preço do lead entra nas propostas geradas daqui em

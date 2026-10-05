@@ -30,6 +30,33 @@ export function lerContratada(linha) {
   return { ...linha, representantes: Array.isArray(representantes) ? representantes : [] };
 }
 
+/**
+ * A contratada do lead: a escolhida nele, ou a padrão ativa (2.41.2 — a
+ * proposta também usa, para o endereço e a assinatura).
+ */
+export async function buscarContratadaDoLead(db, lead) {
+  try {
+    const linha = lead?.contratada_id
+      ? await db.prepare('SELECT * FROM contratadas WHERE id = ?').bind(lead.contratada_id).first()
+      : await db.prepare('SELECT * FROM contratadas WHERE padrao = 1 AND ativa = 1 ORDER BY id LIMIT 1').first();
+    return lerContratada(linha);
+  } catch (e) {
+    return null;          // sem a migração 027: os documentos usam o endereço fixo
+  }
+}
+
+/**
+ * "Av. Sete de Setembro, 1470 — Divinópolis/MG — CEP 35500-011", do
+ * cadastro da contratada. Null sem endereço cadastrado: quem chama cai no
+ * endereço fixo (FORMATAR.endereco).
+ */
+export function enderecoDaContratada(c) {
+  if (!c?.endereco) return null;
+  const cep = String(c.cep || '').replace(/\D/g, '');
+  return [c.endereco, c.cidade, cep.length === 8 ? `CEP ${cep.slice(0, 5)}-${cep.slice(5)}` : null]
+    .filter(Boolean).join(' — ');
+}
+
 /** A data de hoje em Brasília, AAAA-MM-DD. */
 export function hojeEmBrasilia(agora = new Date()) {
   return new Date(agora.getTime() - 3 * 3600 * 1000).toISOString().slice(0, 10);

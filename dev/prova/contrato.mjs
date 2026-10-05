@@ -257,6 +257,8 @@ ok(p1.km === 190, 'o km da proposta é o do lead (R$ 1,90), não o que a tela ma
 ok(p1.forma?.nome === 'Mensal simples' && /R\$\s3\.600,00 \(três mil e seiscentos reais\)/.test(p1.forma.paragrafos[0]), 'a forma vai preenchida para a proposta');
 const htmlP1 = ESP(bd.prepare('SELECT html FROM propostas WHERE lead_id = 1 AND versao = 1').get().html);
 ok(htmlP1.includes('Forma de pagamento') && htmlP1.includes('R$ 1,90 por quilômetro'), 'o documento mostra a forma e o km do lead');
+ok(htmlP1.includes('Av. Sete de Setembro, 1470, Apto 301, Centro — Divinópolis/MG — CEP 35500-011') && !htmlP1.includes('Rua Coronel João Notini'), 'o rodapé da proposta usa o endereço do cadastro da contratada (2.41.2)');
+ok(htmlP1.includes('Formatar Consultoria Empresarial Ltda</div>'), 'e a assinatura, a razão social cadastrada');
 
 /* ==========================================================================
    7. O CONTRATO
@@ -297,6 +299,7 @@ ok(html.includes('R$ 1,90 (um real e noventa centavos) por quilômetro rodado'),
 ok(html.includes('pelo prazo de 24 (vinte e quatro) meses'), 'a vigência sai dos meses que a forma usa');
 ok(html.includes('com 30 (trinta) dias de antecedência') && html.includes('o valor proporcional do mês em curso'), 'a rescisão de 2026');
 ok(html.includes('a ser pago à CONTRATADA'), 'o reajuste corrigido (era "à CONTRATANTE")');
+ok(html.includes('Av. Sete de Setembro, 1470, Apto 301, Centro — Divinópolis/MG — CEP 35500-011') && !html.includes('Rua Coronel João Notini'), 'o rodapé do contrato também (2.41.2)');
 ok(!/[{}]/.test(html.replace(/<style>[\s\S]*?<\/style>/, '').replace(/<script[\s\S]*?<\/script>/g, '')), 'nenhum marcador no documento');
 
 r = await GERAR();

@@ -18,6 +18,7 @@
 
 import { documento, esc, documentoBr, moeda, FORMATAR, MARCA, nomeDeDocumento, TIPO_DOCUMENTO } from './documento-base.js';
 import { moedaPorExtenso, numeroPorExtenso, dataPorExtenso } from './extenso.js';
+import { enderecoDaContratada } from './contrato.js';
 import { SERVICOS } from './proposta-template.js';
 
 const ROMANOS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
@@ -170,7 +171,7 @@ function fechamento(d) {
     </div>
 
     <p class="rodape-contrato">
-      ${FORMATAR.endereco}<br>
+      ${esc(enderecoDaContratada(k) || FORMATAR.endereco)}<br>
       ${FORMATAR.telefone} &middot; ${FORMATAR.site} &middot; ${FORMATAR.email}
     </p>`;
 }

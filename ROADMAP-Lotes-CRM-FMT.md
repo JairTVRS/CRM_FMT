@@ -176,6 +176,7 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.40.1** | **Contrato sem sair da aba** (05/10/2026) — endereço do cliente (espelho da aba Contato & Endereço, CEP pelo ViaCEP), bloco da proposta com o resumo e "Gerar proposta agora", "Salvar e conferir" |
 | — | **2.41.0** | **Histórico do lead** (05/10/2026, pedido do Jair) — relógio no topo da ficha; quem, quando, campo por campo de → para (`lead_eventos`, migração 028, `_lib/lead-eventos.js`); entram criar, alterar, mover no quadro, proposta e contrato gerados, conversão e exclusão; salvar sem mudar nada não registra; o histórico nunca derruba o salvamento (prova `historico.mjs`, 22) |
 | — | **2.41.1** | **Contrato: tudo editável na aba** (05/10/2026) — CNPJ/CPF espelhado na aba Contrato (lead do ERP sem CNPJ não salvava); escopo e os valores que a forma de preço usa editáveis no bloco Proposta; lista do que falta aponta para a aba; corrigido o "—" escrito no campo de CNPJ vazio |
+| — | **2.41.2** | **Endereço do cadastro** (05/10/2026) — rodapé da proposta e do contrato e assinatura da proposta vêm de Empresas contratadas (a do lead ou a padrão; `buscarContratadaDoLead`/`enderecoDaContratada` em `_lib/contrato.js`); o fixo `FORMATAR.endereco` fica só de reserva (e no Dossiê de Experiência) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

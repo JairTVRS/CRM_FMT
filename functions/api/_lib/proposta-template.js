@@ -326,7 +326,7 @@ function folhaParticularidades(d, n, total) {
         <div class="assinatura">
           <div class="linha"></div>
           <div class="nome">${esc(resp.nome || '')}</div>
-          <div class="cargo">${esc(resp.cargo || 'Formatar Consultoria')}</div>
+          <div class="cargo">${esc(resp.cargo || d.contratada?.razao_social || 'Formatar Consultoria')}</div>
         </div>
         <div class="assinatura">
           <div class="linha"></div>
@@ -336,7 +336,7 @@ function folhaParticularidades(d, n, total) {
       </div>
 
       <p style="text-align:center;font-size:8pt;color:${MARCA.cinza};margin-top:10mm">
-        ${FORMATAR.endereco}<br>
+        ${esc(d.contratada?.endereco || FORMATAR.endereco)}<br>
         ${FORMATAR.telefone} &middot; ${FORMATAR.site} &middot; ${FORMATAR.email}
       </p>`
   });

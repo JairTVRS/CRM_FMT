@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.41.2",
+      "data": "05/10/2026",
+      "titulo": "Endereço da proposta e do contrato vem do cadastro",
+      "itens": [
+        "O rodapé da proposta e do contrato passa a usar o endereço cadastrado em Configurações → Empresas contratadas (a contratada do lead, ou a padrão), no lugar do endereço fixo antigo.",
+        "Na assinatura da proposta, o nome da empresa também vem do cadastro.",
+        "Propostas e contratos já gerados continuam como foram enviados; gere uma nova versão para sair com o endereço novo."
+      ]
+    },
+    {
       "versao": "2.41.1",
       "data": "05/10/2026",
       "titulo": "Contrato: tudo editável na própria aba",
