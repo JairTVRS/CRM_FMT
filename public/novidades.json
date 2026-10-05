@@ -2,6 +2,18 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.40.0",
+      "data": "05/10/2026",
+      "titulo": "Contrato gerado pelo CRM",
+      "itens": [
+        "Nova aba Contrato na ficha do lead: o km negociado, a forma de preço, a empresa contratada e quem assina pelo cliente. O botão Gerar contrato monta o contrato padrão da Formatar com o escopo e os valores da última proposta, e cada geração vira uma versão nova.",
+        "Antes de gerar, a aba lista o que falta (endereço, quem assina, proposta, forma de preço) e onde preencher.",
+        "Nas Configurações, os cadastros Formas de preço e Empresas contratadas (só administradores alteram). Uma forma inativa some das opções, mas quem já a usa continua com ela; a que está em algum lead não pode ser excluída.",
+        "A proposta passa a usar o km do lead e, nas propostas novas, traz a forma de preço numa folha própria. Ganhou os campos Valor do projeto, Número de parcelas e Valor da hora. As propostas já geradas não mudam.",
+        "Na ficha do cliente, Documentos de contexto mostra o contrato do lead de origem."
+      ]
+    },
+    {
       "versao": "2.39.2",
       "data": "01/10/2026",
       "titulo": "Documentos de contexto em uma linha cada",

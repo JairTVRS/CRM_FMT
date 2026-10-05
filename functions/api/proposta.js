@@ -15,6 +15,8 @@
 
 import { renderizarProposta, SERVICOS } from './_lib/proposta-template.js';
 import { criarVersionador } from './_lib/versionamento.js';
+import { preencherForma } from './_lib/forma-preco.js';
+import { KM_PADRAO } from './_lib/contrato.js';
 
 /**
  * O versionamento é o mesmo dos dois dossiês e mora no
@@ -104,7 +106,16 @@ function normalizar(corpo, lead) {
       condicoes: texto(c.consultoria?.condicoes, 300)
     },
 
-    km: paraCentavos(c.km),
+    // 2.40.0: valores das formas de preço "Projeto em parcelas" e "Valor por hora".
+    projeto: {
+      valor: paraCentavos(c.projeto?.valor),
+      parcelas: texto(c.projeto?.parcelas, 10)
+    },
+    hora: { valor: paraCentavos(c.hora?.valor) },
+
+    // 2.40.0: o km é do LEAD (negociado por lead, decisão de 05/10/2026);
+    // o que a tela mandar é ignorado.
+    km: Number(lead.km_valor) > 0 ? Number(lead.km_valor) : KM_PADRAO,
     rescisao: texto(c.rescisao, 300),
 
     validade: paraData(c.validade),
@@ -200,6 +211,24 @@ export async function onRequestPost(context) {
       error: 'Selecione ao menos um serviço para compor o escopo da proposta.',
       code: 'ESCOPO_VAZIO'
     }, 400, cabecalhos);
+  }
+
+  // 2.40.0: a forma de preço do lead entra nas propostas geradas daqui em
+  // diante (as já geradas ficam como foram — o HTML guardado é o enviado).
+  // Campo que a forma usa e a proposta não preencheu impede a geração.
+  if (lead.forma_preco_id) {
+    const forma = await db.prepare('SELECT id, nome, texto FROM formas_preco WHERE id = ?').bind(lead.forma_preco_id).first();
+    if (forma) {
+      const { paragrafos, faltando } = preencherForma(forma.texto, dados);
+      if (faltando.length) {
+        return json({
+          error: `A forma de preço "${forma.nome}" (aba Contrato) usa campos que estão vazios: ${faltando.join('; ')}.`,
+          code: 'FORMA_INCOMPLETA',
+          faltando
+        }, 400, cabecalhos);
+      }
+      dados.forma = { id: forma.id, nome: forma.nome, texto: forma.texto, paragrafos };
+    }
   }
 
   try {

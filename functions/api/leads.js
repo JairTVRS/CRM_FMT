@@ -23,7 +23,7 @@
  */
 
 import { limparCnpj } from './_lib/cnpj.js';
-import { documentoValido } from './_lib/documento.js';
+import { documentoValido, cpfValido } from './_lib/documento.js';
 import { montarQuadro, comandosDeMover } from './_lib/quadro.js';
 
 /** Converte "R$ 25.424,00", "25424.00" ou 25424 em centavos. */
@@ -121,7 +121,18 @@ function normalizarLead(corpo) {
     // --- 2.31.0 ---
     responsavel: normalizarEmail(corpo.responsavel),
     motivo_perda_id: Number(corpo.motivo_perda_id) > 0 ? Number(corpo.motivo_perda_id) : null,
-    motivo_perda_obs: texto(corpo.motivo_perda_obs, 1000)
+    motivo_perda_obs: texto(corpo.motivo_perda_obs, 1000),
+
+    // --- 2.40.0: o contrato (aba Contrato) ---
+    km_valor: paraCentavos(corpo.km_valor),
+    forma_preco_id: Number(corpo.forma_preco_id) > 0 ? Number(corpo.forma_preco_id) : null,
+    contratada_id: Number(corpo.contratada_id) > 0 ? Number(corpo.contratada_id) : null,
+    rep_nome: texto(corpo.rep_nome, 120),
+    rep_cpf: String(corpo.rep_cpf || '').replace(/\D/g, '').slice(0, 11) || null,
+    rep_nacionalidade: texto(corpo.rep_nacionalidade, 40),
+    rep_estado_civil: texto(corpo.rep_estado_civil, 40),
+    rep_profissao: texto(corpo.rep_profissao, 80),
+    rep_residencia: texto(corpo.rep_residencia, 120)
   };
 }
 
@@ -173,7 +184,10 @@ const CAMPOS = [
   // `data_proximo_contato` saiu na 2.32.0: é derivado da agenda (/api/agenda).
   'data_cadastro', 'data_ultimo_contato', 'data_fechamento',
   'valor_proposta', 'valor_diagnostico', 'tags',
-  'responsavel', 'motivo_perda_id', 'motivo_perda_obs'
+  'responsavel', 'motivo_perda_id', 'motivo_perda_obs',
+  // 2.40.0 — o contrato
+  'km_valor', 'forma_preco_id', 'contratada_id',
+  'rep_nome', 'rep_cpf', 'rep_nacionalidade', 'rep_estado_civil', 'rep_profissao', 'rep_residencia'
 ];
 
 /**
@@ -197,6 +211,10 @@ function validarObrigatorios(lead) {
       error: 'O CNPJ ou CPF informado é inválido. Confira os números.',
       code: 'DOCUMENTO_INVALIDO'
     };
+  }
+  // 2.40.0: o CPF de quem assina pelo cliente vai para o contrato.
+  if (lead.rep_cpf && !cpfValido(lead.rep_cpf)) {
+    return { error: 'O CPF de quem assina pelo cliente (aba Contrato) é inválido. Confira os números.', code: 'REP_CPF_INVALIDO' };
   }
   return null;
 }

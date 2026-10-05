@@ -136,6 +136,9 @@ bd.exec(readFileSync(`${RAIZ}/db/migracao-016-funil-responsavel-perda.sql`, 'utf
   .split('\n').filter((l) => !/^ALTER TABLE/.test(l)).join('\n'));
 ok(bd.prepare('SELECT COUNT(*) n FROM motivos_perda').get().n === 5, 'reaplicar não duplica os motivos');
 
+// 2.40.0: a ficha do lead grava os campos do contrato — sem a 027 o UPDATE não tem as colunas.
+bd.exec(readFileSync(`${RAIZ}/db/migracao-027-contrato.sql`, 'utf8'));
+
 /* ==========================================================================
    CONTEXTO
    ========================================================================== */

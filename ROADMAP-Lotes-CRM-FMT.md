@@ -1,6 +1,6 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 01/10/2026
+**Atualizado em:** 05/10/2026
 **Versão no ar:** 2.39.2 (desde 01/10/2026; migrações 008 a 026 aplicadas no D1 remoto, da 022 à 026 em 01/10/2026; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
@@ -29,13 +29,24 @@ fechados no mesmo dia:
 encontrada"; Balança da Zanna Sound com 42 reuniões, 33 ações, 22
 evidências e nenhuma "não encontrada".
 
+**05/10/2026 — Lote G (contrato) pronto na 2.40.0**, passou na frente do N
+a pedido do Jair. Respostas dele às 4 perguntas: (a) o modelo é padrão e o
+app o monta — o arquivo da Trinta Dezessete serviu só de referência; o km
+é do **cadastro do lead** (negociado por lead); os dados do cliente vêm do
+lead; (b) formas de preço num **cadastro** (Claude sugeriu 6), com editar,
+inativar e excluir — **não exclui se vinculada a lead**; inativa some das
+opções; (c) contratada padrão Formatar Consultoria Empresarial Ltda, com
+**cadastro** para outros CNPJs; (d) o escopo vem da **proposta**. Depois:
+cadastros **só admin**; a forma de preço vale também para as **propostas
+novas** (as geradas ficam como estão). Migração **027**. Ver "Entregue".
+
 **Próximos passos, em ordem:**
 
 | # | O quê | Para começar |
 |---|---|---|
 | 1 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | só tem o título: **desenhar com o Jair antes do código** — o que medir (NPS, CSAT, os dois?), quando perguntar (depois de reunião, a cada X meses?), como o cliente responde (link, WhatsApp, o CX registra?), onde aparece (ficha, Balança, painel) |
-| 2 | **Modelo de contrato (Lote G)**, a partir do contrato assinado da Trinta Dezessete (14/04/2026) — estrutura proposta em 01/10 | as 4 respostas do Jair: (a) esse contrato é o padrão do jurídico (km R$ 1,75; rescisão da cláusula nona)? (b) formas de preço além de "isento"? (c) a contratada é sempre a Formatar Consultoria Empresarial Ltda? (d) o escopo vem da proposta ou de uma lista de partes? |
-| 3 | **Fase 3 da 2.24.0** | depois do N; migração livre: **027** |
+| 2 | **Contrato: primeiro uso real** | o admin cadastra em Configurações → Empresas contratadas **quem assina pela Formatar** (sem isso o contrato não sai) e confere o endereço da sede (veio do cartão CNPJ: Av. Sete de Setembro, 1470, Apto 301); conferir o texto das cláusulas com o jurídico |
+| 3 | **Fase 3 da 2.24.0** | depois do N; migração livre: **028** |
 | 4 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
 
 **Ao retomar:** abrir este bloco; se o Jair responder o contrato antes,
@@ -75,13 +86,13 @@ o contrato pode passar na frente do N (não depende de desenho).
 |---|---|---|---|
 | ~~1~~ | ~~**Dossiê lê as atas + Balança Avaliativa**~~ | **FECHADO em 01/10/2026** — no ar na 2.39.0 (01/10/2026, migração 026, `balancas`): aba Balança no cliente; a IA lê as atas dos últimos 6 meses do ERP (só a parte pública — `separarNotasPrivadas` do `_lib/ata.js`) e o plano (`acoes_cx`), com a pré-venda como referência; números do período em código; evidências ancoradas na linha (`_lib/citacoes.js`, módulo comum com o Dossiê da Reunião); instrução padrão V1.0 em `Manuais/Instrucao-Balanca-Avaliativa-V1.0.md` (cópia no código, conferida pela prova) ou a enviada nas Configurações (`roteiros.finalidade = balanca`, tipo `__geral__`). Só a Balança: o Dossiê de Experiência ficou como estava (decisão de 01/10). 1ª geração real (Zanna Sound, 01/10): 42 reuniões, 33 ações, 22 evidências, 0 não encontradas. **2.39.1**: Dossiê de Experiência, Pré-venda e Balança numa aba só, "Documentos de contexto", com o nome exato do arquivo e "Baixar" direto; os três com `_vN` no nome (revisa a decisão de 06/09 de não pôr a versão no nome do Dossiê de Experiência) **2.39.2**: a aba ficou compacta, uma linha por documento | — |
 | 2 | **N — Check-in, NPS/CSAT e Voz do Cliente** | Destravado: dependia só do F, entregue na 2.18.0/2.19.0 | nada |
-| 3 | **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**027**; a 026 foi da 2.39.0) | o `contacts` do ERP ter id estável |
+| 3 | **Fase 3 da 2.24.0** | Aposentar o campo de núcleos da ficha e o cadastro de Papéis (vale o Cargo do ERP); amarrar influência/postura ao id do contato do ERP. Leva a próxima migração livre (**028**; a 027 foi da 2.40.0) | o `contacts` do ERP ter id estável |
 
 **4. Travados, esperando material**
 
 | Lote | Entrega | Falta |
 |---|---|---|
-| **G** | Contrato e boas-vindas (casca do Lote E) | **destravando em 01/10/2026**: o Jair mandou o contrato assinado da Trinta Dezessete (14/04/2026, Clicksign) como base — km **R$ 1,75**, rescisão da cláusula nona (30 dias, sem multa; paga o já executado e o proporcional do mês). Falta aprovar a estrutura do modelo (campos variáveis) |
+| **G** | Boas-vindas (a outra metade do G) | o **contrato** saiu na 2.40.0; o documento de boas-vindas segue sem conteúdo definido |
 | **J** | Webhooks e notas | endpoint das notas da carteira + estrutura dos webhooks |
 | **K** | KPIs Empresariais | endpoint de indicadores |
 | **M** | Saúde de CX | J e K |
@@ -160,6 +171,8 @@ A área de CX da Formatar existe e é a dona da segunda trilha.
 | — | **2.37.0** | **Recortes e roteiro durante a reunião** — conferidos palavra por palavra contra a transcrição (migração 024); saíram da tela na 2.38.1 |
 | **JL⁷** | **2.38.0** | **Dossiê da Reunião** — instrução .md por tipo nas Configurações, conteúdo da IA limpo e com as citações conferidas, visual da Formatar, versões (migração 025) |
 | — | **2.38.1–2.38.2** | Tela da reunião limpa, ícone do CRM nos documentos e a aba **Pré-venda** no cliente — **fecha o lote JL** (01/10/2026) |
+| — | **2.39.0–2.39.2** | **Balança Avaliativa** e a aba **Documentos de contexto** no cliente (01/10/2026) |
+| **G** | **2.40.0** | **Contrato** (05/10/2026) — aba Contrato no lead (km, forma de preço, contratada, quem assina pelo cliente); o app monta o contrato padrão (`_lib/contrato-template.js`) com o escopo e os valores da **última proposta**, valores por extenso (`_lib/extenso.js`), o que falta listado antes de gerar (`prepararContrato`, `_lib/contrato.js`), versões (`contratos`, quarto consumidor do `_lib/versionamento.js`); cadastros **Formas de preço** (texto com marcadores, `_lib/forma-preco.js`) e **Empresas contratadas** nas Configurações, só admin, inativar e excluir só sem lead vinculado; a proposta nova usa o km do lead e traz a forma numa folha própria; o contrato aparece em Documentos de contexto do cliente (migração 027; prova `contrato.mjs`, 73) |
 
 **A versão segue a ordem de ENTREGA, não a do plano.** O H saiu como
 2.14.0 e o L como 2.15.0, embora o plano original os numerasse mais à

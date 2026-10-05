@@ -287,7 +287,12 @@ const Leads = (() => {
       instagram: linkTexto('link-insta'),
       ramo: v('select-ramo'),
       segmento: v('select-segmento'),
-      resumo_ia: el('ai-resumo-texto')?.innerHTML || null
+      resumo_ia: el('ai-resumo-texto')?.innerHTML || null,
+
+      // 2.40.0: km, forma de preço, contratada e quem assina (aba Contrato).
+      // O contrato.js devolve os valores do lead enquanto as listas não
+      // chegaram — um select vazio apagaria a escolha ao salvar.
+      ...(typeof Contrato !== 'undefined' ? Contrato.lerCampos() : {})
     };
   }
 
@@ -331,6 +336,7 @@ const Leads = (() => {
 
     preencherFunil(lead);
     if (typeof Proposta !== 'undefined') Proposta.abrir(lead);
+    if (typeof Contrato !== 'undefined') Contrato.abrir(lead);
   }
 
   /**
@@ -569,6 +575,7 @@ const Leads = (() => {
 
     // Lead sem id ainda não pode gerar proposta; a aba nasce nos padrões.
     if (typeof Proposta !== 'undefined') Proposta.limpar();
+    if (typeof Contrato !== 'undefined') Contrato.abrir(null);
   }
   function editar(id) { idEmEdicao = Number(id); }
   function emEdicao() { return idEmEdicao; }

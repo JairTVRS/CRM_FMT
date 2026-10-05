@@ -238,3 +238,19 @@
   bottom: 0;
   background-color: var(--card-bg);
 }
+
+/* --------------------------------------------------------------------------
+   2.40.0 — Contrato (Lote G): a aba do lead
+   -------------------------------------------------------------------------- */
+.prop-forma {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 1rem 0 0;
+}
+
+.contrato-pendencias { font-size: 0.8rem; }
+.contrato-pronto { color: var(--success-color); margin: 0; }
+.contrato-falta-titulo { color: var(--text-muted); margin: 0 0 0.35rem; }
+.contrato-falta { margin: 0; padding-left: 1.1rem; color: var(--danger-color); }
+.contrato-falta li { margin-bottom: 0.25rem; }
+.prop-versao .doc-contexto-arquivo { display: block; margin-top: 0.2rem; }

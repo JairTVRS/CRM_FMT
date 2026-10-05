@@ -51,6 +51,7 @@ o que já saiu e o que vem. Estes manuais são o detalhe de cada linha dele.
 | 2.34.1 | [Barra do topo](Manual-Barra-Topo-CRM-FMT-v1.0.md) | Ícones no canto superior direito, menu lateral compacto, tema claro por padrão |
 | 2.34.2 | [Barra do topo](Manual-Barra-Topo-CRM-FMT-v1.0.md) | Versão no canto inferior esquerdo; clicar mostra o que mudou em cada versão |
 | 2.35.0 | [Gravação da reunião](Manual-Gravacao-CRM-FMT-v1.0.md) | Gravar e transcrever a reunião; só o texto é guardado |
+| 2.40.0 | [Contrato (Lote G)](Manual-Contrato-Lote-G-CRM-FMT-v1.0.md) | Aba Contrato no lead, formas de preço e empresas contratadas, contrato gerado a partir da proposta |
 
 Os quatro primeiros são anteriores à convenção de registrar a versão do
 sistema no cabeçalho — estão na ordem de data.

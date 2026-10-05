@@ -65,7 +65,8 @@ export const FORMATAR = {
 export const TIPO_DOCUMENTO = {
   PROSPECCAO: 'Dossie_Prospeccao',
   EXPERIENCIA: 'Dossie_Experiencia',
-  PROPOSTA: 'Proposta'
+  PROPOSTA: 'Proposta',
+  CONTRATO: 'Contrato'
 };
 
 /** Conectivos que alongam o nome do arquivo sem identificar nada. */
@@ -333,11 +334,14 @@ export function folha({ titulo, conteudo, numero, total, rodapeEsquerda }) {
 /**
  * Documento completo, pronto para abrir numa aba e imprimir.
  *
+ * `estilo` entra depois da folha padrão e a sobrepõe: o contrato (2.40.0)
+ * é texto corrido, que quebra página sozinho, e não folhas de altura fixa.
+ *
  * A barra do topo existe porque o PDF sai da impressão do navegador: sem
  * ela o usuário precisaria descobrir sozinho que é Ctrl+P e escolher
  * "Salvar como PDF".
  */
-export function documento({ titulo, folhas }) {
+export function documento({ titulo, folhas, estilo = '' }) {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -348,7 +352,7 @@ ${LINK_ICONE}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>${estilos()}</style>
+<style>${estilos()}${estilo}</style>
 </head>
 <body>
 <div class="barra-imprimir">

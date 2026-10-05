@@ -22,6 +22,9 @@ function initConfiguracoes() {
   // Motivos de perda e o aviso de quem é admin (2.31.0)
   if (typeof Perda !== 'undefined') Perda.montarConfig();
 
+  // Formas de preço e empresas contratadas (2.40.0, Lote G)
+  if (typeof Contrato !== 'undefined') Contrato.carregarListas();
+
   // Prospects do ERP (2.33.0)
   mostrarProspects();
 

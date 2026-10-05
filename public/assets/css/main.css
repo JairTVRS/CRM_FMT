@@ -722,3 +722,70 @@ body.light-theme .topo-botao .icone-lua { display: block; }
 .novidade-titulo { font-weight: 600; margin: 0.15rem 0 0.25rem; }
 .novidade ul { margin: 0 0 0 1.1rem; font-size: 0.85rem; color: var(--text-muted); }
 .novidade li { margin-bottom: 0.15rem; }
+
+/* 2.40.0 — Formas de preço e empresas contratadas, nas Configurações. */
+.cc-lista { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+.cc-linha {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.88rem;
+}
+.cc-linha.inativa { opacity: 0.65; }
+.cc-linha summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  cursor: pointer;
+  list-style: none;
+}
+.cc-linha summary::-webkit-details-marker { display: none; }
+.cc-nome { font-weight: 600; }
+.cc-meta { color: var(--text-muted); font-size: 0.78rem; }
+.cc-badge {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  color: var(--text-muted);
+}
+.cc-badge.padrao { border-color: var(--accent-color); color: var(--accent-color); }
+.cc-botoes { margin-left: auto; display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.cc-botoes .btn { padding: 0.2rem 0.55rem; font-size: 0.75rem; }
+.cc-texto {
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  line-height: 1.45;
+}
+.cc-alerta { color: var(--danger-color); }
+.cc-editor {
+  border: 1px solid var(--accent-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.cc-textarea { font-family: inherit; line-height: 1.45; }
+.cc-marcadores { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem; }
+.cc-marcador {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.72rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  color: var(--text-color);
+  cursor: pointer;
+}
+.cc-marcador:hover { border-color: var(--accent-color); }
+.cc-subtitulo { font-size: 0.8rem; margin: 0.75rem 0 0.4rem; color: var(--text-muted); }
+.cc-rep {
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem 0.6rem;
+  margin: 0 0 0.5rem;
+}

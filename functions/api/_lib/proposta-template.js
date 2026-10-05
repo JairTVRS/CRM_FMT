@@ -244,6 +244,20 @@ function folhaCondicoes(d, n, total) {
       ${d.rescisao ? `<tr><td class="rotulo">Pedido de rescisão</td><td>${esc(d.rescisao)}</td></tr>` : ''}
     </table>` : '';
 
+  // 2.40.0: as formas "Projeto em parcelas" e "Valor por hora".
+  const pj = d.projeto || {};
+  const blocoProjeto = pj.valor ? `
+    <h2>Projeto</h2>
+    <table>
+      <tr><td class="rotulo">Valor do projeto</td><td class="valor">${moeda(pj.valor)}</td></tr>
+      ${pj.parcelas ? `<tr><td class="rotulo">Parcelas</td><td>${esc(pj.parcelas)}</td></tr>` : ''}
+    </table>` : '';
+  const blocoHora = d.hora?.valor ? `
+    <h2>Horas</h2>
+    <table>
+      <tr><td class="rotulo">Valor da hora</td><td class="valor">${moeda(d.hora.valor)}</td></tr>
+    </table>` : '';
+
   return folha({
     titulo: 'Condições comerciais',
     numero: n, total,
@@ -252,6 +266,9 @@ function folhaCondicoes(d, n, total) {
       <h1>Condições comerciais</h1>
       ${blocoDiagnostico}
       ${blocoConsultoria}
+
+      ${blocoProjeto}
+      ${blocoHora}
 
       ${d.km ? `
         <h2>Despesas de viagem</h2>
@@ -269,6 +286,28 @@ function folhaCondicoes(d, n, total) {
         <div class="faixa-laranja">
           <strong>Esta proposta é válida até ${dataBr(d.validade)}.</strong>
         </div>` : ''}`
+  });
+}
+
+/**
+ * 2.40.0: a forma de preço do lead, com o mesmo texto que vai ao contrato.
+ * Folha própria: na das condições ela passava da altura do A4 e a
+ * impressão cortava a página.
+ */
+function folhaForma(d, n, total) {
+  return folha({
+    titulo: 'Forma de pagamento',
+    numero: n, total,
+    conteudo: `
+      <div class="kicker">Como o investimento é pago</div>
+      <h1>Forma de pagamento</h1>
+      <div class="bloco">
+        <div class="kicker">${esc(d.forma.nome)}</div>
+        ${d.forma.paragrafos.map((p) => `<p style="margin:0 0 3mm">${esc(p)}</p>`).join('')}
+      </div>
+      <p style="font-size:9pt;color:${MARCA.cinza}">
+        Este é o texto que vai à cláusula de preço do contrato.
+      </p>`
   });
 }
 
@@ -312,13 +351,15 @@ export function renderizarProposta(dados) {
 
   // A capa não entra na contagem: numerar a capa como "1 de 5" é ruído
   // num documento comercial.
-  const internas = 4;
+  const comForma = !!d.forma?.paragrafos?.length;
+  const internas = comForma ? 5 : 4;
   const folhas = [
     capa(d),
     folhaCliente(d, 1, internas),
     folhaEscopo(d, 2, internas),
     folhaCondicoes(d, 3, internas),
-    folhaParticularidades(d, 4, internas)
+    ...(comForma ? [folhaForma(d, 4, internas)] : []),
+    folhaParticularidades(d, internas, internas)
   ];
 
   return documento({

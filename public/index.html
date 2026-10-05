@@ -492,6 +492,35 @@
 
           <hr class="divider">
 
+          <!-- 2.40.0 (Lote G): o que o contrato usa. Só admin altera. -->
+          <div class="config-card">
+            <h3>Formas de preço</h3>
+            <p class="card-desc">
+              Escolhidas no lead (aba Contrato). O texto é a cláusula de preço do contrato e
+              também sai nas propostas novas; os valores entre chaves vêm da proposta. Uma forma
+              <strong>inativa</strong> some das opções, mas quem já a usa continua com ela; a que
+              está em algum lead não pode ser excluída.
+            </p>
+            <div id="formas-lista" class="cc-lista"></div>
+            <div id="forma-editor" class="cc-editor hidden"></div>
+            <button id="btn-forma-nova" class="btn btn-primary btn-sm hidden">+ Nova forma de preço</button>
+          </div>
+
+          <hr class="divider">
+
+          <div class="config-card">
+            <h3>Empresas contratadas</h3>
+            <p class="card-desc">
+              Quem presta o serviço no contrato. A <strong>padrão</strong> vem escolhida em todo lead.
+              Cadastre quem assina por cada empresa — sem representante o contrato não é gerado.
+            </p>
+            <div id="contratadas-lista" class="cc-lista"></div>
+            <div id="contratada-editor" class="cc-editor hidden"></div>
+            <button id="btn-contratada-nova" class="btn btn-primary btn-sm hidden">+ Nova empresa contratada</button>
+          </div>
+
+          <hr class="divider">
+
           <!-- 2.33.0: os prospects do ERP entram no funil uma vez por dia. -->
           <div class="config-card">
             <h3>Prospects do ERP</h3>
@@ -607,6 +636,7 @@
         <button class="tab-btn" data-tab="tab-agenda">Agenda</button>
         <button class="tab-btn" data-tab="tab-contato">Contato & Endereço</button>
         <button class="tab-btn" data-tab="tab-proposta">Proposta</button>
+        <button class="tab-btn" data-tab="tab-contrato">Contrato</button>
         <button class="tab-btn" data-tab="tab-ia">Inteligência Artificial</button>
       </nav>
 
@@ -901,11 +931,31 @@
             </div>
           </div>
 
+          <!-- 2.40.0: valores das formas de preço "Projeto em parcelas" e
+               "Valor por hora". Só preencher quando a forma usar. -->
+          <h3 class="prop-secao">Projeto e horas</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="prop-proj-valor">Valor do projeto</label>
+              <input type="text" id="prop-proj-valor" class="form-control" placeholder="R$ 0,00" inputmode="decimal">
+            </div>
+            <div class="form-group">
+              <label for="prop-proj-parcelas">Número de parcelas</label>
+              <input type="text" id="prop-proj-parcelas" class="form-control" maxlength="10" inputmode="numeric">
+            </div>
+            <div class="form-group">
+              <label for="prop-hora-valor">Valor da hora</label>
+              <input type="text" id="prop-hora-valor" class="form-control" placeholder="R$ 0,00" inputmode="decimal">
+            </div>
+          </div>
+
           <h3 class="prop-secao">Fechamento</h3>
           <div class="form-grid">
             <div class="form-group">
               <label for="prop-km">Quilômetro rodado</label>
-              <input type="text" id="prop-km" class="form-control" placeholder="R$ 0,00" inputmode="decimal">
+              <!-- 2.40.0: o km é negociado por lead e mora na aba Contrato. -->
+              <input type="text" id="prop-km" class="form-control" readonly title="Vem da aba Contrato">
+              <small class="campo-ajuda">Vem da aba Contrato.</small>
             </div>
             <div class="form-group">
               <label for="prop-validade">Válida até</label>
@@ -921,6 +971,8 @@
             </div>
           </div>
 
+          <p id="prop-forma" class="prop-forma"></p>
+
           <div class="prop-acoes">
             <button type="button" id="btn-gerar-proposta" class="btn btn-accent">Gerar proposta</button>
             <span id="prop-status" class="prop-status"></span>
@@ -928,6 +980,77 @@
 
           <h3 class="prop-secao">Versões geradas</h3>
           <div id="prop-versoes" class="prop-versoes"></div>
+        </div>
+
+        <!-- ABA CONTRATO (2.40.0, Lote G): o que o contrato pede e só o
+             lead sabe. Os campos são salvos com o lead; o escopo e os
+             valores vêm da última proposta gerada. -->
+        <div id="tab-contrato" class="tab-content hidden">
+          <p class="prop-aviso">
+            Gera o contrato com o modelo padrão da Formatar. O escopo e os valores vêm da
+            <strong>última proposta gerada</strong>; os dados do cliente, desta ficha. Gerar de
+            novo <strong>não sobrescreve</strong> — cria a versão seguinte.
+          </p>
+
+          <h3 class="prop-secao">Negociação</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="lead-input-km">Quilômetro rodado</label>
+              <input type="text" id="lead-input-km" class="form-control" placeholder="R$ 1,75" inputmode="decimal">
+              <small class="campo-ajuda">Negociado com o cliente. Vai para a proposta e o contrato.</small>
+            </div>
+            <div class="form-group">
+              <label for="lead-input-forma-preco">Forma de preço</label>
+              <select id="lead-input-forma-preco" class="form-control"></select>
+              <small class="campo-ajuda">Vale para o contrato e para as propostas geradas daqui em diante.</small>
+            </div>
+            <div class="form-group col-span-2">
+              <label for="lead-input-contratada">Empresa contratada</label>
+              <select id="lead-input-contratada" class="form-control"></select>
+            </div>
+          </div>
+
+          <h3 class="prop-secao">Quem assina pelo cliente</h3>
+          <p id="contrato-pf-aviso" class="campo-ajuda hidden">
+            Lead com CPF: a própria pessoa assina. Preencha nacionalidade, estado civil e profissão.
+          </p>
+          <div class="form-grid">
+            <div class="form-group" id="contrato-rep-nome-grupo">
+              <label for="lead-input-rep-nome">Nome</label>
+              <input type="text" id="lead-input-rep-nome" class="form-control" maxlength="120">
+            </div>
+            <div class="form-group" id="contrato-rep-cpf-grupo">
+              <label for="lead-input-rep-cpf">CPF</label>
+              <input type="text" id="lead-input-rep-cpf" class="form-control" placeholder="000.000.000-00" maxlength="14" inputmode="numeric">
+            </div>
+            <div class="form-group">
+              <label for="lead-input-rep-nacionalidade">Nacionalidade</label>
+              <input type="text" id="lead-input-rep-nacionalidade" class="form-control" maxlength="40" placeholder="brasileiro(a)">
+            </div>
+            <div class="form-group">
+              <label for="lead-input-rep-estado-civil">Estado civil</label>
+              <select id="lead-input-rep-estado-civil" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label for="lead-input-rep-profissao">Profissão</label>
+              <input type="text" id="lead-input-rep-profissao" class="form-control" maxlength="80" placeholder="empresário(a)">
+            </div>
+            <div class="form-group">
+              <label for="lead-input-rep-residencia">Reside em (cidade / UF)</label>
+              <input type="text" id="lead-input-rep-residencia" class="form-control" maxlength="120" placeholder="Divinópolis/MG">
+            </div>
+          </div>
+
+          <h3 class="prop-secao">Para gerar</h3>
+          <div id="contrato-pendencias" class="contrato-pendencias"></div>
+
+          <div class="prop-acoes">
+            <button type="button" id="btn-gerar-contrato" class="btn btn-accent">Gerar contrato</button>
+            <span id="contrato-status" class="prop-status"></span>
+          </div>
+
+          <h3 class="prop-secao">Versões geradas</h3>
+          <div id="contrato-versoes" class="prop-versoes"></div>
         </div>
 
         <!-- ABA 5: PESQUISA & ENRIQUECIMENTO VIA IA -->
@@ -1627,6 +1750,8 @@
           <div class="docs-lista">
             <!-- 1. Pré-venda: uma linha por reunião com dossiê (dossie-reuniao.js) -->
             <div id="cli-prevenda-lista"></div>
+            <!-- 1. Contrato do lead de origem (contrato.js, 2.40.0) -->
+            <div id="cli-contrato-lista"></div>
 
             <!-- 2. Dossiê de Experiência (dossie-cx.js) -->
             <div class="doc-linha" id="doc-linha-experiencia">
@@ -1729,6 +1854,7 @@
   <script src="js/clientes.js"></script>
   <script src="js/app.js"></script>
   <script src="js/proposta.js"></script>
+  <script src="js/contrato.js"></script>
   <script src="js/dossie.js"></script>
   <!-- Depois do clientes.js: os dois pendem da ficha do cliente e são
        acionados por ela. -->

@@ -22,8 +22,7 @@ const Proposta = (() => {
     consMeses: '24',
     consInicio: 'Após a apresentação do diagnóstico',
     consCondicoes: 'Primeira parcela 30 dias após a apresentação do diagnóstico',
-    rescisao: 'Mediante aviso prévio, sem multa rescisória',
-    km: '1,75'
+    rescisao: 'Mediante aviso prévio, sem multa rescisória'
   };
 
   let leadId = null;
@@ -87,7 +86,8 @@ const Proposta = (() => {
   function limpar() {
     [
       'prop-contato-nome', 'prop-contato-cargo', 'prop-contato-telefone', 'prop-contato-email',
-      'prop-diag-valor', 'prop-cons-valor', 'prop-validade', 'prop-resp-nome', 'prop-resp-cargo'
+      'prop-diag-valor', 'prop-cons-valor', 'prop-validade', 'prop-resp-nome', 'prop-resp-cargo',
+      'prop-proj-valor', 'prop-proj-parcelas', 'prop-hora-valor'
     ].forEach((id) => p(id, ''));
 
     p('prop-objeto', PADROES.objeto);
@@ -97,7 +97,7 @@ const Proposta = (() => {
     p('prop-cons-inicio', PADROES.consInicio);
     p('prop-cons-condicoes', PADROES.consCondicoes);
     p('prop-rescisao', PADROES.rescisao);
-    p('prop-km', PADROES.km);
+    // 2.40.0: o km e a forma de preço vêm da aba Contrato (contrato.js).
 
     marcarEscopo(['diagnostico']);
     p('prop-resp-nome', Auth?.usuario?.nome);
@@ -153,7 +153,9 @@ const Proposta = (() => {
     p('prop-cons-condicoes', d.consultoria?.condicoes);
     p('prop-rescisao', d.rescisao);
 
-    p('prop-km', centavosParaTexto(d.km));
+    p('prop-proj-valor', centavosParaTexto(d.projeto?.valor));
+    p('prop-proj-parcelas', d.projeto?.parcelas);
+    p('prop-hora-valor', centavosParaTexto(d.hora?.valor));
     p('prop-resp-nome', d.responsavel?.nome);
     p('prop-resp-cargo', d.responsavel?.cargo);
 
@@ -245,6 +247,11 @@ const Proposta = (() => {
 
     const botao = el('btn-gerar-proposta');
     const status = el('prop-status');
+
+    // 2.40.0: o km e a forma de preço são lidos do lead no servidor — a
+    // ficha é salva antes, para valer o que está na tela.
+    if (typeof Leads !== 'undefined' && !(await Leads.salvar())) return;
+
     if (botao) { botao.disabled = true; botao.textContent = 'Gerando…'; }
     if (status) { status.textContent = ''; status.className = 'prop-status'; }
 
@@ -268,7 +275,8 @@ const Proposta = (() => {
         inicio: v('prop-cons-inicio'),
         condicoes: v('prop-cons-condicoes')
       },
-      km: v('prop-km'),
+      projeto: { valor: v('prop-proj-valor'), parcelas: v('prop-proj-parcelas') },
+      hora: { valor: v('prop-hora-valor') },
       rescisao: v('prop-rescisao'),
       validade: v('prop-validade'),
       responsavel: { nome: v('prop-resp-nome'), cargo: v('prop-resp-cargo') }
