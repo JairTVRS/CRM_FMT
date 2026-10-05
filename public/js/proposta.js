@@ -233,16 +233,23 @@ const Proposta = (() => {
      Geração
      ---------------------------------------------------------- */
 
+  /**
+   * Gera a próxima versão com o que está no formulário.
+   *
+   * 2.40.1: chamada também da aba Contrato ("Gerar proposta agora"), que
+   * precisa saber o resultado sem olhar esta aba — por isso devolve
+   * { ok, versao } ou { ok: false, erro }.
+   */
   async function gerar() {
     if (!leadId) {
       alert('Salve o lead antes de gerar a proposta.');
-      return;
+      return { ok: false, erro: 'Salve o lead antes de gerar a proposta.' };
     }
 
     const escopo = lerEscopo();
     if (escopo.length === 0) {
       alert('Selecione ao menos um serviço para compor o escopo da proposta.');
-      return;
+      return { ok: false, erro: 'Marque ao menos um serviço no escopo (aba Proposta).' };
     }
 
     const botao = el('btn-gerar-proposta');
@@ -250,7 +257,9 @@ const Proposta = (() => {
 
     // 2.40.0: o km e a forma de preço são lidos do lead no servidor — a
     // ficha é salva antes, para valer o que está na tela.
-    if (typeof Leads !== 'undefined' && !(await Leads.salvar())) return;
+    if (typeof Leads !== 'undefined' && !(await Leads.salvar())) {
+      return { ok: false, erro: 'A ficha não foi salva.' };
+    }
 
     if (botao) { botao.disabled = true; botao.textContent = 'Gerando…'; }
     if (status) { status.textContent = ''; status.className = 'prop-status'; }
@@ -292,7 +301,7 @@ const Proposta = (() => {
 
       if (!r.ok) {
         mostrarErro(status, d, 'Não foi possível gerar.');
-        return;
+        return { ok: false, erro: `${d.error || 'Não foi possível gerar a proposta.'}${d.details ? ` (${d.details})` : ''}` };
       }
 
       if (status) { status.textContent = `Versão ${d.versao} gerada.`; status.className = 'prop-status ok'; }
@@ -301,12 +310,14 @@ const Proposta = (() => {
       const lista = await fetch(`/api/proposta?lead_id=${leadId}`).then((x) => x.json());
       renderizarVersoes(lista.versoes || []);
       abrirVersao(d.versao);
+      return { ok: true, versao: d.versao };
 
     } catch (e) {
       // Aqui a requisição nem completou, então não há `details` do
       // servidor — mas a mensagem do próprio erro ainda diz mais que
       // "falha de conexão" sozinho.
       mostrarErro(status, { error: 'Falha de conexão ao gerar.', details: e.message }, null);
+      return { ok: false, erro: `Falha de conexão ao gerar a proposta (${e.message}).` };
     } finally {
       if (botao) { botao.disabled = false; botao.textContent = 'Gerar proposta'; }
     }
@@ -327,5 +338,23 @@ const Proposta = (() => {
 
   document.addEventListener('DOMContentLoaded', iniciar);
 
-  return { abrir, limpar };
+  /**
+   * 2.40.1: o que a próxima proposta levaria, para a aba Contrato mostrar
+   * antes de gerar — o escopo marcado e os valores digitados.
+   */
+  function resumo() {
+    const escopo = [...document.querySelectorAll('#prop-escopo input:checked')]
+      .map((c) => c.closest('label')?.textContent.trim().replace(/\s+/g, ' ') || c.value);
+    return {
+      escopo,
+      diagnostico: v('prop-diag-valor'),
+      mensal: v('prop-cons-valor'),
+      meses: v('prop-cons-meses'),
+      projeto: v('prop-proj-valor'),
+      parcelas: v('prop-proj-parcelas'),
+      hora: v('prop-hora-valor')
+    };
+  }
+
+  return { abrir, limpar, gerar, resumo };
 })();

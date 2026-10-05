@@ -254,3 +254,13 @@
 .contrato-falta { margin: 0; padding-left: 1.1rem; color: var(--danger-color); }
 .contrato-falta li { margin-bottom: 0.25rem; }
 .prop-versao .doc-contexto-arquivo { display: block; margin-top: 0.2rem; }
+
+/* 2.40.1 — a proposta e o endereço dentro da aba Contrato */
+.contrato-proposta { font-size: 0.8rem; }
+.contrato-proposta p { margin: 0 0 0.35rem; }
+.contrato-resumo { margin: 0 0 0.6rem; padding-left: 1.1rem; color: var(--text-muted); }
+.contrato-resumo li { margin-bottom: 0.2rem; }
+.contrato-proposta-botoes { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.prop-acoes { flex-wrap: wrap; }
+.prop-acoes .btn { white-space: nowrap; }
+#contrato-pf-aviso { margin: 0 0 0.6rem; }

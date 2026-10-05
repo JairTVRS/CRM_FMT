@@ -2,6 +2,16 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.40.1",
+      "data": "05/10/2026",
+      "titulo": "Contrato sem sair da aba",
+      "itens": [
+        "A aba Contrato ganhou o endereço do cliente (CEP, cidade e logradouro, os mesmos da aba Contato & Endereço; o CEP preenche o resto).",
+        "Também mostra a proposta de onde saem o escopo e os valores, com o resumo do que vai nela e o botão Gerar proposta agora.",
+        "Novo botão Salvar e conferir: salva a ficha e atualiza a lista do que falta, sem fechar."
+      ]
+    },
+    {
       "versao": "2.40.0",
       "data": "05/10/2026",
       "titulo": "Contrato gerado pelo CRM",

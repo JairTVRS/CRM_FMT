@@ -934,6 +934,6 @@ const Leads = (() => {
     carregar, salvar, excluir, porId,
     novo, editar, emEdicao,
     preencherFormulario, irParaPagina, filtrar, filtros, semAgenda,
-    recarregarVisao
+    recarregarVisao, buscarCep
   };
 })();

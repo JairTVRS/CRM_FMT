@@ -129,11 +129,13 @@ const Contrato = (() => {
     else carregarListas();
     atualizarPessoaFisica();
     sincronizarProposta();
+    espelharEndereco();
 
     const status = el('contrato-status');
     if (status) { status.textContent = ''; status.className = 'prop-status'; }
     if (l.id) atualizarEstado();
     else {
+      el('contrato-proposta').innerHTML = '<p class="prop-vazio">Salve o lead para gerar a proposta.</p>';
       el('contrato-pendencias').innerHTML = '<p class="prop-vazio">Salve o lead para ver o que falta.</p>';
       el('contrato-versoes').innerHTML = '<span class="prop-vazio">Nenhum contrato gerado ainda.</span>';
     }
@@ -166,11 +168,96 @@ const Contrato = (() => {
     try {
       const d = await fetch(`/api/contrato?lead_id=${id}`).then((r) => r.json());
       if (leadAtual?.id !== id) return;                 // trocou de lead no meio
+      desenharProposta(d.origem?.proposta || null);
       desenharPendencias(d.faltando || [], d.origem || {});
       desenharVersoes(d.versoes || []);
     } catch (e) {
       el('contrato-pendencias').innerHTML = '<p class="prop-vazio">Não foi possível conferir o contrato.</p>';
     }
+  }
+
+  /* ---------- 2.40.1: o endereço e a proposta sem sair da aba ---------- */
+
+  /**
+   * Os campos de endereço desta aba são espelhos dos da aba Contato &
+   * Endereço: quem salva o lead lê os de lá (leads.js), então o que se
+   * digita aqui é copiado para lá na hora.
+   */
+  const PARES_ENDERECO = [['contrato-cep', 'lead-input-cep'], ['contrato-cidade', 'lead-input-cidade'], ['contrato-endereco', 'lead-input-endereco']];
+
+  function espelharEndereco() {
+    for (const [aqui, la] of PARES_ENDERECO) {
+      if (el(aqui) && el(la)) el(aqui).value = el(la).value;
+    }
+  }
+
+  /** O CEP daqui usa a mesma busca do ViaCEP da ficha e traz o resultado de volta. */
+  async function buscarCepAqui() {
+    const valor = el('contrato-cep')?.value || '';
+    if (el('lead-input-cep')) el('lead-input-cep').value = valor;
+    if (typeof Leads === 'undefined' || !Leads.buscarCep) return;
+    await Leads.buscarCep(valor);
+    espelharEndereco();
+    const aviso = el('cep-aviso');
+    const alvo = el('contrato-cep-aviso');
+    if (aviso && alvo) { alvo.textContent = aviso.textContent; alvo.className = aviso.className; }
+  }
+
+  const reais = (t) => (t ? `R$ ${t}` : null);
+
+  /** O que a próxima proposta levaria — lido do formulário da aba Proposta. */
+  function textoDoResumo() {
+    const r = typeof Proposta !== 'undefined' && Proposta.resumo ? Proposta.resumo() : null;
+    if (!r) return '';
+    const valores = [
+      r.diagnostico ? `diagnóstico ${reais(r.diagnostico)}` : null,
+      r.mensal ? `consultoria ${reais(r.mensal)}/mês${r.meses ? ` por ${r.meses} meses` : ''}` : null,
+      r.projeto ? `projeto ${reais(r.projeto)}${r.parcelas ? ` em ${r.parcelas} parcelas` : ''}` : null,
+      r.hora ? `hora ${reais(r.hora)}` : null
+    ].filter(Boolean);
+    return `<ul class="contrato-resumo">
+        <li><strong>Escopo:</strong> ${r.escopo.length ? esc(r.escopo.join(', ')) : '<span class="cc-alerta">nenhum serviço marcado</span>'}</li>
+        <li><strong>Valores:</strong> ${valores.length ? esc(valores.join(' · ')) : '<span class="cc-alerta">nenhum valor preenchido</span>'}</li>
+      </ul>`;
+  }
+
+  function desenharProposta(proposta) {
+    const alvo = el('contrato-proposta');
+    if (!alvo) return;
+    const cabeca = proposta
+      ? `<p>Última proposta: <strong>v${esc(proposta.versao)}</strong>, de ${esc(quando(proposta.gerado_em))}. O contrato usa o escopo e os valores dela.</p>
+         <p class="campo-ajuda">Mudou algo? A próxima versão sairia assim:</p>`
+      : '<p><strong>Nenhuma proposta gerada ainda.</strong> Ela sairia assim:</p>';
+    alvo.innerHTML = `${cabeca}${textoDoResumo()}
+      <div class="contrato-proposta-botoes">
+        <button type="button" class="btn btn-sm btn-primary" data-proposta="gerar">${proposta ? 'Gerar nova versão da proposta' : 'Gerar proposta agora'}</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-proposta="ajustar">Ajustar na aba Proposta</button>
+      </div>`;
+  }
+
+  function dizer(texto, classe) {
+    const status = el('contrato-status');
+    if (status) { status.textContent = texto; status.className = `prop-status${classe ? ` ${classe}` : ''}`; }
+  }
+
+  async function gerarPropostaAqui(botao) {
+    if (typeof Proposta === 'undefined' || !Proposta.gerar) return;
+    botao.disabled = true;
+    botao.textContent = 'Gerando a proposta…';
+    dizer('');
+    const r = await Proposta.gerar();
+    botao.disabled = false;
+    if (r?.ok) dizer(`Proposta v${r.versao} gerada (abre numa aba nova).`, 'ok');
+    else if (r?.erro) dizer(r.erro, 'erro');
+    await atualizarEstado();
+  }
+
+  /** Salva a ficha e confere de novo o que falta, sem fechar. */
+  async function salvarEConferir() {
+    if (typeof Leads === 'undefined' || !Leads.emEdicao()) { alert('Salve o lead antes.'); return; }
+    if (!(await Leads.salvar())) return;
+    dizer('Salvo.', 'ok');
+    await atualizarEstado();
   }
 
   function desenharPendencias(faltando, origem) {
@@ -586,8 +673,26 @@ const Contrato = (() => {
     });
     // Uma proposta gerada agora muda o que falta: confere de novo ao abrir a aba.
     document.querySelector('[data-tab="tab-contrato"]')?.addEventListener('click', () => {
+      espelharEndereco();
       if (leadAtual?.id) atualizarEstado();
     });
+
+    // 2.40.1: endereço espelhado; CEP com a busca do ViaCEP
+    el('contrato-cidade')?.addEventListener('input', (ev) => { if (el('lead-input-cidade')) el('lead-input-cidade').value = ev.target.value; });
+    el('contrato-endereco')?.addEventListener('input', (ev) => { if (el('lead-input-endereco')) el('lead-input-endereco').value = ev.target.value; });
+    el('contrato-cep')?.addEventListener('input', (ev) => {
+      if (el('lead-input-cep')) el('lead-input-cep').value = ev.target.value;
+      if (soDigitos(ev.target.value).length === 8) buscarCepAqui();
+    });
+    el('contrato-cep')?.addEventListener('blur', buscarCepAqui);
+
+    el('contrato-proposta')?.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-proposta]');
+      if (!b) return;
+      if (b.dataset.proposta === 'gerar') gerarPropostaAqui(b);
+      else document.querySelector('[data-tab="tab-proposta"]')?.click();
+    });
+    el('btn-contrato-conferir')?.addEventListener('click', salvarEConferir);
     el('lead-input-km')?.addEventListener('input', sincronizarProposta);
     el('lead-input-forma-preco')?.addEventListener('change', sincronizarProposta);
     el('lead-input-doc')?.addEventListener('input', atualizarPessoaFisica);
