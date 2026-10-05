@@ -270,3 +270,8 @@
 .lead-topo-acoes { display: flex; align-items: center; gap: 0.5rem; }
 .lead-historico { width: min(420px, 100%); border-radius: 0; }
 .historico-vazio { color: var(--text-muted); font-style: italic; }
+
+/* 2.41.1 — escopo e valores da proposta editáveis na aba Contrato */
+.contrato-subtitulo { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin: 0.75rem 0 0.4rem; }
+.contrato-proposta .prop-escopo { margin-bottom: 0.25rem; }
+.contrato-proposta .form-grid { margin-bottom: 0.5rem; }

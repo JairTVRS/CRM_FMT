@@ -57,30 +57,30 @@ export function prepararContrato({ lead, proposta, forma, contratada, hoje }) {
 
   // --- O cliente, do lead ---
   if (!l.nome) faltando.push('Nome / razão social do cliente (aba Dados Gerais).');
-  if (!doc) faltando.push('CNPJ ou CPF do cliente (aba Dados Gerais).');
-  if (!l.endereco) faltando.push('Logradouro / número do cliente (aba Contato & Endereço).');
-  if (!l.cidade) faltando.push('Cidade / UF do cliente (aba Contato & Endereço).');
+  if (!doc) faltando.push('CNPJ ou CPF do cliente (Dados do cliente, nesta aba).');
+  if (!l.endereco) faltando.push('Logradouro / número do cliente (Dados do cliente, nesta aba).');
+  if (!l.cidade) faltando.push('Cidade / UF do cliente (Dados do cliente, nesta aba).');
   if (!pessoaFisica) {
-    if (!l.rep_nome) faltando.push('Quem assina pelo cliente: nome (aba Contrato).');
-    if (!l.rep_cpf) faltando.push('Quem assina pelo cliente: CPF (aba Contrato).');
+    if (!l.rep_nome) faltando.push('Quem assina pelo cliente: nome (nesta aba).');
+    if (!l.rep_cpf) faltando.push('Quem assina pelo cliente: CPF (nesta aba).');
   }
 
   // --- A proposta: escopo e valores ---
   const p = proposta?.dados || null;
   if (!p) {
-    faltando.push('Uma proposta gerada: o escopo e os valores do contrato saem dela (aba Proposta).');
+    faltando.push('Uma proposta gerada: o escopo e os valores do contrato saem dela (bloco Proposta, nesta aba: "Gerar proposta agora").');
   } else if (!Array.isArray(p.escopo) || !p.escopo.length) {
-    faltando.push(`A proposta v${proposta.versao} não tem escopo: marque os serviços na aba Proposta e gere de novo.`);
+    faltando.push(`A proposta v${proposta.versao} não tem escopo: marque os serviços no bloco Proposta e gere de novo.`);
   }
 
   // --- A forma de preço ---
   let preco = null;
   if (!forma) {
-    faltando.push('A forma de preço (aba Contrato).');
+    faltando.push('A forma de preço (nesta aba).');
   } else if (p) {
     preco = preencherForma(forma.texto, p);
     for (const f of preco.faltando) {
-      faltando.push(`A forma "${forma.nome}" usa "${f}", que a proposta v${proposta.versao} não tem: preencha na aba Proposta e gere a proposta de novo.`);
+      faltando.push(`A forma "${forma.nome}" usa "${f}", que a proposta v${proposta.versao} não tem: preencha no bloco Proposta e gere uma nova versão.`);
     }
   }
 

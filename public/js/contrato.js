@@ -183,7 +183,7 @@ const Contrato = (() => {
    * Endereço: quem salva o lead lê os de lá (leads.js), então o que se
    * digita aqui é copiado para lá na hora.
    */
-  const PARES_ENDERECO = [['contrato-cep', 'lead-input-cep'], ['contrato-cidade', 'lead-input-cidade'], ['contrato-endereco', 'lead-input-endereco']];
+  const PARES_ENDERECO = [['contrato-doc', 'lead-input-doc'], ['contrato-cep', 'lead-input-cep'], ['contrato-cidade', 'lead-input-cidade'], ['contrato-endereco', 'lead-input-endereco']];
 
   function espelharEndereco() {
     for (const [aqui, la] of PARES_ENDERECO) {
@@ -203,35 +203,71 @@ const Contrato = (() => {
     if (aviso && alvo) { alvo.textContent = aviso.textContent; alvo.className = aviso.className; }
   }
 
-  const reais = (t) => (t ? `R$ ${t}` : null);
+  /**
+   * 2.41.1: o escopo e os valores da proposta, editáveis AQUI. Cada campo
+   * é espelho do campo da aba Proposta (data-espelho = id de lá): o que se
+   * digita aqui vale lá, e é de lá que a proposta é gerada.
+   *
+   * Mostram-se os valores que a forma de preço escolhida usa (os marcadores
+   * do texto dela); sem forma, os básicos.
+   */
+  const CAMPO_DO_MARCADOR = {
+    valor_diagnostico:     ['prop-diag-valor', 'Diagnóstico: valor', 'R$ 0,00'],
+    condicoes_diagnostico: ['prop-diag-condicoes', 'Diagnóstico: condições de pagamento'],
+    prazo_diagnostico:     ['prop-diag-prazo', 'Diagnóstico: prazo'],
+    valor_mensal:          ['prop-cons-valor', 'Consultoria: valor mensal', 'R$ 0,00'],
+    meses:                 ['prop-cons-meses', 'Consultoria: período (meses)'],
+    inicio_consultoria:    ['prop-cons-inicio', 'Consultoria: início'],
+    condicoes_consultoria: ['prop-cons-condicoes', 'Consultoria: condições de pagamento'],
+    valor_projeto:         ['prop-proj-valor', 'Projeto: valor total', 'R$ 0,00'],
+    parcelas:              ['prop-proj-parcelas', 'Projeto: número de parcelas'],
+    valor_hora:            ['prop-hora-valor', 'Valor da hora', 'R$ 0,00']
+  };
+  const BASICOS = ['valor_diagnostico', 'valor_mensal', 'meses'];
 
-  /** O que a próxima proposta levaria — lido do formulário da aba Proposta. */
-  function textoDoResumo() {
-    const r = typeof Proposta !== 'undefined' && Proposta.resumo ? Proposta.resumo() : null;
-    if (!r) return '';
-    const valores = [
-      r.diagnostico ? `diagnóstico ${reais(r.diagnostico)}` : null,
-      r.mensal ? `consultoria ${reais(r.mensal)}/mês${r.meses ? ` por ${r.meses} meses` : ''}` : null,
-      r.projeto ? `projeto ${reais(r.projeto)}${r.parcelas ? ` em ${r.parcelas} parcelas` : ''}` : null,
-      r.hora ? `hora ${reais(r.hora)}` : null
-    ].filter(Boolean);
-    return `<ul class="contrato-resumo">
-        <li><strong>Escopo:</strong> ${r.escopo.length ? esc(r.escopo.join(', ')) : '<span class="cc-alerta">nenhum serviço marcado</span>'}</li>
-        <li><strong>Valores:</strong> ${valores.length ? esc(valores.join(' · ')) : '<span class="cc-alerta">nenhum valor preenchido</span>'}</li>
-      </ul>`;
+  function marcadoresDaForma() {
+    const id = Number(el('lead-input-forma-preco')?.value) || null;
+    const forma = id && listas?.formas.find((f) => f.id === id);
+    if (!forma) return BASICOS;
+    const usados = [...new Set([...String(forma.texto).matchAll(/\{([a-z_]+)\}/g)].map((m) => m[1]))]
+      .filter((k) => CAMPO_DO_MARCADOR[k]);
+    return usados.length ? usados : BASICOS;
   }
+
+  function camposDaProposta() {
+    const escopo = [...document.querySelectorAll('#prop-escopo input[type="checkbox"]')].map((c) => `
+      <label><input type="checkbox" data-escopo="${esc(c.value)}"${c.checked ? ' checked' : ''}>
+        ${esc(c.closest('label')?.textContent.trim().replace(/\s+/g, ' ') || c.value)}</label>`).join('');
+    const campos = marcadoresDaForma().map((k) => {
+      const [alvo, rotulo, dica] = CAMPO_DO_MARCADOR[k];
+      const valor = el(alvo)?.value || '';
+      const largo = /condicoes|inicio|prazo/.test(k);
+      return `
+        <div class="form-group${largo ? ' col-span-2' : ''}">
+          <label for="ctp-${alvo}">${esc(rotulo)}</label>
+          <input type="text" id="ctp-${alvo}" class="form-control" data-espelho="${alvo}" value="${esc(valor)}"${dica ? ` placeholder="${dica}" inputmode="decimal"` : ''}>
+        </div>`;
+    }).join('');
+    return `
+      <p class="contrato-subtitulo">Escopo</p>
+      <div class="prop-escopo">${escopo}</div>
+      <p class="contrato-subtitulo">Valores${Number(el('lead-input-forma-preco')?.value) ? ' que a forma de preço usa' : ''}</p>
+      <div class="form-grid">${campos}</div>`;
+  }
+
+  let propostaAtual = null;
 
   function desenharProposta(proposta) {
     const alvo = el('contrato-proposta');
     if (!alvo) return;
+    propostaAtual = proposta;
     const cabeca = proposta
-      ? `<p>Última proposta: <strong>v${esc(proposta.versao)}</strong>, de ${esc(quando(proposta.gerado_em))}. O contrato usa o escopo e os valores dela.</p>
-         <p class="campo-ajuda">Mudou algo? A próxima versão sairia assim:</p>`
-      : '<p><strong>Nenhuma proposta gerada ainda.</strong> Ela sairia assim:</p>';
-    alvo.innerHTML = `${cabeca}${textoDoResumo()}
+      ? `<p>Última proposta: <strong>v${esc(proposta.versao)}</strong>, de ${esc(quando(proposta.gerado_em))}. O contrato usa o escopo e os valores dela — mudou algo abaixo? Gere uma nova versão.</p>`
+      : '<p><strong>Nenhuma proposta gerada ainda.</strong> Marque o escopo, preencha os valores e gere.</p>';
+    alvo.innerHTML = `${cabeca}${camposDaProposta()}
       <div class="contrato-proposta-botoes">
         <button type="button" class="btn btn-sm btn-primary" data-proposta="gerar">${proposta ? 'Gerar nova versão da proposta' : 'Gerar proposta agora'}</button>
-        <button type="button" class="btn btn-sm btn-secondary" data-proposta="ajustar">Ajustar na aba Proposta</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-proposta="ajustar">Ver os demais campos na aba Proposta</button>
       </div>`;
   }
 
@@ -685,6 +721,25 @@ const Contrato = (() => {
       if (soDigitos(ev.target.value).length === 8) buscarCepAqui();
     });
     el('contrato-cep')?.addEventListener('blur', buscarCepAqui);
+
+    el('contrato-proposta')?.addEventListener('input', (ev) => {
+      const alvo = ev.target.dataset.espelho && el(ev.target.dataset.espelho);
+      if (alvo) alvo.value = ev.target.value;
+    });
+    el('contrato-proposta')?.addEventListener('change', (ev) => {
+      const chave = ev.target.dataset.escopo;
+      if (!chave) return;
+      const naProposta = document.querySelector(`#prop-escopo input[value="${CSS.escape(chave)}"]`);
+      if (naProposta) naProposta.checked = ev.target.checked;
+    });
+    // Outra forma de preço pede outros valores: redesenha os campos.
+    el('lead-input-forma-preco')?.addEventListener('change', () => {
+      if (leadAtual?.id) desenharProposta(propostaAtual);
+    });
+    el('contrato-doc')?.addEventListener('input', (ev) => {
+      if (el('lead-input-doc')) el('lead-input-doc').value = ev.target.value;
+      atualizarPessoaFisica();
+    });
 
     el('contrato-proposta')?.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-proposta]');

@@ -2,6 +2,17 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.41.1",
+      "data": "05/10/2026",
+      "titulo": "Contrato: tudo editável na própria aba",
+      "itens": [
+        "A aba Contrato ganhou o CNPJ/CPF do cliente, junto com o endereço — sem ele a ficha não salva.",
+        "O bloco Proposta da aba Contrato agora é editável: os serviços do escopo e os valores que a forma de preço escolhida usa (o mesmo campo da aba Proposta).",
+        "A lista do que falta aponta para os campos desta aba.",
+        "Corrigido: lead sem CNPJ abria com um traço (—) escrito no campo, como se fosse valor."
+      ]
+    },
+    {
       "versao": "2.41.0",
       "data": "05/10/2026",
       "titulo": "Histórico do lead",

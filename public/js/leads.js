@@ -300,7 +300,9 @@ const Leads = (() => {
     const p = (id, valor) => { const n = el(id); if (n) n.value = valor ?? ''; };
 
     p('lead-input-nome', lead.nome);
-    p('lead-input-doc', formatarDocumento(lead.documento));
+    // O "—" do formatador é para a tabela; no campo, sem documento é vazio
+    // (2.41.1: o traço ia para o campo e parecia um valor preenchido).
+    p('lead-input-doc', lead.documento ? formatarDocumento(lead.documento) : '');
     p('lead-input-phone', lead.telefone);
     // Leads anteriores ao Lote A guardaram o valor em `origem`
     p('lead-input-canal', lead.canal ?? lead.origem);

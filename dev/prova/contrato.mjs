@@ -333,7 +333,7 @@ ok(pf.faltando.length === 0 && pf.dados.contratante.pessoaFisica && pf.dados.con
 
 // Sem proposta: o motivo diz onde gerar.
 const semProposta = prepararContrato({ lead: { nome: 'A', documento: '11222333000181', endereco: 'x', cidade: 'y', rep_nome: 'b', rep_cpf: '52998224725' }, proposta: null, forma: null, contratada: null, hoje: '2026-10-05' });
-ok(semProposta.faltando.some((f) => /aba Proposta/.test(f)) && semProposta.faltando.some((f) => /forma de preço/.test(f)) && semProposta.faltando.some((f) => /contratada/.test(f)),
+ok(semProposta.faltando.some((f) => /Gerar proposta agora/.test(f)) && semProposta.faltando.some((f) => /forma de preço/.test(f)) && semProposta.faltando.some((f) => /contratada/.test(f)),
   'sem proposta, forma e contratada: as três faltas, cada uma com o caminho');
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTudo certo.');

@@ -258,7 +258,7 @@ const Proposta = (() => {
     // 2.40.0: o km e a forma de preço são lidos do lead no servidor — a
     // ficha é salva antes, para valer o que está na tela.
     if (typeof Leads !== 'undefined' && !(await Leads.salvar())) {
-      return { ok: false, erro: 'A ficha não foi salva.' };
+      return { ok: false, erro: 'A ficha não foi salva: corrija o que o aviso apontou e tente de novo.' };
     }
 
     if (botao) { botao.disabled = true; botao.textContent = 'Gerando…'; }
