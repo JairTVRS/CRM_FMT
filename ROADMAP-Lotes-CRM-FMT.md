@@ -1,12 +1,12 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 05/10/2026
+**Atualizado em:** 06/10/2026
 **Versão no ar:** 2.44.0 (desde 05/10/2026; migrações 008 a 029 aplicadas no D1 remoto, da 027 à 029 em 05/10/2026 pelo --command e conferidas; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
 
-## ▶ Retomada (05/10/2026)
+## ▶ Retomada (06/10/2026)
 
 **Onde paramos (fim de 05/10/2026):** no ar a **2.44.0**. No mesmo dia:
 
@@ -25,17 +25,77 @@ que vem a seguir e o que está travado esperando material.
 (2 pessoas do ERP, cargo e núcleos certos, avaliação salva); conferência
 das pessoas (Agência Bloo 4/4 e Divinópolis Calçados 14/14 com código).
 
+**06/10/2026:** o Jair conferiu os núcleos da Zanna Sound em produção —
+batem com as carteiras do ERP (Comercial, Operações, Pessoas, Financeira,
+Governança). E desenhou o **Lote PC — Prestação de Contas** (abaixo), que
+passa à frente do N.
+
 **Próximos passos, em ordem:**
 
 | # | O quê | Para começar |
 |---|---|---|
-| 1 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | **desenhar com o Jair antes do código** — o que medir, quando perguntar, como o cliente responde, onde aparece |
-| 2 | Conferir os núcleos da Zanna Sound (era o único cliente com núcleo à mão: Financeira, Operações, Pessoas, Comercial, Governança) contra as carteiras do ERP | o Jair abre a ficha em produção |
+| 1 | **Lote PC — Prestação de Contas** (2.45.0 conferência das tarefas; 2.46.0 o documento) | **o Jair pedir ao responsável do hub a permissão de leitura de tarefas na chave do CRM** (algo como `hub:tasks:read`) e responder as 2 dúvidas abertas (ver "Lote PC") |
+| 2 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | **desenhar com o Jair antes do código** — o que medir, quando perguntar, como o cliente responde, onde aparece |
+| — | ~~Conferir os núcleos da Zanna Sound contra as carteiras do ERP~~ | **feito em 06/10/2026**: batem |
 | 3 | Primeiro contrato real lido pelo jurídico | cláusulas fixas em `_lib/contrato-template.js` |
 | 4 | Endereço do Dossiê de Experiência (ainda o fixo antigo) | decidir se usa a contratada padrão |
 | 5 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
 
 Migração livre: **030**.
+
+### Lote PC — Prestação de Contas (desenhado em 06/10/2026)
+
+**Pedido do Jair:** um resumo macro do que a Formatar entregou ao
+cliente, por núcleo. Primeiro pediu um quadro ao clicar no núcleo da
+ficha; depois, vendo o deck que já usa com clientes
+(`Deck-Prestacao-de-Contas-Divinissima-v1.0.html`, 12 slides, Diviníssima
+13/01 a 24/08/2026), decidiu: **vira o 4º documento em Documentos de
+contexto** (com Pré-venda, Dossiê de Experiência e Balança); as abas Ficha
+e Stakeholders ficam como estão. É a primeira parte do Lote O (Relatório
+de Valor Gerado), sem os KPIs do K.
+
+**Decidido:**
+
+- **Números em código** (fecham sempre): horas em reunião + horas de
+  tarefas = dedicação; **horas-consultor** (duração × consultores da
+  Formatar presentes) em linha à parte, não como parcela da soma;
+  reuniões finalizadas e entregas (tarefas) por frente e no total, **com
+  horas em todas as frentes**; profissionais envolvidos = **usuários do
+  ERP vinculados a reuniões e tarefas** (resposta 2); ações criadas,
+  concluídas e **efetividade = concluídas ÷ (criadas − canceladas)**, por
+  frente (resposta 3; vem de `acoes_cx`, que já tem `time_erp_id`).
+- **Fonte das entregas e horas:** a API do hub — **tarefas + reuniões**
+  (resposta 1). A chave hoje tem só `customers`, `portfolios`,
+  `meetings`, `meeting-types`, `teams`: falta a de tarefas.
+- **Texto pela IA lendo as atas**, como a Balança: marcos de cada frente,
+  linha do tempo, Conselho, "onde estamos"; citação ancorada
+  (`_lib/citacoes.js`). "Próximo ciclo" sai das ações abertas do Plano.
+  Instrução padrão V1.0 em `Manuais/` (cópia no código), trocável nas
+  Configurações.
+- **Slides no modelo da Diviníssima**, mais um de **Ações e efetividade**.
+  Defeitos do deck manual que o código não repete: "Quatro reuniões" com
+  três cartões; 44 × 48 na Governança; 74,8 h ao lado de 37,1 + 106,3
+  como se somasse; só a Comercial com horas; "4 entregas" com 5 itens;
+  fonte Urbane Rounded só por `local()` (sem fonte embutida cai na
+  genérica).
+- **Período** (resposta 4): padrão = **início da jornada até hoje**; opção
+  **"A partir do último documento gerado"** (começa onde a versão
+  anterior terminou — o cliente vê só o novo).
+- Versionado no `_lib/versionamento.js`, `_vN` no nome, Baixar direto.
+
+**Versões:**
+
+| Versão | O quê | Migração |
+|---|---|---|
+| 2.45.0 | **Conferência das tarefas** (admin, cliente pelo nome, como a 2.42.0 das pessoas): o que a API de tarefas devolve — campos, horas, cliente, frente/carteira, responsáveis | nenhuma |
+| 2.46.0 | **Prestação de Contas** em Documentos de contexto | **030** |
+
+**Em aberto (perguntar ao Jair):**
+
+1. O "22 na empresa · 15 na Formatar" do deck saiu do local/Sala da
+   reunião no ERP? Se a API não trouxer, o slide mostra só o total.
+2. Ação que **saiu da ata** sem concluir (`saiu_da_ata`): conta como não
+   feita ou fica fora da efetividade?
 
 ### Pendências, em ordem
 
@@ -81,7 +141,7 @@ Migração livre: **030**.
 | **J** | Webhooks e notas | endpoint das notas da carteira + estrutura dos webhooks |
 | **K** | KPIs Empresariais | endpoint de indicadores |
 | **M** | Saúde de CX | J e K |
-| **O** | Relatório de Valor Gerado | G e K |
+| **O** | Relatório de Valor Gerado | G e K — a parte sem KPIs vira o **Lote PC** (Prestação de Contas, 06/10/2026) |
 | **P** | Dashboard de CX, CX Review e Expansão | tudo acima |
 
 ### Como a gente trabalha (combinado)
