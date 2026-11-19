@@ -47,6 +47,12 @@ tmp/
 Thumbs.db
 desktop.ini
 
+# Ferramentas locais do agente (SKILL_AGENTS_IA_EDITOR v1.2): registro de
+# pedidos de permissão, o hook que o grava e as cópias de segurança.
+.claude/permission-decisions.jsonl*
+.claude/hooks/
+.claude/backup-skill/
+
 # Editores
 .vscode/
 .idea/
