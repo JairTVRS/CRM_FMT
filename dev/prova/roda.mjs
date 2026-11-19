@@ -10,8 +10,23 @@
 import { readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createConnection } from 'node:net';
+import { PORTA_HUB } from '../porta-hub.mjs';
 
 const AQUI = fileURLToPath(new URL('.', import.meta.url));
+
+// Se outro processo já ocupa a porta do dublê, as suítes que o sobem falam
+// com esse processo e falham sem dizer por quê (19/11/2026: um `wrangler dev`
+// de outro projeto na 8787). Avisa antes de começar.
+const ocupada = await new Promise((r) => {
+  const s = createConnection({ port: PORTA_HUB, host: '127.0.0.1' });
+  s.once('connect', () => { s.destroy(); r(true); });
+  s.once('error', () => r(false));
+});
+if (ocupada) {
+  console.log(`  AVISO: a porta ${PORTA_HUB} do dublê do hub já está ocupada por outro processo.`);
+  console.log('  As suítes que sobem o dublê vão falhar. Rode com HUB_STUB_PORTA=<outra porta>.\n');
+}
 
 const suites = readdirSync(AQUI)
   .filter((f) => f.endsWith('.mjs') && f !== 'roda.mjs')

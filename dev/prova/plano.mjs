@@ -22,8 +22,8 @@ import { esquecerMemoria } from '../../functions/api/_lib/hub.js';
 import { nomeDeDocumento, TIPO_DOCUMENTO } from '../../functions/api/_lib/documento-base.js';
 
 import { fileURLToPath } from 'node:url';
+import { BASE_HUB as BASE, ORIGEM_HUB } from '../porta-hub.mjs';
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url)).replace(/[\/]$/, '');
-const BASE = 'http://127.0.0.1:8787/v1';
 let falhas = 0;
 
 function ok(condicao, titulo, detalhe) {
@@ -247,7 +247,7 @@ try {
   //  - muda o responsável da AÇÃO 3;
   //  - acrescenta a AÇÃO 4.
   const tresDias = new Date(Date.now() - 3 * 86400000).toISOString();
-  await fetch('http://127.0.0.1:8787/__reuniao', {
+  await fetch(`${ORIGEM_HUB}/__reuniao`, {
     method: 'POST',
     body: JSON.stringify({
       id: '907f1f77bcf86cd799439499', nid: 90, title: 'Reuniao mensal Vale Verde',
@@ -395,7 +395,7 @@ Status: Nova`
 
   console.log('\n=== 14d. Cabeçalho do ERP, responsável da reunião, status do cliente (2.30.0) ===');
   const doisDias = new Date(Date.now() - 2 * 86400000).toISOString();
-  await fetch('http://127.0.0.1:8787/__reuniao', {
+  await fetch(`${ORIGEM_HUB}/__reuniao`, {
     method: 'POST',
     body: JSON.stringify({
       id: '907f1f77bcf86cd799439498', nid: 91, title: 'Reuniao mensal Vale Verde',

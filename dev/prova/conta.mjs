@@ -26,9 +26,9 @@ import {
   CAMPOS_CLIENTE, CAMPOS_CLIENTE_DETALHE,
   listarClientesDoHub, buscarClientePorCnpj, ErroHub
 } from '../../functions/api/_lib/hub.js';
+import { BASE_HUB as BASE } from '../porta-hub.mjs';
 
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url)).replace(/[\/]$/, '');
-const BASE = 'http://127.0.0.1:8787/v1';
 
 const ACME = '507f1f77bcf86cd799439011';
 const VALE_VERDE = '507f1f77bcf86cd799439012';

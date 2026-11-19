@@ -11,8 +11,8 @@ import { onRequestGet as hubGet, onRequestPost as hubPost } from '../../function
 import { onRequestGet as convGet, onRequestPost as convPost } from '../../functions/api/conversao.js';
 
 import { fileURLToPath } from 'node:url';
+import { BASE_HUB as BASE } from '../porta-hub.mjs';
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url)).replace(/[\/]$/, '');
-const BASE = 'http://127.0.0.1:8787/v1';
 let falhas = 0;
 
 function ok(condicao, titulo, detalhe) {

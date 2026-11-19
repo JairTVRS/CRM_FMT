@@ -18,6 +18,7 @@ import { onRequestPost as sairPost } from '../../functions/api/sair.js';
 import {
   assinarSessao, lerSessao, lerCookie, NOME_COOKIE, DURACAO_SESSAO_S
 } from '../../functions/api/_lib/sessao.js';
+import { BASE_HUB } from '../porta-hub.mjs';
 
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url)).replace(/[\/]$/, '');
 let falhas = 0;
@@ -30,7 +31,7 @@ function ok(condicao, titulo, detalhe) {
 async function subirDuble(args = []) {
   const p = spawn(process.execPath, [`${RAIZ}/dev/hub-stub.mjs`, ...args], { stdio: 'ignore' });
   for (let i = 0; i < 60; i++) {
-    try { await fetch('http://127.0.0.1:8787/v1/customers'); return p; }
+    try { await fetch(`${BASE_HUB}/customers`); return p; }
     catch (e) { await new Promise((r) => setTimeout(r, 100)); }
   }
   throw new Error('o dublê não subiu');
@@ -42,7 +43,7 @@ const EMAIL = 'jairdasilvatj@gmail.com';
 const env = (extra = {}) => ({
   GOOGLE_CLIENT_ID: 'cliente-teste',
   HUB_API_KEY: 'chave-de-teste',
-  HUB_USERS_URL: 'http://127.0.0.1:8787/v1/users',
+  HUB_USERS_URL: `${BASE_HUB}/users`,
   SESSAO_SECRET: SEGREDO,
   ...extra
 });

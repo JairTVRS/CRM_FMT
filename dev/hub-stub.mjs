@@ -38,6 +38,8 @@
  *   1. Num terminal:   npm run dev:hub
  *   2. Noutro:         npm run dev
  *
+ * Porta: 8787 por padrão; outra com HUB_STUB_PORTA (dev/porta-hub.mjs).
+ *
  * Para simular um usuário barrado — e conferir se a tela trata bem —
  * rode com a conta que quiser negar:
  *   node dev/hub-stub.mjs --inativo
@@ -45,8 +47,7 @@
  */
 
 import { createServer } from 'node:http';
-
-const PORTA = 8787;
+import { PORTA_HUB as PORTA } from './porta-hub.mjs';
 
 /**
  * Quem este dublê considera cadastrado.
@@ -441,6 +442,14 @@ const servidor = createServer((req, res) => {
     .map((u) => ({ ...u, isActive: inativo ? false : u.isActive }));
 
   responder(200, { data: achados });
+});
+
+servidor.on('error', (erro) => {
+  if (erro.code === 'EADDRINUSE') {
+    console.error(`Porta ${PORTA} já está em uso por outro processo. Rode com HUB_STUB_PORTA=<outra porta> (veja dev/porta-hub.mjs).`);
+    process.exit(1);
+  }
+  throw erro;
 });
 
 servidor.listen(PORTA, '127.0.0.1', () => {

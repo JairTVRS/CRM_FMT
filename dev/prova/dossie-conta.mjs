@@ -21,9 +21,9 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { reunirConta, montarContexto } from '../../functions/api/dossie-cx.js';
+import { BASE_HUB as BASE } from '../porta-hub.mjs';
 
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url)).replace(/[\/]$/, '');
-const BASE = 'http://127.0.0.1:8787/v1';
 
 const ACME = '507f1f77bcf86cd799439011';
 const VALE_VERDE = '507f1f77bcf86cd799439012';
