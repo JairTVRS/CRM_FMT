@@ -52,6 +52,8 @@ desktop.ini
 .claude/permission-decisions.jsonl*
 .claude/hooks/
 .claude/backup-skill/
+# Capturas de tela da rotina dev/captura.mjs (SKILL_AGENTS_IA_EDITOR 1.4).
+dev/capturas/
 
 # Editores
 .vscode/
