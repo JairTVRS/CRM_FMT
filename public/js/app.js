@@ -128,6 +128,11 @@ function initNavigation() {
       if (targetId === 'view-plano' && typeof Plano !== 'undefined') {
         Plano.aoEntrarNaTela();
       }
+
+      // A prévia da BIO só carrega quando alguém abre a tela.
+      if (targetId === 'view-bio' && typeof Bio !== 'undefined') {
+        Bio.aoEntrarNaTela();
+      }
     });
   });
 }

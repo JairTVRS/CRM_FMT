@@ -798,3 +798,64 @@ body.light-theme .topo-botao .icone-lua { display: block; }
 .diag-tabela th { color: var(--text-muted); font-weight: 600; }
 .diag-clientes { font-size: 0.78rem; color: var(--text-muted); padding-left: 1.1rem; margin: 0 0 0.5rem; }
 .diag-clientes li { margin-bottom: 0.25rem; }
+
+/* 2.45.0 — Tela BIO: o link para copiar e a prévia num "celular". */
+.bio-painel {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.bio-link-caixa {
+  flex: 1 1 360px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+.bio-rotulo {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.bio-link-linha { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.bio-link-linha .form-control { flex: 1; min-width: 220px; font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; }
+.bio-link-linha .btn { text-decoration: none; white-space: nowrap; }
+.bio-copiado { min-height: 1.2em; margin-top: 0.4rem; font-size: 0.8rem; color: var(--success-color); }
+.bio-dica { font-size: 0.82rem; color: var(--text-muted); line-height: 1.45; }
+.bio-previa { flex: 0 0 auto; }
+.bio-celular {
+  width: 340px;
+  max-width: 100%;
+  height: 640px;
+  border: 10px solid #0D0D0D;
+  border-radius: 32px;
+  overflow: hidden;
+  background: #0a0a0a;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.bio-celular iframe { width: 100%; height: 100%; border: 0; display: block; }
+.bio-subtitulo { font-size: 0.95rem; margin: 1.25rem 0 0.35rem; }
+.bio-erro { min-height: 1.2em; margin-top: 0.4rem; font-size: 0.82rem; color: var(--danger-color); }
+.bio-erro:empty { min-height: 0; margin: 0; }
+
+/* A janela de troca de imagem. */
+.bio-modal-previa {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  max-height: 280px;
+  margin-bottom: 0.5rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  overflow: hidden;
+  padding: 0.5rem;
+}
+.bio-modal-previa img { max-width: 100%; max-height: 260px; object-fit: contain; border-radius: 4px; }
+.bio-modal-escolha { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin: 0.75rem 0 0.25rem; }
+.bio-modal-acoes { display: flex; gap: 0.5rem; }

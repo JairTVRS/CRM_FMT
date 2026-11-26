@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formatar Gestão e Governança</title>
+  <meta name="description" content="Gestão com profundidade. Técnica com coração. Consultoria de gestão e governança em Divinópolis (MG).">
+  <meta name="theme-color" content="#0a0a0a">
+
+  <!-- Prévia do link no WhatsApp, Instagram e afins. -->
+  <meta property="og:title" content="Formatar Gestão e Governança">
+  <meta property="og:description" content="Gestão com profundidade. Técnica com coração. Fale com a nossa equipe.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://crm-fmt.pages.dev/logo-preta.png">
+
+  <link rel="icon" type="image/png" href="/Icone-Aba.png">
+  <link rel="apple-touch-icon" href="/Icone-Aba.png">
+
+  <!--
+    PÁGINA BIO (2.45.0) — pública, sem login.
+
+    É a página do link da bio: Instagram, cartão, assinatura, mensagem.
+    Qualquer pessoa abre; o caminho principal é cair no WhatsApp
+    corporativo.
+
+    DE ONDE VEM CADA COISA
+      - Textos, redes, números e links fixos: o objeto BIO, no script do
+        fim da página.
+      - Imagens (avatar, capa, soluções, postagens) e os links das
+        soluções e postagens: trocados pelo CRM, no lápis da tela BIO, e
+        lidos de /publico/bio. Sem imagem, a vaga usa o padrão.
+      - Vídeos: os últimos do canal do YouTube, também por /publico/bio.
+
+    MODO EDIÇÃO: aberta dentro do CRM como /bio?editar=1, cada imagem
+    ganha um lápis que pede ao CRM para abrir a troca. Fora do CRM o
+    parâmetro não faz nada: o lápis só conversa com a janela do CRM, e
+    quem grava é a API com login.
+  -->
+  <style>
+    :root {
+      --fundo: #0a0a0a;
+      --cartao: #18181a;
+      --cartao-2: #222225;
+      --borda: #2e2e32;
+      --texto: #f4f4f5;
+      --apoio: #a1a1aa;
+      --discreto: #71717a;
+      --marca: #F2421A;
+      --marca-viva: #ff4a24;
+      --raio: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--fundo);
+      color: var(--texto);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.45;
+    }
+    a { color: inherit; text-decoration: none; }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--marca); outline-offset: 3px; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    [data-pendente] { cursor: default; }
+
+    .pagina { max-width: 680px; margin: 0 auto; padding: 0 16px 48px; }
+    .carregando { min-height: 100vh; }
+
+    /* ---------- Topo: capa, avatar, nome ---------- */
+    .capa {
+      position: relative;
+      height: 190px;
+      margin: 0 -16px;
+      background:
+        radial-gradient(ellipse at 75% 30%, rgba(242, 66, 26, 0.35), transparent 55%),
+        radial-gradient(ellipse at 20% 60%, rgba(255, 255, 255, 0.06), transparent 50%),
+        linear-gradient(180deg, #1c1c1f, #0a0a0a);
+      background-size: cover;
+      background-position: center;
+    }
+    @media (min-width: 712px) { .capa { margin: 0; border-radius: 0 0 var(--raio) var(--raio); } }
+
+    .perfil { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: -60px; }
+    .avatar {
+      position: relative;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: #232326;
+      border: 4px solid var(--fundo);
+      display: grid; place-items: center;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    }
+    .avatar img { width: 56px; height: auto; filter: invert(1); }
+    .avatar.com-foto { background-size: cover; background-position: center; }
+    .avatar.com-foto img { display: none; }
+    .perfil h1 { margin-top: 18px; font-size: 1.65rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+    .perfil .arroba { margin-top: 4px; color: var(--marca-viva); font-weight: 600; font-size: 1.05rem; }
+    .perfil .lema { margin-top: 12px; color: var(--apoio); font-size: 1.05rem; max-width: 500px; }
+
+    .etiquetas { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
+    .etiqueta { border: 1px solid var(--borda); border-radius: 6px; padding: 4px 12px; font-size: 0.92rem; color: #d4d4d8; }
+
+    .redes { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+    .rede {
+      width: 54px; height: 54px; border-radius: 50%;
+      background: var(--cartao); border: 1px solid var(--borda);
+      display: grid; place-items: center;
+      transition: border-color .15s, background .15s;
+    }
+    .rede:hover { border-color: var(--marca); background: var(--cartao-2); }
+    .rede svg { width: 22px; height: 22px; }
+
+    /* ---------- Botão principal ---------- */
+    .cta {
+      display: block; width: 100%; margin-top: 22px;
+      background: #f4f4f5; color: #0a0a0a;
+      border-radius: 10px; padding: 20px 16px;
+      text-align: center; font-weight: 700; font-size: 1.12rem;
+      transition: transform .12s, background .15s;
+    }
+    .cta:hover { background: #ffffff; }
+    .cta:active { transform: scale(0.985); }
+
+    /* ---------- Números ---------- */
+    .numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+    .numero { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; padding: 16px 8px; text-align: center; }
+    .numero strong { display: block; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; }
+    .numero span { display: block; font-weight: 600; font-size: 0.9rem; }
+    .numero small { display: block; margin-top: 6px; font-size: 0.75rem; color: var(--discreto); }
+    @media (max-width: 420px) {
+      .numero strong { font-size: 1.4rem; }
+      .numero span { font-size: 0.78rem; }
+    }
+
+    /* ---------- Pergunta do desafio ---------- */
+    .desafio {
+      position: relative; overflow: hidden;
+      margin-top: 28px; padding: 20px;
+      background: var(--cartao); border-radius: var(--raio);
+    }
+    .desafio::before {
+      content: ""; position: absolute; top: -70px; right: -70px;
+      width: 220px; height: 220px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(242, 66, 26, 0.45), transparent 70%);
+      pointer-events: none;
+    }
+    .desafio-topo { position: relative; display: flex; gap: 14px; align-items: center; }
+    .desafio-icone { flex-shrink: 0; width: 52px; height: 52px; border-radius: 10px; background: var(--cartao-2); display: grid; place-items: center; }
+    .desafio-icone svg { width: 24px; height: 24px; }
+    .desafio h2 { font-size: 1.15rem; font-weight: 800; line-height: 1.25; }
+    .desafio-topo p { color: var(--apoio); font-size: 0.92rem; }
+    .desafio-barra { position: relative; height: 4px; border-radius: 2px; background: var(--marca); margin: 18px 0 14px; }
+    .desafio-passo { color: var(--apoio); font-size: 0.88rem; }
+    .desafio h3 { font-size: 1.12rem; font-weight: 800; margin: 4px 0 14px; }
+    .opcoes { display: flex; flex-direction: column; gap: 10px; }
+    .opcao {
+      display: flex; justify-content: space-between; align-items: center; width: 100%;
+      text-align: left; padding: 16px 18px;
+      background: var(--cartao-2); border: 1px solid var(--borda); border-radius: 10px;
+      font-size: 1.05rem; transition: border-color .15s;
+    }
+    .opcao:hover { border-color: var(--marca); }
+    .opcao .seta { color: var(--apoio); font-size: 1.3rem; }
+    .resposta p { color: var(--apoio); margin-bottom: 4px; }
+    .resposta strong { display: block; font-size: 1.25rem; margin-bottom: 6px; }
+    .resposta .descricao { margin-bottom: 16px; }
+    .resposta .cta { margin-top: 0; }
+    .refazer { margin-top: 12px; color: var(--apoio); font-size: 0.9rem; text-decoration: underline; }
+
+    /* ---------- Seções ---------- */
+    .secao-titulo { margin: 32px 0 10px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--apoio); }
+
+    .foto {
+      background:
+        radial-gradient(ellipse at 70% 20%, rgba(242, 66, 26, 0.18), transparent 60%),
+        linear-gradient(135deg, #2a2a2e, #161618);
+      background-size: cover; background-position: center;
+    }
+
+    .solucao { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); overflow: hidden; margin-bottom: 14px; }
+    .solucao .foto { position: relative; }
+    .solucao.destaque .foto { height: 240px; }
+    .solucao.destaque .selo { position: absolute; top: 14px; left: 18px; font-weight: 700; font-size: 0.9rem; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+    .solucao.destaque .corpo { padding: 18px 20px 20px; }
+    .solucao.destaque h3 { font-size: 1.2rem; font-weight: 800; }
+    .solucao.destaque p { color: var(--apoio); font-size: 1.02rem; margin: 8px 0 16px; }
+    .solucao.linha { display: flex; }
+    .solucao.linha .foto { flex: 0 0 112px; min-height: 140px; }
+    .solucao.linha .corpo { padding: 18px 20px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+    .solucao.linha h3 { font-size: 1.15rem; font-weight: 800; line-height: 1.25; }
+    .explorar {
+      align-self: flex-start; display: inline-block;
+      border: 1px solid #e4e4e7; border-radius: 8px; padding: 10px 20px;
+      font-weight: 700; transition: background .15s, color .15s;
+    }
+    .explorar:hover { background: #f4f4f5; color: #0a0a0a; }
+
+    .bloco-topo { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin: 32px 0 14px; }
+    .bloco-topo > div { min-width: 0; }
+    .bloco-topo .arroba-mini { display: flex; align-items: center; gap: 6px; color: var(--marca-viva); font-size: 0.88rem; font-weight: 600; }
+    .bloco-topo .arroba-mini svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .bloco-topo h2 { font-size: 1.4rem; font-weight: 800; margin-top: 2px; }
+    .seguir { border: 1px solid var(--borda); background: var(--cartao); border-radius: 8px; padding: 12px 18px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+    .seguir:hover { border-color: var(--marca); }
+
+    .videos { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; scrollbar-width: thin; }
+    .video { flex: 0 0 82%; max-width: 540px; scroll-snap-align: start; }
+    .video .foto { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--borda); }
+    .play {
+      position: absolute; left: 14px; bottom: 14px;
+      width: 46px; height: 46px; border-radius: 50%;
+      background: #e0392a; display: grid; place-items: center;
+    }
+    .play svg { width: 18px; height: 18px; margin-left: 3px; }
+    .video h3 { margin-top: 10px; font-size: 1rem; font-weight: 800; text-transform: uppercase; line-height: 1.3; }
+    .video small { color: var(--discreto); font-size: 0.88rem; }
+
+    .posts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .post { position: relative; aspect-ratio: 4 / 5.5; border-radius: 6px; overflow: hidden; }
+    .post > a, .post > .foto { position: absolute; inset: 0; }
+    .post .foto { position: absolute; inset: 0; }
+    .post .vazio { position: absolute; inset: 0; display: grid; place-items: center; padding: 8px; text-align: center; font-size: 0.8rem; color: var(--apoio); }
+
+    .links { display: flex; flex-direction: column; gap: 10px; }
+    .link {
+      display: flex; align-items: center; gap: 14px;
+      padding: 10px 16px; border-radius: 10px;
+      background: var(--cartao); border: 1px solid var(--borda);
+      font-weight: 700; font-size: 1.02rem; transition: border-color .15s;
+    }
+    a.link[href]:hover { border-color: var(--marca); }
+    .link .ico { width: 44px; height: 44px; flex-shrink: 0; border-radius: 8px; background: var(--cartao-2); display: grid; place-items: center; }
+    .link .ico svg { width: 22px; height: 22px; }
+    .link .falta { margin-left: auto; font-size: 0.75rem; font-weight: 600; color: var(--marca-viva); }
+
+    .rodape { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--borda); text-align: center; }
+    .rodape strong { display: block; font-size: 1.1rem; font-weight: 800; }
+    .rodape p { color: var(--apoio); margin-top: 4px; }
+    .rodape a:hover { color: var(--texto); }
+
+    /* ---------- Modo edição (dentro do CRM) ---------- */
+    .lapis {
+      position: absolute; top: 8px; right: 8px; z-index: 2;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: #ffffff; color: #0a0a0a;
+      display: grid; place-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      transition: transform .12s, background .15s;
+    }
+    .lapis:hover { background: var(--marca); color: #fff; transform: scale(1.08); }
+    .lapis svg { width: 16px; height: 16px; }
+    .avatar .lapis { top: auto; bottom: -2px; right: -2px; }
+  </style>
+</head>
+<body>
+  <div class="pagina carregando" id="bio"></div>
+  <noscript><p style="padding:24px;text-align:center">Fale com a Formatar pelo WhatsApp: +55 37 9956-4071</p></noscript>
+
+  <script>
+  /* ==========================================================================
+     CONTEÚDO FIXO DA PÁGINA — editar aqui.
+     As IMAGENS e os links das soluções e postagens NÃO ficam aqui: são
+     trocados pelo CRM (tela BIO, lápis).
+     url vazia ('') = sem destino: some da página pública e aparece no CRM
+     marcada "sem link", para lembrar que falta.
+     ========================================================================== */
+  var BIO = {
+    whatsapp: {
+      numero: '553799564071',   // +55 37 9956-4071, só dígitos, com DDI e DDD
+      mensagem: 'Olá! Vim pela página da Formatar e gostaria de conversar.'
+    },
+
+    perfil: {
+      nome: 'Formatar Gestão e Governança',
+      arroba: '@formatar.gestaoegovernanca',
+      arrobaUrl: 'https://www.instagram.com/formatar.gestaoegovernanca/',
+      lema: 'Gestão com profundidade. Técnica com coração. Consultoria de gestão e governança em Divinópolis (MG).',
+      etiquetas: ['Gestão', 'Governança', 'Sucessão']
+    },
+
+    redes: [
+      { icone: 'instagram', nome: 'Instagram', url: 'https://www.instagram.com/formatar.gestaoegovernanca/' },
+      { icone: 'facebook',  nome: 'Facebook',  url: 'https://www.facebook.com/formatar.consultoria/' },
+      { icone: 'linkedin',  nome: 'LinkedIn',  url: 'https://www.linkedin.com/company/formatargestaoegovernanca/' },
+      { icone: 'youtube',   nome: 'YouTube',   url: 'https://www.youtube.com/@formatar.gestaoegovernanca' },
+      { icone: 'tiktok',    nome: 'TikTok',    url: 'https://www.tiktok.com/@formatar.gestao' },
+      { icone: 'site',      nome: 'Site',      url: 'https://formatar.com.br/' }
+    ],
+
+    botaoPrincipal: 'Vamos conversar',
+
+    numeros: [
+      { valor: '25+',  rotulo: 'anos de história',   fonte: 'Fonte: site Formatar' },
+      { valor: '3',    rotulo: 'núcleos de atuação', fonte: 'Fonte: site Formatar' },
+      { valor: '2004', rotulo: 'ano de fundação',    fonte: 'Fonte: site Formatar' }
+    ],
+
+    // Cada resposta indica uma frente; o botão abre o WhatsApp já dizendo qual.
+    desafio: {
+      titulo: 'Você é o motor da sua empresa ou o gargalo dela?',
+      subtitulo: 'Escolha onde está o seu desafio hoje e indicamos a frente certa.',
+      pergunta: 'Onde está o seu desafio hoje?',
+      opcoes: [
+        { texto: 'Gestão e resultados',          frente: 'Consultoria e Assessoria',
+          descricao: 'Diagnóstico e execução para elevar o desempenho da operação e da gestão integrada.' },
+        { texto: 'Família, sócios e sucessão',   frente: 'Famílias, sociedade e governança',
+          descricao: 'Acordos, conselhos e sucessão para a empresa durar além de quem a fundou.' },
+        { texto: 'Avaliar ou expandir',          frente: 'Serviços técnicos e especializados',
+          descricao: 'Estudos e serviços técnicos para decidir com segurança antes de crescer ou investir.' },
+        { texto: 'Ainda não sei',                frente: 'Uma conversa com o nosso time',
+          descricao: 'Conte o seu momento e indicamos o melhor caminho, sem compromisso.' }
+      ]
+    },
+
+    // A vaga liga a solução à imagem e ao link trocados no CRM. Sem link,
+    // "Explorar solução" abre o WhatsApp já falando da solução.
+    solucoes: [
+      { vaga: 'solucao-1', selo: 'Núcleo 01', titulo: 'Consultoria e Assessoria',
+        descricao: 'Diagnóstico e execução para elevar o desempenho da sua operação e da gestão integrada: comercial, finanças, pessoas e operações.' },
+      { vaga: 'solucao-2', titulo: 'Famílias, sociedade e governança' },
+      { vaga: 'solucao-3', titulo: 'Serviços técnicos e especializados' }
+    ],
+
+    videos: { canalUrl: 'https://www.youtube.com/@formatar.gestaoegovernanca?sub_confirmation=1' },
+
+    postagens: {
+      perfilUrl: 'https://www.instagram.com/formatar.gestaoegovernanca/',
+      vagas: ['post-1', 'post-2', 'post-3', 'post-4', 'post-5', 'post-6']
+    },
+
+    grupos: [
+      { titulo: 'Formatar', links: [
+        { icone: 'mapa', texto: 'Onde estamos?', url: 'https://share.google/mE5ayrywq3KZuCWtl' },
+        // O link de avaliação sai do Perfil da Empresa no Google ("Pedir
+        // avaliações"), no formato https://g.page/r/.../review
+        { icone: 'estrela', texto: 'Avalie a Formatar no Google', url: '' },
+        { icone: 'site', texto: 'Conteúdos', url: 'https://formatar.com.br/conteudo' },
+        { icone: 'site', texto: 'Acesso do cliente', url: 'https://formatos.ai/login' }
+      ]},
+      { titulo: 'Formatar RH', links: [
+        { icone: 'site',      texto: 'Site | Formatar RH', url: 'https://www.formatarrh.com.br/' },
+        { icone: 'instagram', texto: 'Instagram | Formatar RH', url: 'https://www.instagram.com/formatar.rh/' },
+        { icone: 'linkedin',  texto: 'LinkedIn | Formatar RH', url: 'https://www.linkedin.com/company/formatar-rh/' }
+      ]}
+    ],
+
+    rodape: {
+      chamada: 'Vamos formatar o seu futuro juntos?',
+      email: 'contato@formatar.com.br',
+      telefone: '(37) 3213-0005',
+      telefoneUrl: 'tel:+553732130005'
+    }
+  };
+
+  /* ==========================================================================
+     MONTAGEM — daqui para baixo não precisa mexer para trocar conteúdo.
+     ========================================================================== */
+  (function () {
+    var ICONES = {
+      instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+      facebook: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 8.5V6.8c0-.8.5-1.3 1.4-1.3H17V2.2c-.4-.1-1.6-.2-2.8-.2-2.8 0-4.6 1.7-4.6 4.7v1.8H6.8V12h2.8v10H14V12h2.8l.5-3.5z"/></svg>',
+      linkedin: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4V21H3zM9.5 9.5h3.8v1.6h.06c.53-1 1.83-2.06 3.77-2.06 4.03 0 4.77 2.65 4.77 6.1V21h-4v-5.1c0-1.22-.02-2.78-1.7-2.78-1.7 0-1.96 1.33-1.96 2.7V21h-4z"/></svg>',
+      youtube: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="4"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor" stroke="none"/></svg>',
+      tiktok: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 3c.3 2.2 1.6 3.6 3.9 3.8v3.1c-1.4.1-2.7-.3-3.9-1v5.9c0 3.6-2.6 6.2-6 6.2-3.5 0-6.1-2.9-5.6-6.4.4-2.9 3-4.9 6.1-4.6v3.2c-.4-.1-.8-.2-1.2-.1-1.4.1-2.4 1.3-2.3 2.7.1 1.4 1.3 2.4 2.7 2.3 1.3-.1 2.3-1.2 2.3-2.6V3h4z"/></svg>',
+      site: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.6 2.6 3.9 5.8 3.9 9.5s-1.3 6.9-3.9 9.5c-2.6-2.6-3.9-5.8-3.9-9.5S9.4 5.1 12 2.5z"/></svg>',
+      mapa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21.5s-7-6.2-7-11.5a7 7 0 0 1 14 0c0 5.3-7 11.5-7 11.5z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+      estrela: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.8l2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.3l-5.7 3 1.1-6.3-4.6-4.5 6.4-.9z"/></svg>',
+      raio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+      play: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M6 4l14 8-14 8z"/></svg>',
+      lapis: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'
+    };
+
+    // Modo edição: só dentro de uma janela do próprio CRM (mesma origem).
+    var editando = false;
+    try {
+      editando = /[?&]editar=1\b/.test(location.search) && window.parent !== window
+        && window.parent.location.origin === location.origin;
+    } catch (e) { editando = false; }
+
+    function whatsapp(mensagem) {
+      return 'https://wa.me/' + BIO.whatsapp.numero + '?text=' + encodeURIComponent(mensagem || BIO.whatsapp.mensagem);
+    }
+
+    // Cria um elemento. Só os ícones fixos acima entram como HTML; texto
+    // sempre por textContent.
+    function el(tag, classe, texto) {
+      var e = document.createElement(tag);
+      if (classe) e.className = classe;
+      if (texto != null) e.textContent = texto;
+      return e;
+    }
+    function ligar(e, url) {
+      if (url) {
+        e.href = url;
+        if (!/^(tel:|mailto:)/.test(url)) { e.target = '_blank'; e.rel = 'noopener'; }
+      } else {
+        e.setAttribute('data-pendente', '');
+        e.setAttribute('aria-disabled', 'true');
+        e.addEventListener('click', function (ev) { ev.preventDefault(); });
+      }
+      return e;
+    }
+    function icone(nome) { var s = el('span'); s.innerHTML = ICONES[nome] || ICONES.site; return s.firstChild; }
+
+    function montar(dados) {
+      var vagas = (dados && dados.vagas) || {};
+      var videos = (dados && dados.videos) || [];
+
+      var imagemDe = function (vaga) {
+        var x = vagas[vaga];
+        return x && x.v ? '/publico/bio-imagem?vaga=' + encodeURIComponent(vaga) + '&v=' + x.v : '';
+      };
+      var linkDe = function (vaga) { return (vagas[vaga] && vagas[vaga].link) || ''; };
+      var foto = function (e, vaga) {
+        e.classList.add('foto');
+        var url = imagemDe(vaga);
+        if (url) e.style.backgroundImage = 'url("' + url + '")';
+        return e;
+      };
+      // O lápis: pede ao CRM para abrir a troca desta vaga.
+      var lapis = function (alvo, vaga) {
+        if (!editando) return;
+        var b = el('button', 'lapis');
+        b.type = 'button';
+        b.title = 'Trocar imagem';
+        b.setAttribute('aria-label', 'Trocar imagem');
+        b.appendChild(icone('lapis'));
+        b.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          window.parent.postMessage({ tipo: 'bio:editar', vaga: vaga }, location.origin);
+        });
+        alvo.appendChild(b);
+      };
+
+      var raiz = document.getElementById('bio');
+      raiz.textContent = '';
+      raiz.classList.remove('carregando');
+      var p = BIO.perfil;
+
+      // Capa, avatar e apresentação
+      var capa = foto(el('div', 'capa'), 'capa');
+      lapis(capa, 'capa');
+      raiz.appendChild(capa);
+
+      var perfil = el('header', 'perfil');
+      var avatar = el('div', 'avatar');
+      var marca = el('img'); marca.src = '/Icone-Aba.png'; marca.alt = 'Formatar';
+      avatar.appendChild(marca);
+      if (imagemDe('avatar')) {
+        avatar.classList.add('com-foto');
+        avatar.style.backgroundImage = 'url("' + imagemDe('avatar') + '")';
+      }
+      lapis(avatar, 'avatar');
+      perfil.appendChild(avatar);
+      perfil.appendChild(el('h1', null, p.nome));
+      perfil.appendChild(ligar(el('a', 'arroba', p.arroba), p.arrobaUrl));
+      perfil.appendChild(el('p', 'lema', p.lema));
+      var etiquetas = el('div', 'etiquetas');
+      p.etiquetas.forEach(function (t) { etiquetas.appendChild(el('span', 'etiqueta', t)); });
+      perfil.appendChild(etiquetas);
+      var redes = el('nav', 'redes');
+      redes.setAttribute('aria-label', 'Redes sociais');
+      BIO.redes.forEach(function (r) {
+        if (!r.url) return;
+        var a = ligar(el('a', 'rede'), r.url);
+        a.setAttribute('aria-label', r.nome); a.title = r.nome;
+        a.appendChild(icone(r.icone));
+        redes.appendChild(a);
+      });
+      perfil.appendChild(redes);
+      raiz.appendChild(perfil);
+
+      // Botão principal: o WhatsApp
+      raiz.appendChild(ligar(el('a', 'cta', BIO.botaoPrincipal), whatsapp()));
+
+      // Números
+      var numeros = el('section', 'numeros');
+      BIO.numeros.forEach(function (n) {
+        var c = el('div', 'numero');
+        c.appendChild(el('strong', null, n.valor));
+        c.appendChild(el('span', null, n.rotulo));
+        if (n.fonte) c.appendChild(el('small', null, n.fonte));
+        numeros.appendChild(c);
+      });
+      raiz.appendChild(numeros);
+
+      // Pergunta do desafio
+      var d = BIO.desafio;
+      var desafio = el('section', 'desafio');
+      var topo = el('div', 'desafio-topo');
+      var ic = el('div', 'desafio-icone'); ic.appendChild(icone('raio'));
+      var tt = el('div');
+      tt.appendChild(el('h2', null, d.titulo));
+      tt.appendChild(el('p', null, d.subtitulo));
+      topo.appendChild(ic); topo.appendChild(tt);
+      desafio.appendChild(topo);
+      desafio.appendChild(el('div', 'desafio-barra'));
+      var miolo = el('div');
+      desafio.appendChild(miolo);
+
+      function mostrarPergunta() {
+        miolo.textContent = '';
+        miolo.appendChild(el('p', 'desafio-passo', 'Pergunta 1 de 1'));
+        miolo.appendChild(el('h3', null, d.pergunta));
+        var lista = el('div', 'opcoes');
+        d.opcoes.forEach(function (o) {
+          var b = el('button', 'opcao');
+          b.type = 'button';
+          b.appendChild(el('span', null, o.texto));
+          b.appendChild(el('span', 'seta', '→'));
+          b.addEventListener('click', function () { mostrarResposta(o); });
+          lista.appendChild(b);
+        });
+        miolo.appendChild(lista);
+      }
+      function mostrarResposta(o) {
+        miolo.textContent = '';
+        var r = el('div', 'resposta');
+        r.appendChild(el('p', null, 'A frente certa para você:'));
+        r.appendChild(el('strong', null, o.frente));
+        r.appendChild(el('p', 'descricao', o.descricao));
+        var msg = 'Olá! Vim pela página da Formatar. Meu desafio hoje é: ' + o.texto + '. Gostaria de conversar sobre ' + o.frente + '.';
+        r.appendChild(ligar(el('a', 'cta', 'Falar com um especialista'), whatsapp(msg)));
+        var volta = el('button', 'refazer', 'Escolher outra resposta');
+        volta.type = 'button';
+        volta.addEventListener('click', mostrarPergunta);
+        r.appendChild(volta);
+        miolo.appendChild(r);
+      }
+      mostrarPergunta();
+      raiz.appendChild(desafio);
+
+      // Soluções: a primeira em destaque, as outras em linha.
+      raiz.appendChild(el('h2', 'secao-titulo', 'Soluções estratégicas'));
+      BIO.solucoes.forEach(function (s, i) {
+        var destino = linkDe(s.vaga) || whatsapp('Olá! Vim pela página da Formatar e quero conhecer: ' + s.titulo + '.');
+        var c = el('article', 'solucao ' + (i === 0 ? 'destaque' : 'linha'));
+        var f = foto(el('div'), s.vaga);
+        if (i === 0 && s.selo) f.appendChild(el('span', 'selo', s.selo));
+        lapis(f, s.vaga);
+        c.appendChild(f);
+        var corpo = el('div', 'corpo');
+        corpo.appendChild(el('h3', null, s.titulo));
+        if (i === 0 && s.descricao) corpo.appendChild(el('p', null, s.descricao));
+        corpo.appendChild(ligar(el('a', 'explorar', 'Explorar solução'), destino));
+        c.appendChild(corpo);
+        raiz.appendChild(c);
+      });
+
+      function cabecalhoDeBloco(iconeNome, titulo, botao, url) {
+        var t = el('div', 'bloco-topo');
+        var esq = el('div');
+        var ar = el('div', 'arroba-mini');
+        ar.appendChild(icone(iconeNome));
+        ar.appendChild(el('span', null, BIO.perfil.arroba));
+        esq.appendChild(ar);
+        esq.appendChild(el('h2', null, titulo));
+        t.appendChild(esq);
+        t.appendChild(ligar(el('a', 'seguir', botao), url));
+        return t;
+      }
+
+      // Vídeos: os últimos do canal, lidos pelo servidor. Sem vídeo, sem seção.
+      if (videos.length) {
+        raiz.appendChild(cabecalhoDeBloco('youtube', 'Últimos vídeos', 'Inscrever-se', BIO.videos.canalUrl));
+        var faixa = el('div', 'videos');
+        videos.forEach(function (v) {
+          var a = ligar(el('a', 'video'), 'https://www.youtube.com/watch?v=' + encodeURIComponent(v.id));
+          var f = el('div', 'foto');
+          f.style.backgroundImage = 'url("https://i.ytimg.com/vi/' + encodeURIComponent(v.id) + '/hqdefault.jpg")';
+          var pl = el('span', 'play'); pl.appendChild(icone('play'));
+          f.appendChild(pl);
+          a.appendChild(f);
+          a.appendChild(el('h3', null, v.titulo));
+          if (v.publicado) {
+            var data = new Date(v.publicado).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/\./g, '').replace(/ de /g, ' ');
+            a.appendChild(el('small', null, data));
+          }
+          faixa.appendChild(a);
+        });
+        raiz.appendChild(faixa);
+      }
+
+      // Postagens: só as que têm imagem. No CRM aparecem todas, para preencher.
+      var posts = BIO.postagens.vagas.filter(function (v) { return editando || imagemDe(v); });
+      if (posts.length) {
+        raiz.appendChild(cabecalhoDeBloco('instagram', 'Últimas postagens', 'Seguir', BIO.postagens.perfilUrl));
+        var grade = el('div', 'posts');
+        posts.forEach(function (vaga, i) {
+          var caixa = el('div', 'post');
+          var a = ligar(el('a'), linkDe(vaga) || BIO.postagens.perfilUrl);
+          a.setAttribute('aria-label', 'Postagem ' + (i + 1) + ' no Instagram');
+          a.appendChild(foto(el('div'), vaga));
+          if (!imagemDe(vaga)) a.appendChild(el('span', 'vazio', 'Adicionar postagem'));
+          caixa.appendChild(a);
+          lapis(caixa, vaga);
+          grade.appendChild(caixa);
+        });
+        raiz.appendChild(grade);
+      }
+
+      // Grupos de links: na página pública só os que têm destino.
+      BIO.grupos.forEach(function (g) {
+        var itens = g.links.filter(function (l) { return editando || l.url; });
+        if (!itens.length) return;
+        raiz.appendChild(el('h2', 'secao-titulo', g.titulo));
+        var lista = el('div', 'links');
+        itens.forEach(function (l) {
+          var a = ligar(el('a', 'link'), l.url);
+          var ico = el('span', 'ico'); ico.appendChild(icone(l.icone));
+          a.appendChild(ico);
+          a.appendChild(el('span', null, l.texto));
+          if (!l.url) a.appendChild(el('span', 'falta', 'sem link'));
+          lista.appendChild(a);
+        });
+        raiz.appendChild(lista);
+      });
+
+      // Rodapé
+      var r = BIO.rodape;
+      var rod = el('footer', 'rodape');
+      rod.appendChild(el('strong', null, r.chamada));
+      var contato = el('p');
+      contato.appendChild(ligar(el('a', null, r.email), 'mailto:' + r.email));
+      contato.appendChild(document.createTextNode(' · '));
+      contato.appendChild(ligar(el('a', null, r.telefone), r.telefoneUrl));
+      rod.appendChild(contato);
+      raiz.appendChild(rod);
+    }
+
+    // Imagens, links e vídeos. Se o servidor não responder, a página abre
+    // no padrão — o WhatsApp funciona de qualquer jeito.
+    var opcoes = editando ? { cache: 'no-store' } : {};
+    var limite = new Promise(function (ok) { setTimeout(function () { ok(null); }, 4000); });
+    Promise.race([
+      fetch('/publico/bio', opcoes).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+      limite
+    ]).then(montar);
+  })();
+  </script>
+</body>
+</html>

@@ -29,6 +29,7 @@ import {
   ROTULO_INFLUENCIA, ROTULO_POSTURA
 } from './_lib/schema-dossie-cx.js';
 import { renderizarDossieCx } from './_lib/dossie-cx-template.js';
+import { buscarContratadaDoLead, enderecoDaContratada } from './_lib/contrato.js';
 import { criarVersionador } from './_lib/versionamento.js';
 import { buscarContaDoHub, nucleosDoCliente, consultarHub } from './_lib/hub.js';
 
@@ -697,6 +698,10 @@ export async function onRequestPost(context) {
       meta: { geradoPor: usuario.email, provider, geradoEm, versao }
     });
 
+    // 2.45.0: o endereço do rodapé vem da contratada padrão (decisão do
+    // Jair em 26/11/2026), como na proposta e no contrato.
+    const enderecoRodape = enderecoDaContratada(await buscarContratadaDoLead(db, null));
+
     // O número da versão só é conhecido dentro da gravação, e a capa do
     // documento o exibe. Por isso o HTML é montado lá, com a versão em mão.
     const gravacao = await dossiesCx.salvar({
@@ -704,7 +709,7 @@ export async function onRequestPost(context) {
       valorChave: clienteId,
       usuario,
       dados: montarDados,
-      montarHtml: (versao) => renderizarDossieCx(montarDados(versao)),
+      montarHtml: (versao) => renderizarDossieCx(montarDados(versao), { endereco: enderecoRodape }),
       extras: {
         // Cópia do nome e do CNPJ NA HORA da geração, de propósito: se o
         // cadastro for corrigido depois, o histórico continua dizendo sob

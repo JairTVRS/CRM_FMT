@@ -1,14 +1,34 @@
 # Roadmap dos lotes — CRM Formatar
 
-**Atualizado em:** 06/10/2026
-**Versão no ar:** 2.44.0 (desde 05/10/2026; migrações 008 a 029 aplicadas no D1 remoto, da 027 à 029 em 05/10/2026 pelo --command e conferidas; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Atualizado em:** 26/11/2026
+**Versão no ar:** 2.45.0 (desde 26/11/2026; migrações 008 a 030 aplicadas no D1 remoto, a 030 em 26/11/2026 pelo --command; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
 
-## ▶ Retomada (06/10/2026)
+## ▶ Retomada (26/11/2026)
 
-**Onde paramos (fim de 05/10/2026):** no ar a **2.44.0**. No mesmo dia:
+**26/11/2026 — 2.45.0, página BIO:** página pública `/bio` (link da bio →
+WhatsApp corporativo) e item BIO no menu; imagens trocadas pelo lápis da
+prévia, guardadas no D1 (migração 030 `bio_vagas`); vídeos do feed do
+YouTube. Junto: o rodapé do Dossiê de Experiência usa o endereço da
+contratada padrão. Falta só o link "Avalie a Formatar no Google" (o Jair
+está pedindo acesso ao Perfil da Empresa); vazio, o link fica escondido.
+
+**Respostas do Jair em 26/11/2026:** template do contrato aprovado (item
+do jurídico fechado); ação que saiu da ata sem concluir conta **como
+feita** na efetividade do Lote PC; o local da reunião vem do campo
+`placement` do `GET /meetings/{id}` — Externo = no cliente, Interno remoto
+= online, Interno presencial = na Formatar. O Jair está com o responsável
+do hub para a leitura de tarefas. Como a BIO tomou a 2.45.0, o Lote PC
+passa a **2.46.0** (conferência das tarefas) e **2.47.0** (documento,
+migração **031**).
+
+**Ambiente local:** `npm run dev:hub` e `npx wrangler pages dev --port 3000
+--persist-to=.wrangler/local-2361 --ai AI` (o banco padrão em
+`.wrangler/state` é antigo, sem as migrações 018 em diante).
+
+**Onde paramos em 05/10/2026:** no ar a **2.44.0**. No mesmo dia:
 
 - **Lote G — Contrato** (2.40.0 a 2.41.2): aba Contrato no lead (km,
   forma de preço, contratada, quem assina, endereço e CNPJ, escopo e
@@ -34,14 +54,15 @@ passa à frente do N.
 
 | # | O quê | Para começar |
 |---|---|---|
-| 1 | **Lote PC — Prestação de Contas** (2.45.0 conferência das tarefas; 2.46.0 o documento) | **o Jair pedir ao responsável do hub a permissão de leitura de tarefas na chave do CRM** (algo como `hub:tasks:read`) e responder as 2 dúvidas abertas (ver "Lote PC") |
+| 0 | Link "Avalie a Formatar no Google" na BIO | o Jair mandar o link "Pedir avaliações" (`https://g.page/r/.../review`); preencher em `public/bio.html` |
+| 1 | **Lote PC — Prestação de Contas** (2.46.0 conferência das tarefas; 2.47.0 o documento) | **a permissão de leitura de tarefas na chave do CRM** (algo como `hub:tasks:read`); as 2 dúvidas foram respondidas em 26/11 |
 | 2 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | **desenhar com o Jair antes do código** — o que medir, quando perguntar, como o cliente responde, onde aparece |
 | — | ~~Conferir os núcleos da Zanna Sound contra as carteiras do ERP~~ | **feito em 06/10/2026**: batem |
-| 3 | Primeiro contrato real lido pelo jurídico | cláusulas fixas em `_lib/contrato-template.js` |
-| 4 | Endereço do Dossiê de Experiência (ainda o fixo antigo) | decidir se usa a contratada padrão |
+| — | ~~Primeiro contrato real lido pelo jurídico~~ | **fechado em 26/11/2026**: template aprovado |
+| — | ~~Endereço do Dossiê de Experiência~~ | **feito na 2.45.0**: contratada padrão |
 | 5 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
 
-Migração livre: **030**.
+Migração livre: **031**.
 
 ### Lote PC — Prestação de Contas (desenhado em 06/10/2026)
 
@@ -90,12 +111,14 @@ de Valor Gerado), sem os KPIs do K.
 | 2.45.0 | **Conferência das tarefas** (admin, cliente pelo nome, como a 2.42.0 das pessoas): o que a API de tarefas devolve — campos, horas, cliente, frente/carteira, responsáveis | nenhuma |
 | 2.46.0 | **Prestação de Contas** em Documentos de contexto | **030** |
 
-**Em aberto (perguntar ao Jair):**
+**Respondido em 26/11/2026** (as versões acima passam a 2.46.0 e 2.47.0,
+e a migração a 031, porque a BIO tomou a 2.45.0 e a 030):
 
-1. O "22 na empresa · 15 na Formatar" do deck saiu do local/Sala da
-   reunião no ERP? Se a API não trouxer, o slide mostra só o total.
-2. Ação que **saiu da ata** sem concluir (`saiu_da_ata`): conta como não
-   feita ou fica fora da efetividade?
+1. Local da reunião: campo `placement` do `GET /meetings/{id}` (a chave já
+   tem `hub:meetings:read`) — Externo = no cliente, Interno remoto =
+   online, Interno presencial = na Formatar.
+2. Ação que **saiu da ata** sem concluir (`saiu_da_ata`): conta **como
+   feita**.
 
 ### Pendências, em ordem
 

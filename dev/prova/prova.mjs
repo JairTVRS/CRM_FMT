@@ -266,6 +266,12 @@ ok(!html.includes('papel_id') && !/\[object Object\]/.test(html),
 ok(!/undefined|null,|>null</.test(html.replace(/nullable/g, '')),
   'nenhum "undefined"/"null" impresso');
 
+// 2.45.0: o rodapé usa o endereço da contratada padrão; sem cadastro, o fixo.
+const htmlContratada = renderizarDossieCx(dados, { endereco: 'R. Pitangui, 845 — Bom Pastor <b>' });
+ok(htmlContratada.includes('R. Pitangui, 845 — Bom Pastor &lt;b&gt;') && !htmlContratada.includes('Coronel João Notini'),
+  'rodapé com o endereço da contratada padrão (escapado), sem o fixo antigo');
+ok(html.includes('Coronel João Notini'), 'sem contratada cadastrada, o rodapé fica no endereço fixo');
+
 // Conta sem ninguém mapeado: o documento não pode dizer que não há
 // interlocutor — só que o registro está vazio.
 const htmlVazio = renderizarDossieCx(montarDossieCx({

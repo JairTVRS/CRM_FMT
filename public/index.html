@@ -82,6 +82,15 @@
           </svg>
           Plano de Acao
         </a>
+        <!-- BIO (2.45.0): a página pública de contato (/bio). Aqui só se vê
+             a prévia e se copia o link para mandar a quem quiser. -->
+        <a href="#" class="menu-item" data-target="view-bio">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          BIO
+        </a>
       </nav>
 
       <!-- A versão, no canto inferior esquerdo (2.34.2). Clicar mostra o que
@@ -458,6 +467,51 @@
           <summary><span id="plano-avisos-total"></span></summary>
           <ul id="plano-avisos"></ul>
         </details>
+      </section>
+
+      <!-- TELA BIO (2.45.0): a página pública de contato. O link vai para
+           qualquer pessoa; quem abre cai no WhatsApp corporativo com um
+           clique. A página em si é public/bio.html. -->
+      <section id="view-bio" class="content-body hidden">
+        <header class="content-header">
+          <div class="header-titles">
+            <h1>BIO</h1>
+            <p class="subtitle">
+              A página de contato da Formatar. Mande o link a quem quiser: um
+              clique leva direto ao nosso WhatsApp.
+            </p>
+          </div>
+        </header>
+
+        <div class="bio-painel">
+          <div class="bio-link-caixa">
+            <label for="bio-link" class="bio-rotulo">Link para compartilhar</label>
+            <div class="bio-link-linha">
+              <input type="text" id="bio-link" class="form-control" readonly>
+              <button type="button" id="btn-bio-copiar" class="btn btn-primary">Copiar link</button>
+              <a id="btn-bio-abrir" class="btn btn-secondary" href="/bio" target="_blank" rel="noopener">Abrir</a>
+            </div>
+            <p id="bio-copiado" class="bio-copiado" aria-live="polite"></p>
+            <p class="bio-dica">
+              Serve para a bio do Instagram, a assinatura de e-mail, o cartão
+              ou uma mensagem. Quem abre não precisa de login.
+            </p>
+            <h3 class="bio-subtitulo">Imagens</h3>
+            <p class="bio-dica">
+              Clique no lápis sobre qualquer imagem da prévia para trocá-la. Nas
+              soluções e nas postagens dá para pôr também o link de destino. Os
+              vídeos vêm sozinhos do canal do YouTube.
+            </p>
+            <p id="bio-aviso" class="bio-erro"></p>
+          </div>
+
+          <div class="bio-previa">
+            <span class="bio-rotulo">Como a pessoa vê</span>
+            <div class="bio-celular">
+              <iframe id="bio-previa-quadro" title="Prévia da página BIO"></iframe>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- TELA 4: CONFIGURAÇÕES DO SISTEMA -->
@@ -1306,6 +1360,39 @@
     </div>
   </div>
 
+  <!-- BIO (2.45.0): trocar a imagem (e o link, onde couber) de um lugar
+       da página pública. Abre pelo lápis da prévia. -->
+  <div id="modal-bio" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 520px;">
+      <header class="modal-header">
+        <h2 id="bio-modal-titulo">Trocar imagem</h2>
+        <button type="button" id="btn-bio-fechar" class="btn-close" aria-label="Fechar">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div id="bio-modal-previa" class="bio-modal-previa"></div>
+        <p id="bio-modal-meta" class="bio-dica"></p>
+        <div class="bio-modal-escolha">
+          <button type="button" id="btn-bio-escolher" class="btn btn-secondary">Escolher imagem</button>
+          <span id="bio-modal-arquivo" class="bio-dica"></span>
+        </div>
+        <input type="file" id="bio-arquivo" accept="image/jpeg,image/png,image/webp" hidden>
+        <p id="bio-modal-dica" class="bio-dica"></p>
+        <div id="bio-modal-link-caixa" class="form-group">
+          <label for="bio-modal-link">Link ao clicar (opcional)</label>
+          <input type="url" id="bio-modal-link" class="form-control" placeholder="https://www.instagram.com/p/...">
+        </div>
+        <p id="bio-modal-erro" class="bio-erro" role="alert"></p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" id="btn-bio-remover" class="btn btn-secondary">Voltar ao padrão</button>
+        <div class="bio-modal-acoes">
+          <button type="button" id="btn-bio-cancelar" class="btn btn-secondary">Cancelar</button>
+          <button type="button" id="btn-bio-salvar" class="btn btn-primary">Salvar</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
   <!-- O Dossiê da Reunião (2.38.0). Mesmo sandbox dos outros
        visualizadores: sem allow-same-origin, o conteúdo escrito por IA não
        alcança o CRM; a barra "Salvar como PDF" do documento funciona. -->
@@ -1814,6 +1901,7 @@
        funil e recarrega a Jornada ao converter. -->
   <script src="js/conversao.js"></script>
   <script src="js/plano-acao.js"></script>
+  <script src="js/bio.js"></script>
   <script src="js/importar.js"></script>
 
   <!-- ===== Modal do Dossiê Executivo (js/dossie.js) ===== -->

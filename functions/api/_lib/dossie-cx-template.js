@@ -484,7 +484,7 @@ function folhaFechamento(d, n, total) {
       </div>
 
       <p style="text-align:center;font-size:8pt;color:${MARCA.cinza};margin-top:8mm">
-        ${FORMATAR.endereco}<br>
+        ${esc(d.enderecoRodape || FORMATAR.endereco)}<br>
         ${FORMATAR.telefone} &middot; ${FORMATAR.site} &middot; ${FORMATAR.email}
       </p>`
   });
@@ -494,8 +494,12 @@ function folhaFechamento(d, n, total) {
    MONTAGEM
    ========================================================================== */
 
-export function renderizarDossieCx(dados) {
-  const d = dados || {};
+/**
+ * `opcoes.endereco` (2.45.0): endereço do rodapé vindo do cadastro da
+ * contratada padrão, como na proposta e no contrato. Sem ele, o fixo.
+ */
+export function renderizarDossieCx(dados, opcoes = {}) {
+  const d = { ...(dados || {}), enderecoRodape: opcoes.endereco || null };
 
   // A capa não entra na contagem, como na proposta.
   const internas = 4;

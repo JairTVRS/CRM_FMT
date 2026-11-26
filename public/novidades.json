@@ -2,6 +2,19 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.45.0",
+      "data": "26/11/2026",
+      "titulo": "BIO: a página de contato da Formatar",
+      "itens": [
+        "Novo item BIO no menu: mostra o link da página de contato, com os botões Copiar link e Abrir, e uma prévia de como a pessoa vê no celular.",
+        "A página (/bio) é aberta a qualquer pessoa, sem login. O botão Vamos conversar leva direto ao WhatsApp corporativo, com a mensagem já escrita. Instagram, Facebook, LinkedIn, YouTube, TikTok e site nos ícones.",
+        "A pergunta \"Onde está o seu desafio hoje?\" indica a frente certa e abre o WhatsApp já dizendo qual.",
+        "Imagens pelo CRM: na prévia, o lápis sobre cada imagem (capa, avatar, soluções e postagens) troca a foto. Nas soluções e postagens dá para pôr também o link. A imagem é reduzida e comprimida antes de enviar.",
+        "Os últimos vídeos vêm sozinhos do canal do YouTube. Postagens sem imagem e links ainda sem destino não aparecem para quem visita.",
+        "Dossiê de Experiência: o endereço no rodapé agora vem do cadastro da empresa contratada padrão, como na proposta e no contrato."
+      ]
+    },
+    {
       "versao": "2.44.0",
       "data": "05/10/2026",
       "titulo": "Núcleos pelas carteiras do ERP e Stakeholders compacta",

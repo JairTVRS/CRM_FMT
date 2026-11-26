@@ -83,7 +83,11 @@ const classes = [
   'cor-realizada', 'cor-encerrada', 'agenda-legenda', 'agenda-andamento', 'em-andamento', 'aviso-em-andamento',
   // 2.36.1
   'agenda-janela', 'agenda-janela-topo', 'agenda-colunas', 'agenda-campos', 'agenda-lateral',
-  'gravacao-medidores', 'medidor', 'medidor-barra'
+  'gravacao-medidores', 'medidor', 'medidor-barra',
+  // 2.45.0
+  'bio-painel', 'bio-link-caixa', 'bio-rotulo', 'bio-link-linha', 'bio-copiado', 'bio-dica',
+  'bio-previa', 'bio-celular', 'bio-subtitulo', 'bio-erro', 'bio-modal-previa', 'bio-modal-escolha',
+  'bio-modal-acoes'
 ];
 
 const semEstilo = classes.filter((c) => !new RegExp(`\\.${c}\\b`).test(css));
@@ -118,6 +122,19 @@ for (const id of ['modal-conversao', 'conversao-impedimento', 'conversao-formula
 }
 console.log('  OK    o modal de conversão e o bloco da ficha estão no HTML');
 
+// A tela BIO (2.45.0): o item no menu, a tela e a janela de troca.
+{
+  const js = readFileSync(`${RAIZ}/public/js/bio.js`, 'utf8');
+  const procurados = new Set([...js.matchAll(/(?:getElementById|\bel)\('([^']+)'\)/g)].map((m) => m[1]));
+  const faltando = [...procurados].filter((id) => !idsNoHtml.has(id));
+  if (faltando.length || !idsNoHtml.has('view-bio') || !html.includes('data-target="view-bio"')) {
+    console.log(` FALHA  tela BIO incompleta no HTML: ${faltando.join(', ') || 'view-bio / item do menu'}`);
+    falhas++;
+  } else {
+    console.log(`  OK    tela BIO: item no menu e os ${procurados.size} ids do bio.js no HTML`);
+  }
+}
+
 /* ==========================================================================
    FUNCAO DECLARADA DUAS VEZES NO MESMO ARQUIVO
 
@@ -131,7 +148,7 @@ console.log('  OK    o modal de conversão e o bloco da ficha estão no HTML');
 const ARQUIVOS_JS = [
   'app.js', 'auth.js', 'cadastros.js', 'clientes.js', 'configuracoes.js',
   'conversao.js', 'dossie.js', 'dossie-cx.js', 'importar.js', 'leads.js',
-  'perda.js', 'agenda.js', 'roteiros.js', 'novidades.js', 'audio-wav.js', 'gravacao.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js'
+  'perda.js', 'agenda.js', 'roteiros.js', 'novidades.js', 'audio-wav.js', 'gravacao.js', 'plano-acao.js', 'proposta.js', 'quadro.js', 'stakeholders.js', 'bio.js'
 ];
 
 /* Duplicatas LEGITIMAS: mesmo nome, escopos diferentes.
