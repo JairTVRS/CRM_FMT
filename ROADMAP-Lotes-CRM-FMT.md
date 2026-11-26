@@ -1,7 +1,7 @@
 # Roadmap dos lotes — CRM Formatar
 
 **Atualizado em:** 26/11/2026
-**Versão no ar:** 2.45.0 (desde 26/11/2026; migrações 008 a 030 aplicadas no D1 remoto, a 030 em 26/11/2026 pelo --command; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
+**Versão no ar:** 2.46.0 (desde 26/11/2026; migrações 008 a 031 aplicadas no D1 remoto, a 030 e a 031 em 26/11/2026 pelo --command; binding **Workers AI** `AI` ligado desde 29/09/2026; Worker `crm-fmt-prospects-diario` com o Cron das 06:00)
 
 Este documento é o ponto de retomada. Registra o que já foi entregue, o
 que vem a seguir e o que está travado esperando material.
@@ -15,14 +15,24 @@ YouTube. Junto: o rodapé do Dossiê de Experiência usa o endereço da
 contratada padrão. Falta só o link "Avalie a Formatar no Google" (o Jair
 está pedindo acesso ao Perfil da Empresa); vazio, o link fica escondido.
 
+**26/11/2026 — 2.46.0, questionário da BIO:** "Vamos conversar" e "Falar
+com um especialista" abrem as 5 perguntas do Jair (papel, pessoas,
+faturamento, momento, quem decide) + nome e WhatsApp (CNPJ/CPF e e-mail
+opcionais). Vira lead em "Novo Lead", sem responsável, canal "BIO
+(questionário)", respostas nas observações e no relógio da ficha
+(migração 031 `bio_respostas`). Mesmo CNPJ/CPF ou telefone de lead ativo
+→ anexa ao lead (decisão do Jair: não duplicar). Campo-isca, tempo mínimo,
+5 envios/hora por aparelho. `/bio#conversar` abre direto. Junto: coluna
+"Criado em" na lista de leads; a ficha não apaga mais canal fora da lista.
+
 **Respostas do Jair em 26/11/2026:** template do contrato aprovado (item
 do jurídico fechado); ação que saiu da ata sem concluir conta **como
 feita** na efetividade do Lote PC; o local da reunião vem do campo
 `placement` do `GET /meetings/{id}` — Externo = no cliente, Interno remoto
 = online, Interno presencial = na Formatar. O Jair está com o responsável
-do hub para a leitura de tarefas. Como a BIO tomou a 2.45.0, o Lote PC
-passa a **2.46.0** (conferência das tarefas) e **2.47.0** (documento,
-migração **031**).
+do hub para a leitura de tarefas. Como a BIO tomou a 2.45.0 e o
+questionário a 2.46.0, o Lote PC passa a **2.47.0** (conferência das
+tarefas) e **2.48.0** (documento, migração **032**).
 
 **Ambiente local:** `npm run dev:hub` e `npx wrangler pages dev --port 3000
 --persist-to=.wrangler/local-2361 --ai AI` (o banco padrão em
@@ -55,14 +65,14 @@ passa à frente do N.
 | # | O quê | Para começar |
 |---|---|---|
 | 0 | Link "Avalie a Formatar no Google" na BIO | o Jair mandar o link "Pedir avaliações" (`https://g.page/r/.../review`); preencher em `public/bio.html` |
-| 1 | **Lote PC — Prestação de Contas** (2.46.0 conferência das tarefas; 2.47.0 o documento) | **a permissão de leitura de tarefas na chave do CRM** (algo como `hub:tasks:read`); as 2 dúvidas foram respondidas em 26/11 |
+| 1 | **Lote PC — Prestação de Contas** (2.47.0 conferência das tarefas; 2.48.0 o documento) | **a permissão de leitura de tarefas na chave do CRM** (algo como `hub:tasks:read`); as 2 dúvidas foram respondidas em 26/11 |
 | 2 | **Lote N — Check-in, NPS/CSAT e Voz do Cliente** | **desenhar com o Jair antes do código** — o que medir, quando perguntar, como o cliente responde, onde aparece |
 | — | ~~Conferir os núcleos da Zanna Sound contra as carteiras do ERP~~ | **feito em 06/10/2026**: batem |
 | — | ~~Primeiro contrato real lido pelo jurídico~~ | **fechado em 26/11/2026**: template aprovado |
 | — | ~~Endereço do Dossiê de Experiência~~ | **feito na 2.45.0**: contratada padrão |
 | 5 | Teste C da gravação (retomar depois de F5) | quando der — 2 minutos do Jair |
 
-Migração livre: **031**.
+Migração livre: **032**.
 
 ### Lote PC — Prestação de Contas (desenhado em 06/10/2026)
 
@@ -111,8 +121,9 @@ de Valor Gerado), sem os KPIs do K.
 | 2.45.0 | **Conferência das tarefas** (admin, cliente pelo nome, como a 2.42.0 das pessoas): o que a API de tarefas devolve — campos, horas, cliente, frente/carteira, responsáveis | nenhuma |
 | 2.46.0 | **Prestação de Contas** em Documentos de contexto | **030** |
 
-**Respondido em 26/11/2026** (as versões acima passam a 2.46.0 e 2.47.0,
-e a migração a 031, porque a BIO tomou a 2.45.0 e a 030):
+**Respondido em 26/11/2026** (as versões acima passam a 2.47.0 e 2.48.0,
+e a migração a 032, porque a BIO e o questionário tomaram a 2.45.0/2.46.0
+e as migrações 030/031):
 
 1. Local da reunião: campo `placement` do `GET /meetings/{id}` (a chave já
    tem `hub:meetings:read`) — Externo = no cliente, Interno remoto =

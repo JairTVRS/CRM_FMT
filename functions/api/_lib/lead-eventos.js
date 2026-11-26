@@ -188,7 +188,9 @@ export async function listarEventosLead(db, leadId) {
   }
 
   const n = await carregarNomes(db);
-  const quem = (email) => n.usuarios.get(String(email || '').toLowerCase()) || email;
+  // Autores que não são usuários: a importação diária e o questionário da BIO.
+  const SISTEMA = { 'importacao-diaria@crm': 'Importação diária do ERP', 'questionario-bio@crm': 'Questionário da BIO' };
+  const quem = (email) => n.usuarios.get(String(email || '').toLowerCase()) || SISTEMA[String(email || '').toLowerCase()] || email;
 
   const eventos = linhas.map((l) => {
     let d = null;

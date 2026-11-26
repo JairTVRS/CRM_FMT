@@ -53,6 +53,19 @@ const LeadHistorico = (() => {
       case 'contrato_gerado': return { icone: '✍', titulo: `Contrato gerado — versão ${esc(d.versao)}`, linhas: d.proposta_versao ? [`a partir da proposta v${esc(d.proposta_versao)}`] : [] };
       case 'convertido': return { icone: '★', titulo: 'Convertido em cliente', linhas: [] };
       case 'excluido': return { icone: '🗑', titulo: 'Lead excluído', linhas: [] };
+      // 2.46.0: o questionário da página BIO (lead novo, ou anexado a este).
+      case 'questionario_bio':
+        return {
+          icone: '📝',
+          titulo: d.novo ? 'Entrou pelo questionário da BIO' : 'Respondeu o questionário da BIO de novo',
+          linhas: [
+            ...(d.nome || d.telefone ? [`<strong>Quem respondeu</strong>: ${esc([d.nome, d.telefone].filter(Boolean).join(' · '))}`] : []),
+            ...(d.linhas || []).map((l) => {
+              const i = String(l).indexOf(': ');
+              return i > 0 ? `<strong>${esc(l.slice(0, i))}</strong>: ${esc(l.slice(i + 2))}` : esc(l);
+            })
+          ]
+        };
       default: return { icone: '•', titulo: esc(e.evento), linhas: [] };
     }
   }

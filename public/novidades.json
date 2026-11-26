@@ -2,6 +2,19 @@
   "sobre": "O que mudou em cada versão do CRM, da mais nova para a mais antiga. Aparece ao clicar no número da versão, no canto inferior esquerdo. A primeira entrada tem que ser a versão do package.json — a prova ids.mjs confere.",
   "versoes": [
     {
+      "versao": "2.46.0",
+      "data": "26/11/2026",
+      "titulo": "Questionário da BIO entra no funil",
+      "itens": [
+        "Na página BIO, os botões Vamos conversar e Falar com um especialista abrem um questionário: papel na empresa, número de pessoas, faturamento, momento e quem decide, mais nome e WhatsApp (CNPJ/CPF e e-mail são opcionais).",
+        "Quem responde entra no funil em Novo Lead, sem responsável, com o canal \"BIO (questionário)\". As respostas ficam nas observações e no relógio da ficha.",
+        "Não duplica: se o CNPJ/CPF ou o telefone já é de um lead, a nova resposta é anexada a ele e aparece no relógio.",
+        "Proteção contra robôs e no máximo 5 envios por aparelho por hora. Depois de enviar, a página só agradece.",
+        "Lista de leads com a coluna Criado em (data e hora): os mais novos aparecem primeiro.",
+        "Correção: abrir e salvar a ficha de um lead com canal fora da lista (como \"ERP (prospect)\") apagava o canal. Agora o canal é mantido."
+      ]
+    },
+    {
       "versao": "2.45.0",
       "data": "26/11/2026",
       "titulo": "BIO: a página de contato da Formatar",

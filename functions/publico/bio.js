@@ -7,11 +7,16 @@
  *   - os últimos vídeos do canal do YouTube.
  * Nada de dado de lead, cliente ou usuário — nem quem trocou a imagem.
  *
- * { vagas: { capa: { v: 3, link: null }, ... }, videos: [{ id, titulo, publicado }] }
+ *   - as perguntas do questionário (2.46.0), que vivem em
+ *     _lib/questionario-bio.js — a página não tem cópia delas.
+ *
+ * { vagas: { capa: { v: 3, link: null }, ... }, videos: [{ id, titulo, publicado }],
+ *   questionario: [{ id, tipo, titulo, opcoes, ... }] }
  * Só aparecem as vagas que têm imagem ou link.
  */
 
 import { VAGAS, buscarVideos } from '../api/_lib/bio.js';
+import { perguntasParaPagina } from '../api/_lib/questionario-bio.js';
 
 export async function onRequestGet(context) {
   const vagas = {};
@@ -29,7 +34,7 @@ export async function onRequestGet(context) {
 
   const videos = await buscarVideos();
 
-  return new Response(JSON.stringify({ vagas, videos }), {
+  return new Response(JSON.stringify({ vagas, videos, questionario: perguntasParaPagina() }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',

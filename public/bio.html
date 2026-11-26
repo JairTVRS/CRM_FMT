@@ -239,6 +239,71 @@
     .rodape p { color: var(--apoio); margin-top: 4px; }
     .rodape a:hover { color: var(--texto); }
 
+    /* ---------- Questionário (2.46.0) ---------- */
+    button.cta { cursor: pointer; }
+    .quest {
+      position: fixed; inset: 0; z-index: 50;
+      background: rgba(0, 0, 0, 0.82);
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 16px;
+    }
+    .quest[hidden] { display: none; }
+    .quest-caixa {
+      max-width: 680px; margin: 0 auto;
+      background: var(--fundo); border: 1px solid var(--borda); border-radius: var(--raio);
+      padding: 22px 18px 26px;
+    }
+    .quest-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .quest-topo h2 { font-size: 1.35rem; font-weight: 800; line-height: 1.2; }
+    .quest-topo p { color: var(--apoio); font-size: 0.95rem; margin-top: 4px; }
+    .quest-fechar {
+      flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid var(--borda); background: var(--cartao);
+      font-size: 1.3rem; line-height: 1; display: grid; place-items: center;
+    }
+    .quest-fechar:hover { border-color: var(--marca); }
+    .quest-desafio { display: inline-block; margin-top: 12px; border: 1px solid var(--marca); color: var(--marca-viva); border-radius: 6px; padding: 4px 10px; font-size: 0.88rem; font-weight: 600; }
+    /* fieldset nasce com min-width: min-content e estoura o celular. */
+    .quest fieldset { border: 0; margin-top: 22px; min-width: 0; }
+    .quest legend { font-weight: 800; font-size: 1.05rem; line-height: 1.3; margin-bottom: 4px; padding: 0; max-width: 100%; white-space: normal; }
+    .quest .ajuda { color: var(--apoio); font-size: 0.88rem; margin-bottom: 8px; }
+    .quest .marcar { color: var(--discreto); font-size: 0.8rem; margin-bottom: 8px; }
+    .quest-opcoes { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 8px; }
+    @media (min-width: 560px) { .quest-opcoes { grid-template-columns: 1fr 1fr; } }
+    .quest-opcao {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 10px;
+      background: var(--cartao); border: 1px solid var(--borda);
+      cursor: pointer; font-size: 0.98rem; transition: border-color .15s;
+    }
+    .quest-opcao:hover { border-color: #52525b; }
+    .quest-opcao input { accent-color: var(--marca); width: 18px; height: 18px; flex-shrink: 0; }
+    .quest-opcao:has(input:checked) { border-color: var(--marca); background: var(--cartao-2); }
+    .quest-campos { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 8px; }
+    @media (min-width: 560px) { .quest-campos { grid-template-columns: 1fr 1fr; } }
+    .quest-campo label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; }
+    .quest-campo label small { color: var(--discreto); font-weight: 400; }
+    .quest-campo input {
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      background: var(--cartao); border: 1px solid var(--borda); color: var(--texto);
+      font: inherit; font-size: 1rem;
+    }
+    .quest-campo input:focus { outline: none; border-color: var(--marca); }
+    .quest-isca { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    .quest-aceite { display: flex; gap: 10px; align-items: flex-start; margin-top: 22px; color: var(--apoio); font-size: 0.9rem; cursor: pointer; }
+    .quest-aceite input { accent-color: var(--marca); width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
+    .quest-erro { margin-top: 16px; padding: 12px 14px; border-radius: 10px; border: 1px solid #7f1d1d; background: #2a1212; color: #fecaca; font-size: 0.95rem; }
+    .quest-erro[hidden] { display: none; }
+    .quest-erro a { text-decoration: underline; }
+    .quest .invalido { border-color: #ef4444 !important; }
+    .quest-enviar { margin-top: 18px; }
+    .quest-enviar[disabled] { opacity: .6; cursor: wait; }
+    .quest-ok { text-align: center; padding: 26px 6px 8px; }
+    .quest-ok .marca-ok { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 16px; background: var(--marca); display: grid; place-items: center; font-size: 2rem; font-weight: 800; color: #fff; }
+    .quest-ok h2 { font-size: 1.35rem; font-weight: 800; }
+    .quest-ok p { color: var(--apoio); margin-top: 8px; }
+    body.sem-rolagem { overflow: hidden; }
+
     /* ---------- Modo edição (dentro do CRM) ---------- */
     .lapis {
       position: absolute; top: 8px; right: 8px; z-index: 2;
@@ -289,6 +354,19 @@
     ],
 
     botaoPrincipal: 'Vamos conversar',
+
+    // 2.46.0: os botões "Vamos conversar" e "Falar com um especialista"
+    // abrem o questionário. As PERGUNTAS não ficam aqui: vêm do servidor
+    // (functions/api/_lib/questionario-bio.js). Sem elas, os botões vão
+    // direto ao WhatsApp, como antes.
+    questionario: {
+      titulo: 'Vamos conversar',
+      subtitulo: 'Responda em menos de um minuto e um especialista da Formatar fala com você.',
+      aceite: 'Autorizo a Formatar a usar estes dados para entrar em contato comigo sobre os seus serviços.',
+      enviar: 'Enviar respostas',
+      okTitulo: 'Recebemos suas respostas!',
+      okTexto: 'Em breve um especialista da Formatar entra em contato pelo WhatsApp.'
+    },
 
     numeros: [
       { valor: '25+',  rotulo: 'anos de história',   fonte: 'Fonte: site Formatar' },
@@ -403,9 +481,236 @@
     }
     function icone(nome) { var s = el('span'); s.innerHTML = ICONES[nome] || ICONES.site; return s.firstChild; }
 
+    /* ------------------------------------------------------------------
+       QUESTIONÁRIO (2.46.0) — as perguntas vêm do servidor; quem envia
+       entra no funil do CRM (POST /publico/questionario).
+       ------------------------------------------------------------------ */
+    function criarQuestionario(perguntas) {
+      var Q = BIO.questionario;
+      var fundo = el('div', 'quest');
+      fundo.hidden = true;
+      fundo.setAttribute('role', 'dialog');
+      fundo.setAttribute('aria-modal', 'true');
+      fundo.setAttribute('aria-labelledby', 'quest-titulo');
+      document.body.appendChild(fundo);
+
+      function fechar() { fundo.hidden = true; document.body.classList.remove('sem-rolagem'); }
+      fundo.addEventListener('click', function (ev) { if (ev.target === fundo) fechar(); });
+      document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !fundo.hidden) fechar(); });
+
+      function abrir(desafio) {
+        var aberto = Date.now();
+        fundo.textContent = '';
+        var caixa = el('div', 'quest-caixa');
+        caixa.tabIndex = -1;
+
+        var topo = el('div', 'quest-topo');
+        var tt = el('div');
+        var h = el('h2', null, Q.titulo); h.id = 'quest-titulo';
+        tt.appendChild(h);
+        tt.appendChild(el('p', null, Q.subtitulo));
+        if (desafio) tt.appendChild(el('span', 'quest-desafio', 'Seu desafio: ' + desafio));
+        var x = el('button', 'quest-fechar', '×');
+        x.type = 'button'; x.setAttribute('aria-label', 'Fechar');
+        x.addEventListener('click', fechar);
+        topo.appendChild(tt); topo.appendChild(x);
+        caixa.appendChild(topo);
+
+        var form = el('form');
+        form.noValidate = true;
+        var blocos = {};
+
+        perguntas.forEach(function (p) {
+          var fs = el('fieldset');
+          fs.appendChild(el('legend', null, p.titulo));
+          if (p.ajuda) fs.appendChild(el('p', 'ajuda', p.ajuda));
+          if (p.tipo === 'multipla') fs.appendChild(el('p', 'marcar', 'Marque todas que se aplicam.'));
+          var grade = el('div', 'quest-opcoes');
+          p.opcoes.forEach(function (o) {
+            var lab = el('label', 'quest-opcao');
+            var inp = document.createElement('input');
+            inp.type = p.tipo === 'multipla' ? 'checkbox' : 'radio';
+            inp.name = p.id; inp.value = o;
+            lab.appendChild(inp); lab.appendChild(el('span', null, o));
+            grade.appendChild(lab);
+          });
+          fs.appendChild(grade);
+          form.appendChild(fs);
+          blocos[p.id] = fs;
+
+          // "Somente eu" desmarca as outras, e as outras desmarcam ele.
+          if (p.exclusiva) {
+            grade.addEventListener('change', function (ev) {
+              var t = ev.target;
+              if (!t.checked) return;
+              grade.querySelectorAll('input').forEach(function (i) {
+                if (i !== t && (t.value === p.exclusiva || i.value === p.exclusiva)) i.checked = false;
+              });
+            });
+          }
+        });
+
+        // A pergunta que some para o autônomo (q02 quando q01 = autônomo).
+        perguntas.forEach(function (p) {
+          if (!p.seAutonomo || !blocos[p.seAutonomo.pergunta]) return;
+          blocos[p.seAutonomo.pergunta].addEventListener('change', function (ev) {
+            if (ev.target.name !== p.seAutonomo.pergunta) return;
+            blocos[p.id].hidden = ev.target.value === p.seAutonomo.resposta;
+          });
+        });
+
+        // Dados para contato
+        var fsC = el('fieldset');
+        fsC.appendChild(el('legend', null, 'Seus dados para contato'));
+        var campos = el('div', 'quest-campos');
+        function campo(nome, rotulo, opcional, tipo, auto, modo) {
+          var c = el('div', 'quest-campo');
+          var lab = el('label', null, rotulo);
+          if (opcional) { lab.appendChild(document.createTextNode(' ')); lab.appendChild(el('small', null, '(opcional)')); }
+          var inp = document.createElement('input');
+          inp.type = tipo; inp.name = nome; inp.id = 'quest-' + nome;
+          inp.autocomplete = auto;
+          if (modo) inp.inputMode = modo;
+          lab.htmlFor = inp.id;
+          c.appendChild(lab); c.appendChild(inp);
+          campos.appendChild(c);
+          return inp;
+        }
+        var iNome = campo('nome', 'Seu nome', false, 'text', 'name');
+        var iTel = campo('telefone', 'WhatsApp', false, 'tel', 'tel', 'tel');
+        var iDoc = campo('documento', 'CNPJ ou CPF', true, 'text', 'off', 'numeric');
+        var iEmail = campo('email', 'E-mail', true, 'email', 'email', 'email');
+        iTel.placeholder = '(37) 99999-9999';
+        iTel.addEventListener('input', function () {
+          var d = iTel.value.replace(/\D/g, '').slice(0, 11);
+          iTel.value = d.length > 6 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, d.length - 4) + '-' + d.slice(-4)
+            : d.length > 2 ? '(' + d.slice(0, 2) + ') ' + d.slice(2) : d;
+        });
+        fsC.appendChild(campos);
+        form.appendChild(fsC);
+
+        // Campo-isca: invisível para gente; robô costuma preencher.
+        var isca = el('div', 'quest-isca');
+        isca.setAttribute('aria-hidden', 'true');
+        var iIsca = document.createElement('input');
+        iIsca.type = 'text'; iIsca.name = 'site'; iIsca.tabIndex = -1; iIsca.autocomplete = 'off';
+        isca.appendChild(iIsca);
+        form.appendChild(isca);
+
+        var aceite = el('label', 'quest-aceite');
+        var iAceite = document.createElement('input');
+        iAceite.type = 'checkbox';
+        aceite.appendChild(iAceite);
+        aceite.appendChild(el('span', null, Q.aceite));
+        form.appendChild(aceite);
+
+        var erro = el('div', 'quest-erro');
+        erro.hidden = true;
+        erro.setAttribute('role', 'alert');
+        form.appendChild(erro);
+
+        var enviar = el('button', 'cta quest-enviar', Q.enviar);
+        enviar.type = 'submit';
+        form.appendChild(enviar);
+        caixa.appendChild(form);
+
+        function mostrarErro(msg, alvo, comWhats) {
+          erro.textContent = msg;
+          if (comWhats) {
+            erro.appendChild(document.createTextNode(' '));
+            erro.appendChild(ligar(el('a', null, 'Falar pelo WhatsApp'), whatsapp()));
+          }
+          erro.hidden = false;
+          if (alvo) { alvo.classList.add('invalido'); if (alvo.focus) alvo.focus({ preventScroll: true }); }
+          (alvo || erro).scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+        var porCampo = { nome: iNome, telefone: iTel, documento: iDoc, email: iEmail, consentimento: aceite };
+
+        form.addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          erro.hidden = true;
+          form.querySelectorAll('.invalido').forEach(function (n) { n.classList.remove('invalido'); });
+
+          var respostas = {};
+          var falta = null;
+          perguntas.forEach(function (p) {
+            if (blocos[p.id].hidden) return;
+            var marcadas = [].slice.call(form.querySelectorAll('input[name="' + p.id + '"]:checked'))
+              .map(function (i) { return i.value; });
+            if (!marcadas.length && !falta) falta = p;
+            respostas[p.id] = p.tipo === 'multipla' ? marcadas : marcadas[0];
+          });
+          if (falta) return mostrarErro('Responda: ' + falta.titulo, blocos[falta.id]);
+          if (iNome.value.trim().length < 2) return mostrarErro('Informe o seu nome.', iNome);
+          var tel = iTel.value.replace(/\D/g, '');
+          if (tel.length !== 10 && tel.length !== 11) return mostrarErro('Informe o WhatsApp com DDD, por exemplo (37) 99999-9999.', iTel);
+          var doc = iDoc.value.replace(/\D/g, '');
+          if (doc && doc.length !== 11 && doc.length !== 14) return mostrarErro('Confira o CNPJ ou CPF, ou deixe o campo em branco.', iDoc);
+          if (!iAceite.checked) return mostrarErro('Para enviar, marque a autorização abaixo dos seus dados.', aceite);
+
+          // Dentro do CRM (prévia) nada é gravado.
+          if (editando) return mostrarErro('Prévia: dentro do CRM o envio fica desligado. Na página pública, este botão cria o lead no funil.');
+
+          enviar.disabled = true;
+          enviar.textContent = 'Enviando…';
+          fetch('/publico/questionario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nome: iNome.value, telefone: iTel.value, documento: iDoc.value, email: iEmail.value,
+              consentimento: true, respostas: respostas, desafio: desafio || null,
+              site: iIsca.value, t: Date.now() - aberto
+            })
+          })
+            .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (x) {
+              if (x.ok && x.d.ok) return mostrarOk();
+              mostrarErro(x.d.error || 'Não foi possível enviar agora.', porCampo[x.d.campo] || blocos[x.d.campo], !x.d.campo);
+            })
+            .catch(function () { mostrarErro('Sem conexão no momento. Tente de novo em instantes.', null, true); })
+            .then(function () { enviar.disabled = false; enviar.textContent = Q.enviar; });
+        });
+
+        function mostrarOk() {
+          caixa.textContent = '';
+          var ok = el('div', 'quest-ok');
+          ok.appendChild(el('div', 'marca-ok', '✓'));
+          var t = el('h2', null, Q.okTitulo); t.id = 'quest-titulo';
+          ok.appendChild(t);
+          ok.appendChild(el('p', null, Q.okTexto));
+          var b = el('button', 'cta', 'Fechar');
+          b.type = 'button';
+          b.addEventListener('click', fechar);
+          ok.appendChild(b);
+          caixa.appendChild(ok);
+          fundo.scrollTop = 0;
+        }
+
+        fundo.appendChild(caixa);
+        fundo.hidden = false;
+        fundo.scrollTop = 0;
+        document.body.classList.add('sem-rolagem');
+        caixa.focus({ preventScroll: true });
+      }
+
+      return { abrir: abrir };
+    }
+
     function montar(dados) {
       var vagas = (dados && dados.vagas) || {};
       var videos = (dados && dados.videos) || [];
+
+      // Com as perguntas, os botões de conversa abrem o questionário; sem
+      // elas (servidor fora), vão direto ao WhatsApp, como antes.
+      var perguntas = dados && Array.isArray(dados.questionario) && dados.questionario.length ? dados.questionario : null;
+      var quest = perguntas ? criarQuestionario(perguntas) : null;
+      function botaoConversa(rotulo, desafio, mensagem) {
+        if (!quest) return ligar(el('a', 'cta', rotulo), whatsapp(mensagem));
+        var b = el('button', 'cta', rotulo);
+        b.type = 'button';
+        b.addEventListener('click', function () { quest.abrir(desafio); });
+        return b;
+      }
 
       var imagemDe = function (vaga) {
         var x = vagas[vaga];
@@ -471,8 +776,10 @@
       perfil.appendChild(redes);
       raiz.appendChild(perfil);
 
-      // Botão principal: o WhatsApp
-      raiz.appendChild(ligar(el('a', 'cta', BIO.botaoPrincipal), whatsapp()));
+      // Botão principal: o questionário (ou o WhatsApp, sem ele)
+      raiz.appendChild(botaoConversa(BIO.botaoPrincipal, null));
+      // /bio#conversar abre o questionário direto (link para stories e anúncios).
+      if (quest && location.hash === '#conversar') setTimeout(function () { quest.abrir(null); }, 0);
 
       // Números
       var numeros = el('section', 'numeros');
@@ -521,7 +828,7 @@
         r.appendChild(el('strong', null, o.frente));
         r.appendChild(el('p', 'descricao', o.descricao));
         var msg = 'Olá! Vim pela página da Formatar. Meu desafio hoje é: ' + o.texto + '. Gostaria de conversar sobre ' + o.frente + '.';
-        r.appendChild(ligar(el('a', 'cta', 'Falar com um especialista'), whatsapp(msg)));
+        r.appendChild(botaoConversa('Falar com um especialista', o.texto, msg));
         var volta = el('button', 'refazer', 'Escolher outra resposta');
         volta.type = 'button';
         volta.addEventListener('click', mostrarPergunta);

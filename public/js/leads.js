@@ -105,7 +105,7 @@ const Leads = (() => {
 
     const corpo = el('table-leads-body');
     if (corpo) {
-      corpo.innerHTML = `<tr><td colspan="9" class="leads-vazio">Carregando…</td></tr>`;
+      corpo.innerHTML = `<tr><td colspan="10" class="leads-vazio">Carregando…</td></tr>`;
     }
 
     const params = new URLSearchParams({
@@ -133,7 +133,7 @@ const Leads = (() => {
 
     } catch (e) {
       if (corpo) {
-        corpo.innerHTML = `<tr><td colspan="9" class="leads-vazio">
+        corpo.innerHTML = `<tr><td colspan="10" class="leads-vazio">
           Não foi possível carregar os leads. Recarregue a página.</td></tr>`;
       }
     } finally {
@@ -152,7 +152,7 @@ const Leads = (() => {
     if (leadsNaTela.length === 0) {
       const filtrando = estado.busca || estado.ramo || estado.segmento
                      || estado.canal || estado.classificacao || estado.responsavel;
-      corpo.innerHTML = `<tr><td colspan="9" class="leads-vazio">${
+      corpo.innerHTML = `<tr><td colspan="10" class="leads-vazio">${
         filtrando
           ? 'Nenhum lead encontrado com esses filtros.'
           : 'Nenhum lead cadastrado ainda. Clique em “+ Incluir Lead” para começar.'
@@ -182,6 +182,16 @@ const Leads = (() => {
     return !encerrado && !lead.data_proximo_contato;
   }
 
+  /** 2.46.0: "26/11/2026 10:09", no horário de Brasília (a lista já vem do mais novo). */
+  function criadoEm(iso) {
+    const d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d)) return '—';
+    return d.toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    }).replace(',', '');
+  }
+
   function linha(lead) {
     const wa = linkWhatsApp(lead.telefone);
     const cnpj = String(lead.documento || '').replace(/\D/g, '');
@@ -197,6 +207,7 @@ const Leads = (() => {
       <td>${esc(formatarDocumento(lead.documento))}</td>
       <td>${esc(lead.telefone || '—')}</td>
       <td>${canal ? `<span class="badge">${esc(canal)}</span>` : '—'}</td>
+      <td class="celula-data" title="Quando o lead entrou no CRM">${esc(criadoEm(lead.criado_em))}</td>
       <td>${lead.responsavel
         ? esc(Cadastros.nomeDoUsuario(lead.responsavel))
         : '<span class="celula-secundaria">sem responsável</span>'}</td>
@@ -304,8 +315,16 @@ const Leads = (() => {
     // (2.41.1: o traço ia para o campo e parecia um valor preenchido).
     p('lead-input-doc', lead.documento ? formatarDocumento(lead.documento) : '');
     p('lead-input-phone', lead.telefone);
-    // Leads anteriores ao Lote A guardaram o valor em `origem`
-    p('lead-input-canal', lead.canal ?? lead.origem);
+    // Leads anteriores ao Lote A guardaram o valor em `origem`.
+    // 2.46.0: canal que não está na lista (ERP (prospect), BIO
+    // (questionário)) ganha a opção — sem ela o select ficava vazio e
+    // salvar a ficha apagava o canal.
+    const canal = lead.canal ?? lead.origem;
+    const selCanal = el('lead-input-canal');
+    if (canal && selCanal && ![...selCanal.options].some((o) => o.value === canal)) {
+      selCanal.add(new Option(canal, canal));
+    }
+    p('lead-input-canal', canal);
     p('lead-input-classificacao', lead.classificacao);
     p('lead-input-obs', lead.observacoes);
     p('lead-input-email', lead.email);
